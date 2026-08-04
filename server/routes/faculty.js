@@ -1,0 +1,1680 @@
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import db from '../db.js';
+import { authenticateToken } from './auth.js';
+import { calculateExperience, getHighestQualification } from './admin.js';
+import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } from '../utils/fileStorage.js';
+
+const router = express.Router();
+
+// 0. GET Faculty Personal Stats
+router.get('/stats', authenticateToken, (req, res) => {
+  const staffId = req.query.staffId || req.user.staffId;
+
+  const queries = {
+    publications: 'SELECT COUNT(*) as count FROM staff_publications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    books: 'SELECT COUNT(*) as count FROM staff_books WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    awards: 'SELECT COUNT(*) as count FROM staff_awards WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    memberships: 'SELECT COUNT(*) as count FROM staff_memberships WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    resource: 'SELECT COUNT(*) as count FROM staff_resource_talks WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    funding: 'SELECT COUNT(*) as count FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    ipr: 'SELECT COUNT(*) as count FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    certifications: 'SELECT COUNT(*) as count FROM staff_certifications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    events: 'SELECT COUNT(*) as count FROM staff_events WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    responsibilities: 'SELECT COUNT(*) as count FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) OR LOWER(TRIM(staff_id)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))'
+  };
+
+  const results = {};
+  let completed = 0;
+  const keys = Object.keys(queries);
+
+  keys.forEach(key => {
+    const params = key === 'responsibilities' ? [staffId, staffId] : [staffId];
+    db.get(queries[key], params, (err, row) => {
+      results[key] = row ? (row.count || 0) : 0;
+      completed++;
+      if (completed === keys.length) {
+        res.json(results);
+      }
+    });
+  });
+});
+
+// 1. GET Personal Profile & Academic details
+router.get('/personal', authenticateToken, (req, res) => {
+  const reqStaffId = req.query.staffId;
+  const isDeptAdmin = req.user.role === 'dept_admin';
+  const isAdmin = req.user.role === 'admin';
+  const isHod = req.user.isHod || (req.user.designation || '').toLowerCase().includes('hod') || (req.user.designation || '').toLowerCase().includes('head');
+
+  const now = new Date();
+
+  const sendEnriched = (rows) => {
+    if (!rows || rows.length === 0) return res.json([]);
+    db.all('SELECT staff_id, category, degree, specialization, year FROM staff_edu', [], (eErr, allEdu) => {
+      const eduMap = {};
+      (allEdu || []).forEach(item => {
+        const key = (item.staff_id || '').trim().toLowerCase();
+        if (!eduMap[key]) eduMap[key] = [];
+        eduMap[key].push(item);
+      });
+
+      const enriched = rows.map(r => {
+        const key = (r.staff_id || '').trim().toLowerCase();
+        const highestQual = getHighestQualification(eduMap[key] || [], r.Qualification);
+        return calculateExperience({ ...r, Qualification: highestQual }, now);
+      });
+
+      res.json(enriched);
+    });
+  };
+
+  if (reqStaffId && reqStaffId !== req.user.staffId) {
+    db.all(`
+      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.prev_exp_academic_years, a.prev_exp_academic_months, 
+             a.prev_exp_industry_years, a.prev_exp_industry_months, 
+             a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+      FROM staff_personal p
+      LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
+    `, [reqStaffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      sendEnriched(rows);
+    });
+  } else if (isDeptAdmin || isHod) {
+    let dept = (req.user.department || '').trim();
+
+    const fetchDeptFaculty = (departmentName) => {
+      db.all(`
+        SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+               a.prev_exp_academic_years, a.prev_exp_academic_months, 
+               a.prev_exp_industry_years, a.prev_exp_industry_months, 
+               a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
+               a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+        FROM staff_personal p
+        JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+        WHERE TRIM(LOWER(a.Department)) IN (
+          SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+          UNION
+          SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+          UNION
+          SELECT TRIM(LOWER(?))
+        )
+        ORDER BY p.staff_name ASC
+      `, [departmentName, departmentName, departmentName, departmentName, departmentName], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        sendEnriched(rows);
+      });
+    };
+
+    if (!dept) {
+      db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [req.user.staffId], (err, row) => {
+        dept = row ? (row.Department || '').trim() : '';
+        fetchDeptFaculty(dept);
+      });
+    } else {
+      fetchDeptFaculty(dept);
+    }
+  } else if (isAdmin) {
+    db.all(`
+      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.prev_exp_academic_years, a.prev_exp_academic_months, 
+             a.prev_exp_industry_years, a.prev_exp_industry_months, 
+             a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+      FROM staff_personal p
+      LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      ORDER BY p.staff_name ASC
+    `, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      sendEnriched(rows);
+    });
+  } else {
+    db.all(`
+      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.prev_exp_academic_years, a.prev_exp_academic_months, 
+             a.prev_exp_industry_years, a.prev_exp_industry_months, 
+             a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+      FROM staff_personal p
+      LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
+    `, [req.user.staffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      sendEnriched(rows);
+    });
+  }
+});
+
+// 2. UPDATE Personal Details (supports inline updates and full form updates)
+router.post('/personal/update', authenticateToken, (req, res) => {
+  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
+  const { name, value, pk, ...fullFields } = req.body;
+
+  // Inline update
+  if (name !== undefined && value !== undefined) {
+    const lockedFieldsForFaculty = ['staff_name', 'email', 'type', 'Date_of_joining', 'Department', 'Designation', 'staff_id'];
+    if (req.user.role === 'faculty' && lockedFieldsForFaculty.includes(name)) {
+      return res.status(403).json({ error: 'Access denied: Only System Administrators can modify this parameter.' });
+    }
+
+    const query = `UPDATE staff_personal SET ${name} = ? WHERE staff_id = ?`;
+    db.run(query, [value, staffId], function(err) {
+      if (err) return res.status(500).json({ error: 'Failed to update field' });
+      res.json({ success: true, message: 'Field updated successfully' });
+    });
+  } else {
+    // Full form update
+    const { staff_name, dob, gender, address, mobile, email, pan, aadhar, type, aicte_id, anna_univ_id, apaar_id } = req.body;
+
+    if (req.user.role === 'faculty') {
+      // Preserve existing locked fields for faculty
+      db.get('SELECT staff_name, email, type FROM staff_personal WHERE staff_id = ?', [staffId], (pErr, existing) => {
+        const finalName = existing ? existing.staff_name : staff_name;
+        const finalEmail = existing ? existing.email : email;
+        const finalType = existing ? existing.type : type;
+
+        db.run(`
+          UPDATE staff_personal 
+          SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
+              aicte_id = ?, anna_univ_id = ?, apaar_id = ?
+          WHERE staff_id = ?
+        `, [finalName, dob, gender, address, mobile, finalEmail, pan, aadhar, finalType, aicte_id || '', anna_univ_id || '', apaar_id || '', staffId], function(err) {
+          if (err) return res.status(500).json({ error: 'Failed to update profile' });
+          res.json({ success: true, message: 'Profile updated successfully' });
+        });
+      });
+    } else {
+      db.run(`
+        UPDATE staff_personal 
+        SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
+            aicte_id = ?, anna_univ_id = ?, apaar_id = ?
+        WHERE staff_id = ?
+      `, [staff_name, dob, gender, address, mobile, email, pan, aadhar, type, aicte_id || '', anna_univ_id || '', apaar_id || '', staffId], function(err) {
+        if (err) return res.status(500).json({ error: 'Failed to update profile' });
+        res.json({ success: true, message: 'Profile updated successfully' });
+      });
+    }
+  }
+});
+
+// 2b. UPLOAD Personal Document (PAN, Aadhar, Appointment Order, Joining Report)
+const srecStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const staffId = (req.user && req.user.role === 'admin' && req.body && req.body.staffId)
+      ? req.body.staffId
+      : (req.user ? req.user.staffId : (req.body ? req.body.staffId : 'faculty123'));
+
+    getFacultyDepartment(staffId, (err, dept) => {
+      const dir = getFacultyStorageDir(staffId, dept);
+      cb(null, dir);
+    });
+  },
+  filename: (req, file, cb) => {
+    const staffId = (req.user && req.user.role === 'admin' && req.body && req.body.staffId)
+      ? req.body.staffId
+      : (req.user ? req.user.staffId : (req.body ? req.body.staffId : 'faculty123'));
+
+    const formattedName = formatFacultyFileName(staffId, file.originalname);
+    cb(null, formattedName);
+  }
+});
+
+const docUpload = multer({ storage: srecStorage });
+
+router.post('/personal/upload-doc', authenticateToken, docUpload.single('file'), (req, res) => {
+  const { docType } = req.body;
+  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
+
+  const validDocTypes = ['pan_file', 'aadhar_file', 'appointment_order_file', 'joining_report_file'];
+  if (!validDocTypes.includes(docType)) {
+    return res.status(400).json({ error: 'Invalid document type requested.' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No document file was selected.' });
+  }
+
+  const fileName = req.file.filename;
+
+  db.run(`UPDATE staff_personal SET ${docType} = ? WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))`, [fileName, staffId], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    res.json({ success: true, fileName, message: 'Document uploaded successfully!' });
+  });
+});
+
+// 3. GET Academic Details
+router.get('/academics', authenticateToken, (req, res) => {
+  const staffId = req.query.staffId || req.user.staffId;
+
+  db.get('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (!row) return res.json([]);
+
+    db.all('SELECT staff_id, category, degree, specialization, year FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (eErr, eduRows) => {
+      const highestQual = getHighestQualification(eduRows || [], row.Qualification);
+      const enriched = calculateExperience({ ...row, Qualification: highestQual }, new Date());
+      res.json([enriched]);
+    });
+  });
+});
+
+// 4. UPDATE Academic Details
+router.post('/academics/update', authenticateToken, (req, res) => {
+  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId || req.user.staff_id) : (req.user.staffId || req.user.staff_id);
+  const {
+    Date_of_joining, Department, Designation, Qualification,
+    orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations
+  } = req.body;
+
+  db.run(`
+    INSERT INTO staff_academics (
+      staff_id, Date_of_joining, Department, Designation, Qualification,
+      orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      Date_of_joining = VALUES(Date_of_joining),
+      Department = VALUES(Department),
+      Designation = VALUES(Designation),
+      Qualification = VALUES(Qualification),
+      orcid_id = VALUES(orcid_id),
+      scholar_id = VALUES(scholar_id),
+      scopus_id = VALUES(scopus_id),
+      wos_id = VALUES(wos_id),
+      h_index = VALUES(h_index),
+      i10_index = VALUES(i10_index),
+      total_citations = VALUES(total_citations)
+  `, [
+    staffId || '', Date_of_joining || '', Department || '', Designation || '', Qualification || '',
+    orcid_id || '', scholar_id || '', scopus_id || '', wos_id || '',
+    parseInt(h_index || 0), parseInt(i10_index || 0), parseInt(total_citations || 0)
+  ], function(err) {
+    if (err) {
+      console.error('Academics update error:', err);
+      return res.status(500).json({ error: 'Failed to update academic info' });
+    }
+    res.json({ success: true });
+  });
+});
+
+// 4b. GET Live Citation & Bibliometrics Sync Endpoint
+router.get('/fetch-citation-metrics', authenticateToken, (req, res) => {
+  const staffId = req.query.staffId;
+  const reqDept = req.query.department || (req.user.role === 'dept_admin' ? req.user.department : null);
+
+  // If a department aggregate is requested (or dept_admin viewing all department faculty)
+  if (!staffId && reqDept) {
+    db.all(`
+      SELECT 
+        COALESCE(SUM(total_citations), 0) as total_citations,
+        COALESCE(MAX(h_index), 0) as h_index,
+        COALESCE(SUM(i10_index), 0) as i10_index,
+        COUNT(DISTINCT staff_id) as faculty_count
+      FROM staff_academics 
+      WHERE TRIM(LOWER(Department)) IN (
+        SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(?))
+      )
+    `, [reqDept, reqDept, reqDept, reqDept, reqDept], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error fetching department metrics' });
+      const stats = rows && rows[0] ? rows[0] : { total_citations: 0, h_index: 0, i10_index: 0, faculty_count: 0 };
+      
+      db.all(`
+        SELECT p.index_pub, p.web_of_science FROM staff_publication p
+        LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+        WHERE TRIM(LOWER(a.Department)) IN (
+          SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+          UNION
+          SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+          UNION
+          SELECT TRIM(LOWER(?))
+        )
+      `, [reqDept, reqDept, reqDept, reqDept, reqDept], (pErr, pRows) => {
+        let scopusCount = 0, wosCount = 0;
+        (pRows || []).forEach(p => {
+          const idx = (p.index_pub || '').toLowerCase();
+          const wosVal = (p.web_of_science || '').toString().toLowerCase();
+          if (idx.includes('scopus')) scopusCount++;
+          if (idx.includes('wos') || idx.includes('sci') || (wosVal && wosVal !== '0' && wosVal !== 'null' && wosVal !== 'false')) wosCount++;
+        });
+
+        return res.json({
+          success: true,
+          isAggregate: true,
+          department: reqDept,
+          total_citations: stats.total_citations || 0,
+          h_index: stats.h_index || 0,
+          i10_index: stats.i10_index || 0,
+          faculty_count: stats.faculty_count || 0,
+          scopus_publications_count: scopusCount,
+          wos_publications_count: wosCount
+        });
+      });
+    });
+    return;
+  }
+
+  // System-wide aggregate for System Admin if no staffId or department specified
+  if (!staffId && req.user.role === 'admin') {
+    db.all(`
+      SELECT 
+        COALESCE(SUM(total_citations), 0) as total_citations,
+        COALESCE(MAX(h_index), 0) as h_index,
+        COALESCE(SUM(i10_index), 0) as i10_index,
+        COUNT(DISTINCT staff_id) as faculty_count
+      FROM staff_academics
+    `, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error fetching system metrics' });
+      const stats = rows && rows[0] ? rows[0] : { total_citations: 0, h_index: 0, i10_index: 0, faculty_count: 0 };
+      
+      db.all('SELECT index_pub, web_of_science FROM staff_publication', [], (pErr, pRows) => {
+        let scopusCount = 0, wosCount = 0;
+        (pRows || []).forEach(p => {
+          const idx = (p.index_pub || '').toLowerCase();
+          const wosVal = (p.web_of_science || '').toString().toLowerCase();
+          if (idx.includes('scopus')) scopusCount++;
+          if (idx.includes('wos') || idx.includes('sci') || (wosVal && wosVal !== '0' && wosVal !== 'null' && wosVal !== 'false')) wosCount++;
+        });
+
+        return res.json({
+          success: true,
+          isAggregate: true,
+          department: 'All Departments',
+          total_citations: stats.total_citations || 0,
+          h_index: stats.h_index || 0,
+          i10_index: stats.i10_index || 0,
+          faculty_count: stats.faculty_count || 0,
+          scopus_publications_count: scopusCount,
+          wos_publications_count: wosCount
+        });
+      });
+    });
+    return;
+  }
+
+  // Individual Faculty Record
+  const targetStaffId = staffId || req.user.staffId;
+  db.get('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId], async (err, row) => {
+    if (err || !row) {
+      return res.json({
+        success: true,
+        isAggregate: false,
+        staffId: targetStaffId,
+        total_citations: 0,
+        h_index: 0,
+        i10_index: 0,
+        scopus_publications_count: 0,
+        wos_publications_count: 0,
+        scholar_id: '',
+        scopus_id: '',
+        orcid_id: '',
+        wos_id: ''
+      });
+    }
+
+    const scholarId = (row.scholar_id || '').trim();
+    const scopusId = (row.scopus_id || '').trim();
+    const orcidId = (row.orcid_id || '').trim();
+    const wosId = (row.wos_id || '').trim();
+
+    let fetchedCitations = row.total_citations || 0;
+    let fetchedHIndex = row.h_index || 0;
+    let fetchedI10Index = row.i10_index || 0;
+
+    // 1. Google Scholar Live Citation Sync
+    if (scholarId) {
+      const cleanId = scholarId.includes('user=') ? scholarId.split('user=')[1].split('&')[0] : scholarId;
+      const url = `https://scholar.google.com/citations?user=${cleanId}&hl=en`;
+
+      try {
+        const response = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+        });
+        const html = await response.text();
+
+        const cMatch = html.match(/Citations<\/a><\/td><td class=\"gsc_rsb_std\">(\d+)<\/td>/);
+        const hMatch = html.match(/h-index<\/a><\/td><td class=\"gsc_rsb_std\">(\d+)<\/td>/);
+        const iMatch = html.match(/i10-index<\/a><\/td><td class=\"gsc_rsb_std\">(\d+)<\/td>/);
+
+        if (cMatch) fetchedCitations = parseInt(cMatch[1]);
+        if (hMatch) fetchedHIndex = parseInt(hMatch[1]);
+        if (iMatch) fetchedI10Index = parseInt(iMatch[1]);
+
+        db.run(`
+          UPDATE staff_academics 
+          SET total_citations = ?, h_index = ?, i10_index = ?, last_citation_sync = CURRENT_TIMESTAMP
+          WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
+        `, [fetchedCitations, fetchedHIndex, fetchedI10Index, targetStaffId]);
+      } catch (fErr) {
+        console.warn('Google Scholar fetch warning:', fErr.message);
+      }
+    }
+
+    // 2. Live Scopus & WoS Fetching via ORCID / Scopus API
+    let liveOrcidScopus = 0;
+    let liveOrcidWos = 0;
+    let liveElsevierScopus = 0;
+
+    const cleanOrcid = (orcidId || '').replace(/https?:\/\/orcid\.org\//i, '').trim();
+    if (cleanOrcid) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const oRes = await fetch(`https://pub.orcid.org/v3.0/${cleanOrcid}/works`, {
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (oRes.ok) {
+          const oData = await oRes.json();
+          (oData.group || []).forEach(g => {
+            const summary = g['work-summary'] ? g['work-summary'][0] : null;
+            if (summary) {
+              const source = summary['source'] ? (summary['source']['source-name'] ? summary['source']['source-name'].value : '') : '';
+              const extIds = (summary['external-ids'] ? summary['external-ids']['external-id'] : []) || [];
+              const extTypes = extIds.map(e => (e['external-id-type'] || '').toLowerCase());
+              if (extTypes.includes('eid') || source.toLowerCase().includes('scopus')) liveOrcidScopus++;
+              if (extTypes.includes('wosuid') || source.toLowerCase().includes('web of science') || source.toLowerCase().includes('researcherid')) liveOrcidWos++;
+            }
+          });
+        }
+      } catch (oErr) {
+        console.warn('ORCID live fetch warning:', oErr.message);
+      }
+    }
+
+    const scopusApiKey = process.env.SCOPUS_API_KEY;
+    const cleanScopus = scopusId.includes('authorId=') 
+      ? scopusId.split('authorId=')[1].split('&')[0] 
+      : scopusId.replace(/https?:\/\/www\.scopus\.com\/authid\/detail\.uri\?authorId=/i, '').trim();
+
+    if (cleanScopus && scopusApiKey) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const sRes = await fetch(`https://api.elsevier.com/content/author/author_id/${cleanScopus}`, {
+          headers: { 'Accept': 'application/json', 'X-ELS-APIKey': scopusApiKey },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          const docCountStr = sData['author-retrieval-response']?.[0]?.coredata?.['document-count'];
+          if (docCountStr) liveElsevierScopus = parseInt(docCountStr, 10);
+        }
+      } catch (sErr) {
+        console.warn('Elsevier API live fetch warning:', sErr.message);
+      }
+    }
+
+    db.all('SELECT index_pub, web_of_science FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId], (pErr, pRows) => {
+      let localScopusCount = 0, localWosCount = 0;
+      (pRows || []).forEach(p => {
+        const idx = (p.index_pub || '').toLowerCase();
+        const wosVal = (p.web_of_science || '').toString().toLowerCase();
+        if (idx.includes('scopus')) localScopusCount++;
+        if (idx.includes('wos') || idx.includes('sci') || (wosVal && wosVal !== '0' && wosVal !== 'null' && wosVal !== 'false')) localWosCount++;
+      });
+
+      const finalScopusCount = Math.max(localScopusCount, liveOrcidScopus, liveElsevierScopus);
+      const finalWosCount = Math.max(localWosCount, liveOrcidWos);
+
+      return res.json({
+        success: true,
+        isAggregate: false,
+        staffId: targetStaffId,
+        scholar_id: scholarId,
+        scopus_id: scopusId,
+        orcid_id: orcidId,
+        wos_id: wosId,
+        total_citations: fetchedCitations,
+        h_index: fetchedHIndex,
+        i10_index: fetchedI10Index,
+        scopus_publications_count: finalScopusCount,
+        wos_publications_count: finalWosCount,
+        last_citation_sync: new Date().toISOString()
+      });
+    });
+  });
+});
+
+// 4c. GET Top Performing Faculty & Department Bibliometrics Leaderboards
+router.get('/top-performing-bibliometrics', authenticateToken, (req, res) => {
+  const reqDept = req.query.department || (req.user.role === 'dept_admin' ? req.user.department : null);
+
+  // If department specified or dept_admin login: fetch top faculty in department
+  if (reqDept && reqDept !== 'All Departments') {
+    db.all(`
+      SELECT 
+        sa.staff_id, 
+        COALESCE(NULLIF(sp.staff_name, ''), sa.staff_id) as staff_name, 
+        sa.Department, 
+        sa.Designation, 
+        COALESCE(sa.total_citations, 0) as total_citations, 
+        COALESCE(sa.h_index, 0) as h_index, 
+        COALESCE(sa.i10_index, 0) as i10_index,
+        sa.scholar_id,
+        sa.scopus_id,
+        sa.orcid_id
+      FROM staff_academics sa
+      LEFT JOIN staff_personal sp ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(sp.staff_id))
+      WHERE TRIM(LOWER(sa.Department)) IN (
+        SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(?))
+      )
+      ORDER BY total_citations DESC, h_index DESC, i10_index DESC 
+      LIMIT 10
+    `, [reqDept, reqDept, reqDept, reqDept, reqDept], (err, topFaculty) => {
+      if (err) return res.status(500).json({ error: 'Database error fetching top faculty' });
+      return res.json({
+        success: true,
+        department: reqDept,
+        topFaculty: topFaculty || []
+      });
+    });
+    return;
+  }
+
+  // If System Admin (admin) or System-Wide scope: fetch top faculty system-wide AND top departments
+  db.all(`
+    SELECT 
+      sa.staff_id, 
+      COALESCE(NULLIF(sp.staff_name, ''), sa.staff_id) as staff_name, 
+      sa.Department, 
+      sa.Designation, 
+      COALESCE(sa.total_citations, 0) as total_citations, 
+      COALESCE(sa.h_index, 0) as h_index, 
+      COALESCE(sa.i10_index, 0) as i10_index,
+      sa.scholar_id,
+      sa.scopus_id,
+      sa.orcid_id
+    FROM staff_academics sa
+    LEFT JOIN staff_personal sp ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(sp.staff_id))
+    ORDER BY total_citations DESC, h_index DESC, i10_index DESC 
+    LIMIT 10
+  `, [], (fErr, topFaculty) => {
+    if (fErr) return res.status(500).json({ error: 'Database error fetching top faculty' });
+
+    db.all(`
+      SELECT 
+        sa.Department as department,
+        SUM(COALESCE(sa.total_citations, 0)) as total_citations,
+        MAX(COALESCE(sa.h_index, 0)) as max_h_index,
+        SUM(COALESCE(sa.i10_index, 0)) as total_i10_index,
+        COUNT(DISTINCT sa.staff_id) as faculty_count
+      FROM staff_academics sa
+      WHERE sa.Department IS NOT NULL AND sa.Department != ''
+      GROUP BY sa.Department
+      ORDER BY total_citations DESC, max_h_index DESC 
+      LIMIT 10
+    `, [], (dErr, topDepartments) => {
+      if (dErr) return res.status(500).json({ error: 'Database error fetching top departments' });
+
+      return res.json({
+        success: true,
+        scope: 'System-Wide',
+        topFaculty: topFaculty || [],
+        topDepartments: topDepartments || []
+      });
+    });
+  });
+});
+
+// 5. GET Education Details
+router.get('/education', authenticateToken, (req, res) => {
+  const reqStaffId = req.query.staffId;
+  const isDeptAdmin = req.user.role === 'dept_admin';
+  const isAdmin = req.user.role === 'admin';
+
+  if (reqStaffId && reqStaffId !== req.user.staffId) {
+    db.all(`
+      SELECT i.*, a.Department, a.Designation, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name 
+      FROM staff_edu i 
+      LEFT JOIN staff_academics a ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(i.staff_id)) = LOWER(TRIM(?))
+    `, [reqStaffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else if (isDeptAdmin) {
+    const dept = (req.user.department || '').trim();
+    db.all(`
+      SELECT i.*, a.Department, a.Designation, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name 
+      FROM staff_edu i 
+      JOIN staff_academics a ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE TRIM(LOWER(a.Department)) IN (
+        SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(?))
+      )
+    `, [dept, dept, dept, dept, dept], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else if (isAdmin) {
+    db.all(`
+      SELECT i.*, a.Department, a.Designation, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name 
+      FROM staff_edu i 
+      LEFT JOIN staff_academics a ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(p.staff_id))
+    `, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else {
+    db.all(`
+      SELECT i.*, a.Department, a.Designation, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name 
+      FROM staff_edu i 
+      LEFT JOIN staff_academics a ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(i.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(i.staff_id)) = LOWER(TRIM(?))
+    `, [req.user.staffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  }
+});
+
+// Configure Multer for Education Certificates & Profile Uploads
+const upload = multer({ storage: srecStorage });
+
+// 6. ADD Education Details
+router.post('/education', authenticateToken, upload.single('file'), (req, res) => {
+  const staffId = req.user.staffId;
+  const { category, degree, specialization, institute, board, year, percentage } = req.body;
+  
+  let file = null;
+  let fileType = null;
+  let fileSize = 0;
+
+  if (req.file) {
+    file = req.file.filename;
+    fileType = req.file.mimetype;
+    fileSize = (req.file.size / 1000).toFixed(2); // KB
+  }
+
+  db.run(`
+    INSERT INTO staff_edu (staff_id, category, degree, specialization, institute, board, year, percentage, file, type, size)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [staffId, category, degree, specialization, institute, board, year, percentage, file, fileType, fileSize], function(err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json({ success: true, id: this.lastID });
+  });
+});
+
+// 7. DELETE Education Details
+router.delete('/education/:id', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const id = req.params.id;
+
+  db.run('DELETE FROM staff_edu WHERE id = ? AND staff_id = ?', [id, staffId], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true });
+  });
+});
+
+// 7b. UPDATE Education Details
+router.put('/education/:id', authenticateToken, upload.single('file'), (req, res) => {
+  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
+  const id = req.params.id;
+  const { category, degree, specialization, institute, board, year, percentage } = req.body;
+
+  if (req.file) {
+    const file = req.file.filename;
+    const fileType = req.file.mimetype;
+    const fileSize = (req.file.size / 1000).toFixed(2);
+
+    db.run(`
+      UPDATE staff_edu 
+      SET category = ?, degree = ?, specialization = ?, institute = ?, board = ?, year = ?, percentage = ?, file = ?, type = ?, size = ?
+      WHERE id = ? AND (staff_id = ? OR ? = 'admin')
+    `, [category, degree, specialization, institute, board, year, percentage, file, fileType, fileSize, id, staffId, req.user.role], function(err) {
+      if (err) return res.status(500).json({ error: 'Database error updating qualification' });
+      res.json({ success: true, message: 'Qualification updated successfully' });
+    });
+  } else {
+    db.run(`
+      UPDATE staff_edu 
+      SET category = ?, degree = ?, specialization = ?, institute = ?, board = ?, year = ?, percentage = ?
+      WHERE id = ? AND (staff_id = ? OR ? = 'admin')
+    `, [category, degree, specialization, institute, board, year, percentage, id, staffId, req.user.role], function(err) {
+      if (err) return res.status(500).json({ error: 'Database error updating qualification' });
+      res.json({ success: true, message: 'Qualification updated successfully' });
+    });
+  }
+});
+
+// 8. GET Professional Memberships
+router.get('/memberships', authenticateToken, (req, res) => {
+  const staffId = req.query.staffId || req.user.staffId;
+
+  db.all('SELECT * FROM staff_member WHERE staff_id = ?', [staffId], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json(rows);
+  });
+});
+
+// 9. ADD Professional Membership
+router.post('/memberships', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const { membershipid, organization } = req.body;
+
+  db.get('SELECT staff_name FROM staff_personal WHERE staff_id = ?', [staffId], (err, row) => {
+    const staffName = row ? row.staff_name : '';
+    db.run(`
+      INSERT INTO staff_member (staff_id, staff_name, membershipid, organization)
+      VALUES (?, ?, ?, ?)
+    `, [staffId, staffName, membershipid, organization], function(err) {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json({ success: true, id: this.lastID });
+    });
+  });
+});
+
+// 10. DELETE Professional Membership
+router.delete('/memberships/:id', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const id = req.params.id;
+
+  db.run('DELETE FROM staff_member WHERE id = ? AND staff_id = ?', [id, staffId], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true });
+  });
+});
+
+// 10b. GET Appraisal Template Criteria & Rubrics
+router.get('/appraisal/template', authenticateToken, (req, res) => {
+  db.all('SELECT * FROM appraisal_template ORDER BY display_order ASC, id ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error: ' + (err ? err.message : '') });
+    
+    if (rows && rows.length > 0) {
+      return res.json(rows);
+    }
+
+    // Auto-seed default FPI.docx criteria and rubrics if empty
+    const defaultFpiItems = [
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A1', criteria_title: 'Innovative ICT Tools Integrated in Course Delivery', rubric_description: '5 marks per innovative ICT tool (Kahoot, Virtual Labs, Canvas, Padlet, Google Classroom) integrated into course delivery.', mapping_type: 'manual', max_marks: 10, display_order: 1 },
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A2', criteria_title: 'E-Content & Video Lectures Developed', rubric_description: '5 marks per original e-content / video lecture module developed and hosted on LMS / YouTube.', mapping_type: 'manual', max_marks: 10, display_order: 2 },
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A3', criteria_title: 'Development of New Lab Experiments / Manuals', rubric_description: '5 marks per new lab experiment or virtual lab manual developed for curriculum enhancement.', mapping_type: 'manual', max_marks: 10, display_order: 3 },
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A4', criteria_title: 'Student Feedback Score Rating', rubric_description: '10 marks for average feedback rating >=4.5/5, 7 marks for 4.0-4.4, 5 marks for 3.0-3.9.', mapping_type: 'manual', max_marks: 10, display_order: 4 },
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A5', criteria_title: 'End Semester Course Pass Percentage', rubric_description: '10 marks for pass percentage >=85%, 7 marks for 75-84%, 5 marks for 60-74%.', mapping_type: 'manual', max_marks: 10, display_order: 5 },
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A6', criteria_title: 'Value Added Courses & Industry Workshops Delivered', rubric_description: '5 marks per value-added course or industry hands-on workshop conducted.', mapping_type: 'manual', max_marks: 5, display_order: 6 },
+      { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A7', criteria_title: 'Mentoring Students in Hackathons & Competitions', rubric_description: '5 marks for mentoring winning/finalist teams in national/international hackathons.', mapping_type: 'manual', max_marks: 5, display_order: 7 },
+
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B1', criteria_title: 'Professional Society Memberships', rubric_description: 'Automatic mapping: 3 marks per active professional society membership (IEEE, ISTE, ACM, CSI, etc.) [Max 3 pts].', mapping_type: 'auto', max_marks: 3, display_order: 8 },
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B2', criteria_title: 'Resource Speaker / Session Chair / Invited Talks', rubric_description: 'Automatic mapping: 2 marks per invited guest lecture, resource talk, or session chair role delivered [Max 4 pts].', mapping_type: 'auto', max_marks: 4, display_order: 9 },
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B3', criteria_title: 'FDPs / STTPs / Workshops Attended', rubric_description: 'Automatic mapping: 2.5 marks if >=5 days duration, 2 marks if <5 days duration [Max 5 pts].', mapping_type: 'auto', max_marks: 5, display_order: 10 },
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B4', criteria_title: 'Curriculum Development & Board of Studies (BOS)', rubric_description: '5 marks for active BoS membership, syllabus revision, or curriculum framing.', mapping_type: 'manual', max_marks: 5, display_order: 11 },
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B5', criteria_title: 'Organizing FDPs / Conferences / Symposia', rubric_description: 'Automatic mapping: 4 marks per national/international conference, FDP, or symposium organized [Max 8 pts].', mapping_type: 'auto', max_marks: 8, display_order: 12 },
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B6', criteria_title: 'Online Certifications (SWAYAM / NPTEL / Coursera)', rubric_description: 'Automatic mapping: 5 marks for 8/12 week NPTEL/SWAYAM course, 2.5 marks for 4 week course [Max 10 pts].', mapping_type: 'auto', max_marks: 10, display_order: 13 },
+      { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B7', criteria_title: 'Industrial Training / Corporate Internship Completed', rubric_description: '5 marks per corporate training / industrial fellowship completed (min 2 weeks).', mapping_type: 'manual', max_marks: 5, display_order: 14 },
+
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C1', criteria_title: 'Research Publications in Indexed Journals', rubric_description: 'Automatic mapping: 10 marks per paper published in SCI / Scopus / WoS indexed journals [Max 20 pts].', mapping_type: 'auto', max_marks: 20, display_order: 15 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C2', criteria_title: 'Books & Book Chapters Published', rubric_description: 'Automatic mapping: 5 marks per book or book chapter published with ISBN [Max 10 pts].', mapping_type: 'auto', max_marks: 10, display_order: 16 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C3', criteria_title: 'Community Service & Extension Activities', rubric_description: '5 marks per community outreach, societal project, or extension program.', mapping_type: 'manual', max_marks: 5, display_order: 17 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C4', criteria_title: 'IPR & Patents (Filed / Published / Granted)', rubric_description: 'Automatic mapping: 10 marks for patent granted, 7 marks for published, 3 marks for filed [Max 10 pts].', mapping_type: 'auto', max_marks: 10, display_order: 18 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Research Grants & External Sponsored Projects', rubric_description: 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 marks for <=5 Lakhs, 5 per proposal [Max 15 pts].', mapping_type: 'auto', max_marks: 15, display_order: 19 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Seed Money & Consultancy Services', rubric_description: 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project [Max 10 pts].', mapping_type: 'auto', max_marks: 10, display_order: 20 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar under supervisorship [Max 5 pts].', mapping_type: 'auto', max_marks: 5, display_order: 21 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C9', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', max_marks: 5, display_order: 22 },
+
+      { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D1', criteria_title: 'Assigned Institutional & Departmental Responsibilities', rubric_description: 'Automatic mapping: 5 marks per assigned College Level role, 5 marks per Department Level role [Max 20 pts].', mapping_type: 'auto', max_marks: 20, display_order: 23 },
+      { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D2', criteria_title: 'Student Mentoring, Counseling & Academic Guidance', rubric_description: '10 marks for effective mentee tracking, counseling logs, and academic progress monitoring.', mapping_type: 'manual', max_marks: 10, display_order: 24 },
+      { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D3', criteria_title: 'Contribution to NBA / NAAC / Autonomous Accreditations', rubric_description: '10 marks for criterion head / module coordinator role in NBA, NAAC, or Autonomous audits.', mapping_type: 'manual', max_marks: 10, display_order: 25 }
+    ];
+
+    const stmt = db.prepare(`
+      INSERT INTO appraisal_template (section_code, section_title, criteria_code, criteria_title, rubric_description, mapping_type, max_marks, display_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    defaultFpiItems.forEach((item, idx) => {
+      stmt.run([
+        item.section_code,
+        item.section_title,
+        item.criteria_code,
+        item.criteria_title,
+        item.rubric_description,
+        item.mapping_type,
+        item.max_marks,
+        idx + 1
+      ]);
+    });
+
+    stmt.finalize(() => {
+      res.json(defaultFpiItems);
+    });
+  });
+});
+
+// 10c. POST Save/Update Appraisal Template Criteria & Rubrics (Admin, Principal, HR)
+router.post('/appraisal/template', authenticateToken, (req, res) => {
+  if (!['admin', 'principal', 'hr'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Permission denied. Only Admin, Principal, or HR can update appraisal criteria.' });
+  }
+
+  const { items } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Invalid criteria items payload.' });
+  }
+
+  db.serialize(() => {
+    db.run('DELETE FROM appraisal_template', [], (err) => {
+      if (err) return res.status(500).json({ error: 'Failed to clear old template items.' });
+
+      const stmt = db.prepare(`
+        INSERT INTO appraisal_template (
+          section_code, section_title, criteria_code, criteria_title,
+          rubric_description, mapping_type, max_marks, display_order
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      items.forEach((item, index) => {
+        stmt.run([
+          item.section_code || 'PART_A',
+          item.section_title || 'PART A',
+          item.criteria_code || `C${index + 1}`,
+          item.criteria_title || 'Criteria',
+          item.rubric_description || '',
+          item.mapping_type || 'manual',
+          parseFloat(item.max_marks) || 10,
+          index + 1
+        ]);
+      });
+
+      stmt.finalize((err) => {
+        if (err) return res.status(500).json({ error: 'Failed to save updated template.' });
+        res.json({ success: true, message: 'Appraisal template, rubrics, and marks updated successfully!' });
+      });
+    });
+  });
+});
+
+// 10f. GET Pending Appraisal Notification Counts for HOD, Principal, HR
+router.get('/appraisals/pending-counts', authenticateToken, (req, res) => {
+  const isDeptAdmin = req.user.role === 'dept_admin' || req.user.isHod;
+  const isInstAdmin = ['admin', 'principal', 'hr'].includes(req.user.role) || req.user.isInstitutionalAdmin;
+  const dept = (req.user.department || '').trim();
+
+  let pendingHodCount = 0;
+  let pendingPrincipalHrCount = 0;
+
+  db.get(`SELECT COUNT(*) as count FROM staff_appraisal WHERE status = 'HOD Approved'`, [], (err, pRow) => {
+    if (!err && pRow) {
+      pendingPrincipalHrCount = pRow.count || 0;
+    }
+
+    if (isDeptAdmin && dept) {
+      db.get(`
+        SELECT COUNT(*) as count
+        FROM staff_appraisal sa
+        JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
+        WHERE sa.status = 'Submitted'
+          AND (
+            TRIM(LOWER(a.Department)) = TRIM(LOWER(?))
+            OR LOWER(a.Department) LIKE CONCAT('%', LOWER(?), '%')
+            OR LOWER(?) LIKE CONCAT('%', LOWER(a.Department), '%')
+            OR TRIM(LOWER(a.Department)) IN (
+              SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+              UNION
+              SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+            )
+          )
+      `, [dept, dept, dept, dept, dept, dept, dept], (hErr, hRow) => {
+        if (!hErr && hRow) {
+          pendingHodCount = hRow.count || 0;
+        }
+        res.json({
+          pendingHodCount,
+          pendingPrincipalHrCount,
+          isDeptAdmin,
+          isInstAdmin,
+          userPendingCount: isInstAdmin ? pendingPrincipalHrCount : (isDeptAdmin ? pendingHodCount : 0)
+        });
+      });
+    } else {
+      res.json({
+        pendingHodCount: 0,
+        pendingPrincipalHrCount,
+        isDeptAdmin,
+        isInstAdmin,
+        userPendingCount: isInstAdmin ? pendingPrincipalHrCount : 0
+      });
+    }
+  });
+});
+
+// 11. GET Appraisals
+router.get('/appraisals', authenticateToken, (req, res) => {
+  const reqStaffId = req.query.staffId;
+  const isDeptAdmin = req.user.role === 'dept_admin';
+  const isAdmin = ['admin', 'principal', 'hr'].includes(req.user.role);
+
+  if (reqStaffId && reqStaffId !== req.user.staffId) {
+    db.all(`
+      SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
+      FROM staff_appraisal sa
+      LEFT JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(?))
+      ORDER BY sa.id DESC
+    `, [reqStaffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else if (isDeptAdmin) {
+    const dept = (req.user.department || '').trim();
+    db.all(`
+      SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
+      FROM staff_appraisal sa
+      JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE TRIM(LOWER(a.Department)) IN (
+        SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+        UNION
+        SELECT TRIM(LOWER(?))
+      )
+      ORDER BY sa.id DESC
+    `, [dept, dept, dept, dept, dept], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else if (isAdmin) {
+    db.all(`
+      SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
+      FROM staff_appraisal sa
+      LEFT JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
+      ORDER BY sa.id DESC
+    `, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else {
+    db.all(`
+      SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
+      FROM staff_appraisal sa
+      LEFT JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(?))
+      ORDER BY sa.id DESC
+    `, [req.user.staffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  }
+});
+
+// 11b. PUT HOD Appraisal Evaluation & Approval
+router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
+  const isHod = req.user.isHod || req.user.role === 'dept_admin';
+  if (!isHod) {
+    return res.status(403).json({ error: 'Access denied: Only active Head of Department (HOD) or Department Admin can evaluate HOD appraisals.' });
+  }
+
+  const id = req.params.id;
+  const {
+    hod_part_a_score, hod_part_b_score, hod_part_c_score, hod_part_d_score,
+    hod_total_score, hod_remarks, action
+  } = req.body;
+
+  const status = action === 'revision' ? 'HOD Revision Requested' : 'HOD Approved';
+
+  db.run(`
+    UPDATE staff_appraisal
+    SET hod_part_a_score = ?,
+        hod_part_b_score = ?,
+        hod_part_c_score = ?,
+        hod_part_d_score = ?,
+        hod_total_score = ?,
+        hod_remarks = ?,
+        status = ?,
+        hod_approved_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `, [
+    hod_part_a_score || 0,
+    hod_part_b_score || 0,
+    hod_part_c_score || 0,
+    hod_part_d_score || 0,
+    hod_total_score || 0,
+    hod_remarks || '',
+    status,
+    id
+  ], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    res.json({ success: true, message: `Appraisal form ${status.toLowerCase()} successfully!` });
+  });
+});
+
+// 11c. PUT Principal & HR Final Approval
+router.put('/appraisal/:id/final-approve', authenticateToken, (req, res) => {
+  const id = req.params.id;
+  const {
+    action, remarks, final_remarks,
+    final_part_a_score, final_part_b_score, final_part_c_score, final_part_d_score, final_total_score
+  } = req.body;
+  const status = action === 'revision' ? 'Revision Requested' : 'Final Approved';
+
+  db.run(`
+    UPDATE staff_appraisal
+    SET status = ?,
+        final_part_a_score = ?,
+        final_part_b_score = ?,
+        final_part_c_score = ?,
+        final_part_d_score = ?,
+        final_total_score = ?,
+        final_remarks = ?,
+        remarks = ?,
+        final_approved_by = ?,
+        final_approved_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `, [
+    status,
+    final_part_a_score || '',
+    final_part_b_score || '',
+    final_part_c_score || '',
+    final_part_d_score || '',
+    final_total_score || '',
+    final_remarks || remarks || '',
+    remarks || final_remarks || '',
+    req.user.staffId || req.user.staff_id,
+    id
+  ], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    res.json({ success: true, message: `Appraisal form ${status.toLowerCase()} successfully!` });
+  });
+});
+
+// 12. POST New Appraisal Form
+router.post('/appraisal', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const {
+    academic_year, courses_taught, pass_percentage, student_feedback,
+    innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+    a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+    a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+    publications_count, books_count, patents_count,
+    grants_amount, fdp_attended, events_organized, self_appraisal_score, goals_next_year,
+    part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+  } = req.body;
+
+  if (!academic_year || !academic_year.trim()) {
+    return res.status(400).json({ error: 'Academic Year is required.' });
+  }
+
+  db.run(`
+    INSERT INTO staff_appraisal (
+      staff_id, academic_year, courses_taught, pass_percentage, student_feedback,
+      innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+      a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+      a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+      publications_count, books_count, patents_count,
+      grants_amount, fdp_attended, events_organized, self_appraisal_score, goals_next_year, status,
+      part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    staffId, academic_year, courses_taught, pass_percentage, student_feedback,
+    innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+    a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+    a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+    publications_count || 0, books_count || 0, patents_count || 0,
+    grants_amount, fdp_attended, events_organized, self_appraisal_score || total_fpi_score, goals_next_year, 'Submitted',
+    part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0
+  ], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    res.json({ success: true, id: this.lastID, message: 'Annual Appraisal Form submitted successfully!' });
+  });
+});
+
+// 12b. GET Automated FPI Score Summary calculation
+router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res) => {
+  const staffId = req.params.staffId;
+
+  try {
+    const getRows = (query, params = [staffId]) => {
+      return new Promise((resolve) => {
+        db.all(query, params, (err, rows) => resolve(rows || []));
+      });
+    };
+
+    const publications = await getRows('SELECT * FROM staff_publication WHERE staff_id = ?');
+    const books = await getRows('SELECT * FROM staff_book_published WHERE staff_id = ?');
+    const resource = await getRows('SELECT * FROM staff_resource WHERE staff_id = ?');
+    const awards = await getRows('SELECT * FROM staff_award WHERE staff_id = ?');
+    const funding = await getRows('SELECT * FROM staff_funding WHERE staff_id = ?');
+    const ipr = await getRows('SELECT * FROM staff_ipr WHERE staff_id = ?');
+    const certs = await getRows('SELECT * FROM staff_certificate WHERE staff_id = ?');
+    const events = await getRows('SELECT * FROM staff_event_organized WHERE staff_id = ?');
+    const interactions = await getRows('SELECT * FROM staff_interaction WHERE staff_id = ?');
+    const scholars = await getRows('SELECT * FROM staff_scholars WHERE staff_id = ?');
+    const members = await getRows('SELECT * FROM staff_member WHERE staff_id = ?');
+    const seedMoney = await getRows('SELECT * FROM staff_seed_money WHERE staff_id = ?');
+    const responsibilities = await getRows('SELECT * FROM staff_responsibilities WHERE staff_id = ?');
+
+    // Part B Calculation (Max 40)
+    let scoreB = 0;
+    // b1. Memberships (3 marks each, Max 3)
+    scoreB += Math.min(3, (members.length * 3));
+    // b2. Resource Person (2 marks each, Max 4)
+    scoreB += Math.min(4, (resource.length * 2));
+    // b3. FDP/STTP Participation from staff_interaction (2.5 marks if >=5 days, else 2 marks, Max 5)
+    let b3Score = 0;
+    interactions.forEach(item => {
+      let days = 1;
+      if (item.from_date && item.to_date) {
+        const d1 = new Date(item.from_date);
+        const d2 = new Date(item.to_date);
+        const diffTime = Math.abs(d2 - d1);
+        days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      }
+      if (days >= 5) b3Score += 2.5;
+      else b3Score += 2;
+    });
+    scoreB += Math.min(5, b3Score);
+    // b5. Organized FDP/Conferences (4 marks each, Max 8)
+    scoreB += Math.min(8, (events.length * 4));
+    // b6. Online Certifications (SWAYAM/NPTEL) (5 marks if 8/12 weeks, 2.5 marks if 4 weeks, Max 10)
+    let b6Score = 0;
+    certs.forEach(c => {
+      const dur = (c.duration_weeks || '').toLowerCase();
+      if (dur.includes('4')) b6Score += 2.5;
+      else b6Score += 5;
+    });
+    scoreB += Math.min(10, b6Score);
+    const finalPartB = Math.min(40, scoreB);
+
+    // Part C Calculation (Max 80)
+    let scoreC = 0;
+    // c1. Publications (10 marks each, Max 20)
+    scoreC += Math.min(20, (publications.length * 10));
+    // c2. Books/Chapters/Conferences (5 marks each, Max 10)
+    scoreC += Math.min(10, (books.length * 5));
+    // c4. IPR / Patents (Granted 10, Published 7, Filed 3, Max 10)
+    let c4Score = 0;
+    ipr.forEach(p => {
+      const st = (p.patent_status || p.generation || '').toLowerCase();
+      if (st.includes('grant')) c4Score += 10;
+      else if (st.includes('publ')) c4Score += 7;
+      else c4Score += 3;
+    });
+    scoreC += Math.min(10, c4Score);
+    // c5. Research Grants (Max 15)
+    let c5Score = 0;
+    funding.forEach(f => {
+      const amt = parseFloat(f.amount) || 0;
+      const st = (f.status || '').toLowerCase();
+      if (st.includes('sanc') || st.includes('grant') || st.includes('rec')) {
+        c5Score += amt > 500000 ? 10 : 8;
+      } else {
+        c5Score += 5;
+      }
+    });
+    scoreC += Math.min(15, c5Score);
+    // c6. Seed Money & Consultancy (Max 10)
+    let c6Score = 0;
+    seedMoney.forEach(s => { c6Score += 5; });
+    scoreC += Math.min(10, c6Score);
+    // c8. Research Scholars (Max 5)
+    scoreC += Math.min(5, (scholars.length * 2.5));
+    // c9. Awards (5 marks each, Max 5)
+    scoreC += Math.min(5, (awards.length * 5));
+    const finalPartC = Math.min(80, scoreC);
+
+    // Part D Calculation (Max 20)
+    let collegeCount = 0;
+    let deptCount = 0;
+    responsibilities.forEach(r => {
+      if ((r.level || '').toLowerCase().includes('college') || (r.level || '').toLowerCase().includes('institute')) {
+        collegeCount++;
+      } else {
+        deptCount++;
+      }
+    });
+    const finalPartD = Math.min(20, (Math.min(10, collegeCount * 5) + Math.min(10, deptCount * 5)));
+
+    res.json({
+      part_b_score: finalPartB,
+      part_c_score: finalPartC,
+      part_d_score: finalPartD,
+      counts: {
+        publications: publications.length,
+        books: books.length,
+        patents: ipr.length,
+        funding: funding.length,
+        seed_money: seedMoney.length,
+        certs: certs.length,
+        events: events.length,
+        memberships: members.length,
+        awards: awards.length,
+        responsibilities: responsibilities.length
+      },
+      details: {
+        publications,
+        books,
+        ipr,
+        funding,
+        seedMoney,
+        certs,
+        events,
+        members,
+        awards,
+        responsibilities,
+        interactions,
+        resource,
+        scholars
+      },
+      breakdown: {
+        b1_memberships: Math.min(3, members.length * 3),
+        b2_resource: Math.min(4, resource.length * 2),
+        b3_interactions: Math.min(5, b3Score),
+        b5_events: Math.min(8, events.length * 4),
+        b6_certs: Math.min(10, b6Score),
+        c1_publications: Math.min(20, publications.length * 10),
+        c2_books: Math.min(10, books.length * 5),
+        c4_ipr: Math.min(10, c4Score),
+        c5_funding: Math.min(15, c5Score),
+        c6_seed_money: Math.min(10, c6Score),
+        c8_scholars: Math.min(5, scholars.length * 2.5),
+        c9_awards: Math.min(5, awards.length * 5),
+        d_responsibilities: finalPartD
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to calculate FPI score: ' + err.message });
+  }
+});
+
+// 12c. GET General Information for FPI Appraisal Form
+router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => {
+  const staffId = req.params.staffId || req.user.staffId;
+
+  db.get(`
+    SELECT p.staff_name, a.* 
+    FROM staff_personal p
+    LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+    WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
+  `, [staffId], (err, acadRow) => {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    const row = acadRow || {};
+
+    db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (eErr, eduRows) => {
+      const edu = eduRows || [];
+      const highestQual = getHighestQualification(edu, row.Qualification);
+      const exp = calculateExperience(row, new Date());
+
+      // Query staff_scholars table (Research Scholars page) for faculty's own Ph.D status
+      db.all('SELECT * FROM staff_scholars WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (sErr, scholarRows) => {
+        const scholars = scholarRows || [];
+
+        let phdStatus = 'Yet to Register';
+        const pursuingStatuses = [
+          'provisionally registered', 'provisionally confirmed', 
+          'submitted synopsis', 'submitted thesis', 'pursuing', 'registered', 'course work'
+        ];
+
+        let foundScholarStatus = null;
+        if (scholars.length > 0) {
+          const latestScholar = scholars[scholars.length - 1];
+          const st = (latestScholar.status || '').toLowerCase().trim();
+          if (st.includes('degree awarded') || st.includes('completed') || st.includes('awarded')) {
+            foundScholarStatus = 'Completed';
+          } else if (pursuingStatuses.some(k => st.includes(k))) {
+            foundScholarStatus = 'Pursuing';
+          } else if (st) {
+            foundScholarStatus = 'Pursuing';
+          }
+        }
+
+        if (foundScholarStatus) {
+          phdStatus = foundScholarStatus;
+        } else {
+          let hasPhdEdu = false;
+          let isCompletedPhd = false;
+
+          edu.forEach(item => {
+            const str = `${item.category || ''} ${item.degree || ''} ${item.specialization || ''}`.toLowerCase();
+            if (str.includes('ph.d') || str.includes('phd') || str.includes('doctor')) {
+              hasPhdEdu = true;
+              if (item.year && item.year.trim().length === 4) {
+                isCompletedPhd = true;
+              }
+            }
+          });
+
+          const qualLower = (row.Qualification || '').toLowerCase();
+          const nameLower = (row.staff_name || '').toLowerCase();
+          if (nameLower.includes('dr.') || nameLower.includes('dr ') || qualLower.includes('ph.d') || qualLower.includes('phd')) {
+            hasPhdEdu = true;
+            isCompletedPhd = true;
+          }
+
+          if (isCompletedPhd) {
+            phdStatus = 'Completed';
+          } else if (hasPhdEdu) {
+            phdStatus = 'Pursuing';
+          } else {
+            phdStatus = 'Yet to Register';
+          }
+        }
+
+        const deptName = row.Department || '';
+        const facultyName = row.staff_name || '';
+        const designation = row.Designation || '';
+        const doj = row.Date_of_joining || '';
+
+        const prevExpText = `${row.prev_exp_academic_years || 0} Y, ${row.prev_exp_academic_months || 0} M`;
+        const srecExpText = `${exp.exp_srec_years || 0} Y, ${exp.exp_srec_months || 0} M`;
+        const totalExpText = `${exp.total_exp_years || 0} Y, ${exp.total_exp_months || 0} M`;
+        const industryExpText = `${row.prev_exp_industry_years || 0} Y, ${row.prev_exp_industry_months || 0} M`;
+
+        res.json({
+          departmentName: deptName,
+          facultyName: facultyName,
+          designation: designation,
+          qualification: highestQual,
+          doj: doj,
+          promotionDetails: 'N/A',
+          prevExp: prevExpText,
+          srecExp: srecExpText,
+          totalTeachingExp: totalExpText,
+          industryExp: industryExpText,
+          phdStatus: phdStatus
+        });
+      });
+    });
+  });
+});
+
+// 13. DELETE Appraisal
+router.delete('/appraisal/:id', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const id = req.params.id;
+
+  db.run('DELETE FROM staff_appraisal WHERE id = ? AND staff_id = ?', [id, staffId], function(err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ success: true });
+  });
+});
+
+// 14. GET Responsibilities
+router.get('/responsibilities', authenticateToken, (req, res) => {
+  const isDeptAdmin = req.user.role === 'dept_admin';
+  const isAdmin = req.user.role === 'admin';
+  const isHod = req.user.isHod || (req.user.designation || '').toLowerCase().includes('hod') || (req.user.designation || '').toLowerCase().includes('head');
+  const reqStaffId = req.query.staffId;
+
+  if (reqStaffId) {
+    db.all(`
+      SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, a.Department, a.Designation
+      FROM staff_responsibilities r
+      LEFT JOIN staff_academics a ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(r.staff_id)) = LOWER(TRIM(?))
+      ORDER BY r.id DESC
+    `, [reqStaffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else if (isDeptAdmin || isHod) {
+    let dept = (req.user.department || '').trim();
+
+    const fetchDeptResponsibilities = (departmentName) => {
+      db.all(`
+        SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, COALESCE(a.Department, r.department) as Department, a.Designation
+        FROM staff_responsibilities r
+        LEFT JOIN staff_academics a ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(a.staff_id))
+        LEFT JOIN staff_personal p ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(p.staff_id))
+        WHERE TRIM(LOWER(a.Department)) IN (
+          SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+          UNION
+          SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+          UNION
+          SELECT TRIM(LOWER(?))
+        ) 
+        OR TRIM(LOWER(r.department)) = TRIM(LOWER(?))
+        OR LOWER(TRIM(r.assigned_by)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))
+        ORDER BY r.id DESC
+      `, [departmentName, departmentName, departmentName, departmentName, departmentName, departmentName, req.user.staffId], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json(rows);
+      });
+    };
+
+    if (!dept) {
+      db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [req.user.staffId], (err, row) => {
+        dept = row ? (row.Department || '').trim() : '';
+        fetchDeptResponsibilities(dept);
+      });
+    } else {
+      fetchDeptResponsibilities(dept);
+    }
+  } else if (isAdmin) {
+    db.all(`
+      SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, a.Department, a.Designation
+      FROM staff_responsibilities r
+      LEFT JOIN staff_academics a ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(p.staff_id))
+      ORDER BY r.id DESC
+    `, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  } else {
+    // Regular Faculty query - match by staff_id OR staff_name OR label
+    db.all(`
+      SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, a.Department, a.Designation
+      FROM staff_responsibilities r
+      LEFT JOIN staff_academics a ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(r.staff_id)) = LOWER(TRIM(?))
+         OR LOWER(TRIM(r.staff_id)) LIKE '%' || LOWER(TRIM(?)) || '%'
+         OR LOWER(TRIM(p.staff_name)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))
+         OR LOWER(TRIM(r.staff_id)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))
+         OR LOWER(TRIM(r.staff_id)) LIKE '%' || (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))) || '%'
+      ORDER BY r.id DESC
+    `, [req.user.staffId, req.user.staffId, req.user.staffId, req.user.staffId, req.user.staffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
+  }
+});
+
+// 15. POST Responsibility (HOD / Principal / HR / Admin)
+router.post('/responsibility', authenticateToken, (req, res) => {
+  let { staff_id, responsibility, academic_year, level } = req.body;
+
+  if (!staff_id || !staff_id.trim()) {
+    return res.status(400).json({ error: 'Faculty selection is required.' });
+  }
+  if (!responsibility || !responsibility.trim()) {
+    return res.status(400).json({ error: 'Additional responsibility description is required.' });
+  }
+
+  const isInstitutionalAdmin = req.user.role === 'admin' || req.user.isInstitutionalAdmin || (req.user.designation || '').toLowerCase().includes('principal') || (req.user.designation || '').toLowerCase().includes('hr');
+  const isHod = req.user.isHod || req.user.role === 'dept_admin';
+
+  if (!isHod && !isInstitutionalAdmin) {
+    return res.status(403).json({ error: 'Access denied: Only active Head of Department (HOD), Department Admin, or Institutional Admin can assign additional responsibilities.' });
+  }
+
+  const finalLevel = level || (isInstitutionalAdmin ? 'Institutional Level' : 'Department Level');
+
+  const doInsert = (cleanStaffId, deptName) => {
+    const assignedBy = req.user.name || req.user.username || 'HOD / Principal';
+
+    db.run(`
+      INSERT INTO staff_responsibilities (staff_id, assigned_by, department, academic_year, responsibility, level)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [cleanStaffId, assignedBy, deptName, academic_year || '2026-2027', responsibility.trim(), finalLevel], function(err) {
+      if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+      res.json({ success: true, id: this.lastID, message: 'Additional responsibility assigned successfully!' });
+    });
+  };
+
+  let targetStaffId = staff_id.trim();
+
+  if (targetStaffId.includes('(')) {
+    const rawName = targetStaffId.split('(')[0].trim();
+    db.get('SELECT staff_id FROM staff_personal WHERE LOWER(TRIM(staff_name)) = LOWER(TRIM(?))', [rawName], (err, row) => {
+      if (row && row.staff_id) {
+        targetStaffId = row.staff_id;
+      }
+      resolveDeptAndInsert(targetStaffId);
+    });
+  } else {
+    resolveDeptAndInsert(targetStaffId);
+  }
+
+  function resolveDeptAndInsert(finalStaffId) {
+    if (req.user.department) {
+      doInsert(finalStaffId, req.user.department);
+    } else {
+      db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [req.user.staffId], (err, row) => {
+        const userDept = row ? (row.Department || 'N/A') : 'N/A';
+        doInsert(finalStaffId, userDept);
+      });
+    }
+  }
+});
+
+// 16. DELETE Responsibility
+router.delete('/responsibility/:id', authenticateToken, (req, res) => {
+  const id = req.params.id;
+  const isInstitutionalAdmin = req.user.role === 'admin' || req.user.isInstitutionalAdmin || (req.user.designation || '').toLowerCase().includes('principal') || (req.user.designation || '').toLowerCase().includes('hr');
+
+  db.get('SELECT level FROM staff_responsibilities WHERE id = ?', [id], (err, row) => {
+    if (row && row.level === 'Institutional Level' && !isInstitutionalAdmin) {
+      return res.status(403).json({ error: 'Access denied: Institutional level responsibilities can only be deleted by Principal, HR, or System Administrators.' });
+    }
+
+    db.run('DELETE FROM staff_responsibilities WHERE id = ?', [id], function(err) {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json({ success: true });
+    });
+  });
+});
+
+// 17. PUT Update Responsibility
+router.put('/responsibility/:id', authenticateToken, (req, res) => {
+  const id = req.params.id;
+  let { staff_id, responsibility, academic_year, level } = req.body;
+
+  if (!staff_id || !staff_id.trim()) {
+    return res.status(400).json({ error: 'Faculty selection is required.' });
+  }
+  if (!responsibility || !responsibility.trim()) {
+    return res.status(400).json({ error: 'Additional responsibility description is required.' });
+  }
+
+  const isInstitutionalAdmin = req.user.role === 'admin' || req.user.isInstitutionalAdmin || (req.user.designation || '').toLowerCase().includes('principal') || (req.user.designation || '').toLowerCase().includes('hr');
+
+  db.get('SELECT level FROM staff_responsibilities WHERE id = ?', [id], (err, row) => {
+    if (row && row.level === 'Institutional Level' && !isInstitutionalAdmin) {
+      return res.status(403).json({ error: 'Access denied: Institutional level responsibilities can only be edited by Principal, HR, or System Administrators.' });
+    }
+
+    const finalLevel = level || (isInstitutionalAdmin ? 'Institutional Level' : 'Department Level');
+
+    const doUpdate = (cleanStaffId) => {
+      db.run(`
+        UPDATE staff_responsibilities 
+        SET staff_id = ?, academic_year = ?, responsibility = ?, level = ?
+        WHERE id = ?
+      `, [cleanStaffId, academic_year || '2026-2027', responsibility.trim(), finalLevel, id], function(err) {
+        if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+        res.json({ success: true, message: 'Additional responsibility updated successfully!' });
+      });
+    };
+
+    let targetStaffId = staff_id.trim();
+    if (targetStaffId.includes('(')) {
+      const rawName = targetStaffId.split('(')[0].trim();
+      db.get('SELECT staff_id FROM staff_personal WHERE LOWER(TRIM(staff_name)) = LOWER(TRIM(?))', [rawName], (err, row) => {
+        if (row && row.staff_id) {
+          targetStaffId = row.staff_id;
+        }
+        doUpdate(targetStaffId);
+      });
+    } else {
+      doUpdate(targetStaffId);
+    }
+  });
+});
+
+// Check supervisor eligibility & dynamic role claims endpoint
+router.get('/check-supervisor-eligibility', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  if (req.user.role === 'admin' || req.user.role === 'dept_admin') {
+    return res.json({
+      isSupervisorEligible: true,
+      isHod: req.user.role === 'dept_admin',
+      department: req.user.department || '',
+      designation: req.user.role === 'dept_admin' ? 'Head of Department' : 'Administrator'
+    });
+  }
+
+  db.get(`
+    SELECT p.staff_name, a.Qualification, a.Department, a.Designation 
+    FROM staff_personal p 
+    LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id)) 
+    WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
+  `, [staffId], (err, row) => {
+    const staffName = row ? (row.staff_name || '') : '';
+    const qualification = row ? (row.Qualification || '') : '';
+    const designation = row ? (row.Designation || '') : '';
+    const department = row ? (row.Department || '') : '';
+    const lowerDesg = designation.toLowerCase();
+    const isHod = lowerDesg.includes('hod') || lowerDesg.includes('head');
+    const isInstitutionalAdmin = lowerDesg.includes('principal') || lowerDesg.includes('hr');
+
+    db.all('SELECT category, degree, specialization FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (eErr, eduRows) => {
+      const lowerName = staffName.toLowerCase();
+      const isDr = lowerName.includes('dr.') || lowerName.includes('dr ');
+      const checkPhd = (str) => {
+        const s = (str || '').toUpperCase();
+        return s.includes('PH.D') || s.includes('PHD') || s.includes('DOCTOR');
+      };
+      const isPhd = checkPhd(qualification) || (eduRows || []).some(e => checkPhd(e.category) || checkPhd(e.degree) || checkPhd(e.specialization));
+      const isSupervisorEligible = isDr || isPhd;
+
+      return res.json({ isSupervisorEligible, name: staffName, isHod, department, designation, isInstitutionalAdmin });
+    });
+  });
+});
+
+// 19. GET Dynamic Club Coordinator status for logged in faculty
+router.get('/my-clubs', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  if (!staffId) {
+    return res.json({ isClubCoordinator: false, clubs: [] });
+  }
+
+  db.all('SELECT name FROM clubs WHERE LOWER(TRIM(faculty_incharge_id)) = LOWER(TRIM(?))', [staffId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const clubs = (rows || []).map(r => r.name);
+    return res.json({ isClubCoordinator: clubs.length > 0, clubs });
+  });
+});
+
+export default router;

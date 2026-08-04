@@ -1,0 +1,6 @@
+
+RewriteEngine on
+
+RewriteOptions inherit
+RewriteEngine Off
+Options -Indexes

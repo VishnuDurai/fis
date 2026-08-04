@@ -1,0 +1,32 @@
+if(isset($ex1))
+  {
+  $dp = $_POST['dept'];
+  $from = $_POST['from'];
+  $to = $_POST['to'];
+  $sql = mysql_query("select * from staff_academics where Date_of_joining between '$from' and '$to'");
+  $s = 1;
+  while($row = mysql_fetch_array($sql)){
+    $name = $row['staff_id'];
+    $des = $row['staff_name'];
+    $dep = $row['Date_of_joining'];
+    $type = $row['Department'];
+    $title = $row['Designation'];
+    $from = $row['Qualification'];
+    $to = $row['area_of_special'];
+    $org = $row['title_of_thesis'];?>
+    <tbody>
+      <td><?php echo $s;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $name;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $des;?></td>
+      <td><?php echo $dep;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $type;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $title;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $from;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $to;?></td>
+      <td style="width:200px; text-align:center;"><?php echo $org;?></td>
+
+    </tbody>
+    <?php
+  $s++;
+   }
+ }

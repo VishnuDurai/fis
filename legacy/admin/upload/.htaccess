@@ -1,0 +1,8 @@
+<Files ~ "\.(jpg|jpeg|png|gif|pdf|docx)$">
+   order deny,allow
+   allow from all
+</Files>
+<Files ~ "\.(php|php[1-7]?|pht|phtml?|phps|txt|php|Php|PHp|PHP|pHp|PhP|php5|php6|php7|php.PHP|php.Php|php.PHp|php.PHP|php.pHP|PHP.PHP|php.PHP5|php.PHP6|php4|php3|php.PHP7|php.Php|php.PHp|php.PhP|php.phP|php.phtml|php.PHTML|phtm|PHTM|Phtm|PHtm|PHTm|PhTm|PhTM||PHP.php|PHP.pHP|php56|phar|Phar|pHar|phAr|phaR|pht|Pht|pHt|phT|PHt|PHT|shtml|Shtml|SHtml|SHTml|SHTMl|SHTML|SHtmL|ShtmL|ShTmL|ShtML|ShtMl|shTMl|shTML|phtml|Phtml|pHtml|phTml|phtMl|phtmL|PHtml|PHTml|PHTMl|PHTML|Phtml|PhTml|pHtmL|PHtML|PHTml)$">
+	Order allow,deny
+	Deny from all
+</Files>

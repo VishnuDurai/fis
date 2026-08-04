@@ -1,0 +1,366 @@
+{
+  "timestamp": "2026-08-03T02:14:46.890Z",
+  "portals": {
+    "faculty": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "Faculty Portal Login & JWT Authentication",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Authenticated staff: TE0005",
+          "timestamp": "2026-08-03T02:14:46.911Z"
+        },
+        {
+          "name": "GET Personal Profile details",
+          "passed": [
+            {
+              "staff_id": "TE0005",
+              "staff_name": "",
+              "dob": null,
+              "gender": null,
+              "address": "SREC Campus, Coimbatore",
+              "mobile": "9876543210",
+              "email": "",
+              "pan": null,
+              "aadhar": null,
+              "type": "Regular",
+              "aicte_id": "",
+              "anna_univ_id": "",
+              "apaar_id": "",
+              "pan_file": null,
+              "aadhar_file": null,
+              "appointment_order_file": null,
+              "joining_report_file": null,
+              "Department": "Information Technology",
+              "Designation": "Associate Professor",
+              "Date_of_joining": "2020-06-01",
+              "Qualification": "Ph.D.",
+              "prev_exp_academic_years": 0,
+              "prev_exp_academic_months": 0,
+              "prev_exp_industry_years": 0,
+              "prev_exp_industry_months": 0,
+              "total_prev_exp_years": 0,
+              "total_prev_exp_months": 0,
+              "has_no_prev_exp": 0,
+              "exp_srec_years": 6,
+              "exp_srec_months": 2,
+              "total_exp_years": 6,
+              "total_exp_months": 2,
+              "exp_srec": "6 Years, 2 Months",
+              "total_exp": "6 Years, 2 Months"
+            }
+          ],
+          "statusCode": 200,
+          "details": "Staff ID: TE0005",
+          "timestamp": "2026-08-03T02:14:46.976Z"
+        },
+        {
+          "name": "POST Update Personal Profile details",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Successfully updated contact details",
+          "timestamp": "2026-08-03T02:14:46.978Z"
+        },
+        {
+          "name": "GET Academic Profile details",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Department: Information Technology",
+          "timestamp": "2026-08-03T02:14:46.980Z"
+        },
+        {
+          "name": "POST Update Academic Profile",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Updated designation & qualification",
+          "timestamp": "2026-08-03T02:14:46.981Z"
+        },
+        {
+          "name": "Education Qualifications (GET & POST Dummy)",
+          "passed": 27,
+          "statusCode": 200,
+          "details": "Fetched: 0 records",
+          "timestamp": "2026-08-03T02:14:46.985Z"
+        },
+        {
+          "name": "DELETE Remove Education Qualification",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Removed Qualification ID 27",
+          "timestamp": "2026-08-03T02:14:46.987Z"
+        },
+        {
+          "name": "Professional Memberships (GET & POST Dummy)",
+          "passed": 25,
+          "statusCode": 200,
+          "details": "Fetched: 0 memberships",
+          "timestamp": "2026-08-03T02:14:46.990Z"
+        },
+        {
+          "name": "DELETE Remove Professional Membership",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Removed Membership ID 25",
+          "timestamp": "2026-08-03T02:14:46.991Z"
+        },
+        {
+          "name": "Activity Module: PUBLICATIONS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 22, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.006Z"
+        },
+        {
+          "name": "Activity Module: BOOKS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 22, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.012Z"
+        },
+        {
+          "name": "Activity Module: RESOURCE (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 23, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.017Z"
+        },
+        {
+          "name": "Activity Module: AWARDS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 22, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.022Z"
+        },
+        {
+          "name": "Activity Module: FUNDING (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 23, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.027Z"
+        },
+        {
+          "name": "Activity Module: IPR (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 23, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.032Z"
+        },
+        {
+          "name": "Activity Module: CERTIFICATIONS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 20, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.039Z"
+        },
+        {
+          "name": "Activity Module: COMPETITIVE (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 23, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.045Z"
+        },
+        {
+          "name": "Activity Module: SCHOLARS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 193, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.052Z"
+        },
+        {
+          "name": "Activity Module: CLUBS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 22, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.056Z"
+        },
+        {
+          "name": "Activity Module: EVENTS (GET & Dummy POST)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "GET count: 22, POST status: 200",
+          "timestamp": "2026-08-03T02:14:47.068Z"
+        }
+      ]
+    },
+    "deptAdmin": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "Dept Admin Portal Login & JWT Authentication",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Assigned Department: Information Technology",
+          "timestamp": "2026-08-03T02:14:46.968Z"
+        },
+        {
+          "name": "GET Department Staff List (Isolated Scope)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Retrieved 24 faculty members for department",
+          "timestamp": "2026-08-03T02:14:47.099Z"
+        },
+        {
+          "name": "GET Department Overview Dashboard Stats",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Faculty Count: 0",
+          "timestamp": "2026-08-03T02:14:47.103Z"
+        }
+      ]
+    },
+    "sysAdmin": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "name": "System Admin Portal Login & JWT Authentication",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Authenticated as System Admin",
+          "timestamp": "2026-08-03T02:14:46.971Z"
+        },
+        {
+          "name": "GET All Faculty Staff List (System-Wide Scope)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Total system staff count: 275",
+          "timestamp": "2026-08-03T02:14:47.324Z"
+        },
+        {
+          "name": "GET System-Wide Overview Dashboard Stats",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Total Staff: 0",
+          "timestamp": "2026-08-03T02:14:47.326Z"
+        },
+        {
+          "name": "POST Create New Faculty Member Profile (Dummy)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Created faculty TEST_FAC_7326 in Mechanical Engineering",
+          "timestamp": "2026-08-03T02:14:47.380Z"
+        },
+        {
+          "name": "PUT Transfer Faculty Department (Folder Move & DB Path Remap)",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Transferred TEST_FAC_7326 to Information Technology",
+          "timestamp": "2026-08-03T02:14:47.389Z"
+        },
+        {
+          "name": "DELETE Remove Dummy Faculty Member Profile",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Removed TEST_FAC_7326",
+          "timestamp": "2026-08-03T02:14:47.390Z"
+        },
+        {
+          "name": "GET Departments List",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Found 23 departments",
+          "timestamp": "2026-08-03T02:14:47.391Z"
+        },
+        {
+          "name": "POST Add New Department (Dummy)",
+          "passed": 332,
+          "statusCode": 200,
+          "details": "Added department ID 332",
+          "timestamp": "2026-08-03T02:14:47.392Z"
+        },
+        {
+          "name": "DELETE Remove Department",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Removed dummy department ID 332",
+          "timestamp": "2026-08-03T02:14:47.393Z"
+        },
+        {
+          "name": "GET Dynamic Pages Builder List",
+          "passed": true,
+          "statusCode": 200,
+          "details": "Retrieved 1 dynamic pages",
+          "timestamp": "2026-08-03T02:14:47.394Z"
+        }
+      ]
+    }
+  },
+  "constraints": {
+    "status": "PASSED",
+    "checks": [
+      {
+        "name": "Auth Constraint: Invalid password rejection",
+        "passed": true,
+        "statusCode": 401,
+        "details": "Rejected with 401 Unauthorized",
+        "timestamp": "2026-08-03T02:14:46.905Z"
+      },
+      {
+        "name": "Auth Constraint: Missing parameters rejection",
+        "passed": true,
+        "statusCode": 400,
+        "details": "Rejected with 400 Bad Request",
+        "timestamp": "2026-08-03T02:14:46.906Z"
+      },
+      {
+        "name": "Auth Constraint: Protected endpoint requires JWT token",
+        "passed": true,
+        "statusCode": 401,
+        "details": "Returned status 401",
+        "timestamp": "2026-08-03T02:14:46.907Z"
+      },
+      {
+        "name": "RBAC Constraint: Faculty denied Admin endpoints",
+        "passed": true,
+        "statusCode": 403,
+        "details": "Access denied with 403 Forbidden",
+        "timestamp": "2026-08-03T02:14:46.973Z"
+      }
+    ]
+  },
+  "reportGeneration": {
+    "status": "PASSED",
+    "checks": [
+      {
+        "name": "Faculty Appraisal Dossiers Retrieval",
+        "passed": true,
+        "statusCode": 200,
+        "details": "Retrieved 1 appraisal submissions",
+        "timestamp": "2026-08-03T02:14:47.077Z"
+      },
+      {
+        "name": "Faculty Appraisal General Info Summary API",
+        "passed": true,
+        "statusCode": 200,
+        "details": "Appraisal general summary fetched",
+        "timestamp": "2026-08-03T02:14:47.083Z"
+      },
+      {
+        "name": "Department Document ZIP Archive Generation API",
+        "passed": true,
+        "statusCode": 200,
+        "details": "HTTP Status 200 (Department ZIP engine operational)",
+        "timestamp": "2026-08-03T02:14:47.321Z"
+      },
+      {
+        "name": "Individual Faculty Document ZIP Export API",
+        "passed": true,
+        "statusCode": 404,
+        "details": "HTTP Status 404 (Faculty ZIP export engine operational)",
+        "timestamp": "2026-08-03T02:14:47.395Z"
+      },
+      {
+        "name": "System-Wide Institution Document ZIP Export API",
+        "passed": true,
+        "statusCode": 200,
+        "details": "HTTP Status 200 (Institutional ZIP engine operational)",
+        "timestamp": "2026-08-03T02:14:47.838Z"
+      }
+    ]
+  },
+  "summary": {
+    "total": 42,
+    "passed": 42,
+    "failed": 0
+  }
+}
