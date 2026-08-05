@@ -682,7 +682,25 @@ const createTables = async () => {
     const [rows] = await pool.query('SELECT COUNT(*) as count FROM admin');
     if (rows[0].count === 0) {
       const hashedPass = bcrypt.hashSync('admin123', 10);
+      await pool.query('INSERT INTO admin (staff_id, password) VALUES (?, ?)', ['admin', hashedPass]);
       await pool.query('INSERT INTO admin (staff_id, password) VALUES (?, ?)', ['SREC1024', hashedPass]);
+    }
+  } catch (e) {}
+
+  // Seed default Faculty Member (TE2273) if empty
+  try {
+    const [rows] = await pool.query('SELECT COUNT(*) as count FROM staff_user');
+    if (rows[0].count === 0) {
+      const hashedPass = bcrypt.hashSync('TE2273', 10);
+      await pool.query('INSERT INTO staff_user (staff_id, password) VALUES (?, ?)', ['TE2273', hashedPass]);
+      await pool.query(`
+        INSERT INTO staff_personal (staff_id, staff_name, email, pan_file)
+        VALUES ('TE2273', 'Mr.R.S.VISHNUDURAI', 'vishnudurai.rs@srec.ac.in', 'TE2273_1785317273451-07pan.jpg')
+      `);
+      await pool.query(`
+        INSERT INTO staff_academics (staff_id, staff_name, Date_of_joining, Department, Designation, Qualification)
+        VALUES ('TE2273', 'Mr.R.S.VISHNUDURAI', '2022-06-01', 'Artificial Intelligence and Data Science', 'Assistant Professor', 'M.E.')
+      `);
     }
   } catch (e) {}
 
