@@ -20,11 +20,11 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
 if (!fs.existsSync(profilePicsDir)) fs.mkdirSync(profilePicsDir, { recursive: true });
 
-const MYSQL_HOST = process.env.MYSQL_HOST || 'localhost';
-const MYSQL_PORT = parseInt(process.env.MYSQL_PORT || '3306', 10);
-const MYSQL_USER = process.env.MYSQL_USER || 'root';
-const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD || '';
-const MYSQL_DATABASE = process.env.MYSQL_DATABASE || 'srec_fis';
+const MYSQL_HOST = process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost';
+const MYSQL_PORT = parseInt(process.env.MYSQL_PORT || process.env.DB_PORT || '3306', 10);
+const MYSQL_USER = process.env.MYSQL_USER || process.env.DB_USER || 'root';
+const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD || process.env.DB_PASS || process.env.DB_PASSWORD || '';
+const MYSQL_DATABASE = process.env.MYSQL_DATABASE || process.env.DB_NAME || 'srec_fis';
 
 let pool = null;
 
