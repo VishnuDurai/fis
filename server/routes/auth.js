@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -8,18 +10,24 @@ const router = express.Router();
 export const JWT_SECRET = process.env.JWT_SECRET || 'srec_fis_super_secret_key_123';
 
 const createTransporter = () => {
-  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com';
   const user = process.env.SMTP_USER || process.env.MAIL_USER;
   const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
   const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587', 10);
 
-  if (host && user && pass) {
+  if (user && pass) {
+    console.log(`[SMTP Transporter]: Initialized for user: ${user} on ${host}:${port}`);
     return nodemailer.createTransport({
       host,
       port,
       secure: port === 465,
-      auth: { user, pass }
+      auth: { user, pass },
+      tls: {
+        rejectUnauthorized: false
+      }
     });
+  } else {
+    console.log('[SMTP Transporter]: No SMTP_USER or SMTP_PASS found in environment.');
   }
   return null;
 };
