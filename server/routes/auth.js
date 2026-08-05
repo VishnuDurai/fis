@@ -1,10 +1,28 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import db from '../db.js';
 
 const router = express.Router();
 export const JWT_SECRET = process.env.JWT_SECRET || 'srec_fis_super_secret_key_123';
+
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST;
+  const user = process.env.SMTP_USER || process.env.MAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587', 10);
+
+  if (host && user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+  }
+  return null;
+};
 
 // 1. Sign In Route
 router.post('/login', (req, res) => {
@@ -234,7 +252,40 @@ router.post('/forgot-password', (req, res) => {
 
       otpStore.set(cleanStaffId.toUpperCase(), { otp, expiresAt, role: targetRole, email: cleanEmail });
 
-      console.log(`[OTP Verification] Staff ID: ${cleanStaffId} | OTP: ${otp} | Target Email: ${cleanEmail}`);
+      console.log(`\n======================================================`);
+      console.log(`[OTP VERIFICATION CODE] Staff ID: ${cleanStaffId} | OTP CODE: ${otp} | Email: ${cleanEmail}`);
+      console.log(`======================================================\n`);
+
+      const transporter = createTransporter();
+      if (transporter) {
+        const mailOptions = {
+          from: `"SREC FIS System" <${process.env.SMTP_USER || process.env.MAIL_USER}>`,
+          to: cleanEmail,
+          subject: 'SREC FIS - Password Reset Verification Code (OTP)',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <h2 style="color: #0f331f;">SREC Faculty Information System</h2>
+              <p>Hello,</p>
+              <p>You requested a password reset for Staff ID: <strong>${cleanStaffId}</strong>.</p>
+              <p>Your 6-digit Verification OTP Code is:</p>
+              <div style="font-size: 28px; font-weight: 800; letter-spacing: 4px; color: #15583b; background: #e6f4ea; padding: 14px; text-align: center; border-radius: 6px; margin: 16px 0;">
+                ${otp}
+              </div>
+              <p>This OTP is valid for 10 minutes. If you did not request this password reset, please ignore this email.</p>
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+              <p style="font-size: 0.8rem; color: #64748b;">Sri Ramakrishna Engineering College (SREC) FIS V3.0</p>
+            </div>
+          `
+        };
+
+        transporter.sendMail(mailOptions, (mailErr, info) => {
+          if (mailErr) {
+            console.error('[Nodemailer Error]:', mailErr.message);
+          } else {
+            console.log('[Nodemailer Success]: OTP email sent to', cleanEmail, info.response);
+          }
+        });
+      }
 
       return res.json({
         message: `Verification OTP sent to ${cleanEmail}. (Valid for 10 minutes)`
