@@ -119,26 +119,48 @@ export default function Personal({ auth }) {
     if (e) e.preventDefault();
     setMessage('');
     setError('');
+    setFieldErrors({});
 
     if (targetItem) {
-      if (!targetItem.dob) { setError('Date of Birth is a mandatory field.'); return; }
-      if (!targetItem.mobile || !targetItem.mobile.trim()) { setError('Mobile Number is a mandatory field.'); return; }
-      if (!targetItem.email || !targetItem.email.trim()) { setError('Email ID is a mandatory field.'); return; }
-      if (!targetItem.pan || !targetItem.pan.trim()) { setError('PAN Card Number is a mandatory field.'); return; }
-      if (!targetItem.aadhar || !targetItem.aadhar.trim()) { setError('Aadhar Number is a mandatory field.'); return; }
-      if (!targetItem.address || !targetItem.address.trim()) { setError('Contact Address is a mandatory field.'); return; }
+      const errs = {};
+      if (!targetItem.dob) errs.dob = 'Date of Birth is mandatory';
+      
+      if (!targetItem.mobile || !targetItem.mobile.trim()) {
+        errs.mobile = 'Mobile Number is mandatory';
+      } else {
+        const mErr = validateMobile(targetItem.mobile);
+        if (mErr) errs.mobile = mErr;
+      }
 
-      const mobileErr = validateMobile(targetItem.mobile);
-      if (mobileErr) { setError(mobileErr); return; }
+      if (!targetItem.email || !targetItem.email.trim()) {
+        errs.email = 'Email ID is mandatory';
+      } else {
+        const eErr = validateEmail(targetItem.email);
+        if (eErr) errs.email = eErr;
+      }
 
-      const emailErr = validateEmail(targetItem.email);
-      if (emailErr) { setError(emailErr); return; }
+      if (!targetItem.pan || !targetItem.pan.trim()) {
+        errs.pan = 'PAN Card Number is mandatory';
+      } else {
+        const pErr = validatePan(targetItem.pan);
+        if (pErr) errs.pan = pErr;
+      }
 
-      const panErr = validatePan(targetItem.pan);
-      if (panErr) { setError(panErr); return; }
+      if (!targetItem.aadhar || !targetItem.aadhar.trim()) {
+        errs.aadhar = 'Aadhar Number is mandatory';
+      } else {
+        const aErr = validateAadhar(targetItem.aadhar);
+        if (aErr) errs.aadhar = aErr;
+      }
 
-      const aadharErr = validateAadhar(targetItem.aadhar);
-      if (aadharErr) { setError(aadharErr); return; }
+      if (!targetItem.address || !targetItem.address.trim()) {
+        errs.address = 'Contact Address is mandatory';
+      }
+
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return;
+      }
     }
 
     const targetStaffId = targetItem?.staff_id || auth.staffId;
@@ -437,10 +459,16 @@ export default function Personal({ auth }) {
                   <input 
                     type="date" 
                     className="form-control" 
+                    style={{ borderColor: fieldErrors.dob ? '#dc2626' : undefined }}
                     value={personal.dob || ''} 
                     onChange={(e) => setPersonal({ ...personal, dob: e.target.value })} 
                     required
                   />
+                  {fieldErrors.dob && (
+                    <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                      {fieldErrors.dob}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -467,10 +495,16 @@ export default function Personal({ auth }) {
                     type="text" 
                     className="form-control" 
                     placeholder="Mobile Number" 
+                    style={{ borderColor: fieldErrors.mobile ? '#dc2626' : undefined }}
                     value={personal.mobile || ''} 
                     onChange={(e) => setPersonal({ ...personal, mobile: e.target.value })} 
                     required
                   />
+                  {fieldErrors.mobile && (
+                    <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                      {fieldErrors.mobile}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -481,10 +515,16 @@ export default function Personal({ auth }) {
                     type="email" 
                     className="form-control" 
                     placeholder="Email Address (e.g. faculty@srec.ac.in)" 
+                    style={{ borderColor: fieldErrors.email ? '#dc2626' : undefined }}
                     value={personal.email || ''} 
                     onChange={(e) => setPersonal({ ...personal, email: e.target.value })} 
                     required
                   />
+                  {fieldErrors.email && (
+                    <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                      {fieldErrors.email}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -495,10 +535,16 @@ export default function Personal({ auth }) {
                     type="text" 
                     className="form-control" 
                     placeholder="PAN Number" 
+                    style={{ borderColor: fieldErrors.pan ? '#dc2626' : undefined }}
                     value={personal.pan || ''} 
                     onChange={(e) => setPersonal({ ...personal, pan: e.target.value })} 
                     required
                   />
+                  {fieldErrors.pan && (
+                    <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                      {fieldErrors.pan}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -509,10 +555,16 @@ export default function Personal({ auth }) {
                     type="text" 
                     className="form-control" 
                     placeholder="Aadhar Number" 
+                    style={{ borderColor: fieldErrors.aadhar ? '#dc2626' : undefined }}
                     value={personal.aadhar || ''} 
                     onChange={(e) => setPersonal({ ...personal, aadhar: e.target.value })} 
                     required
                   />
+                  {fieldErrors.aadhar && (
+                    <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                      {fieldErrors.aadhar}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -524,10 +576,16 @@ export default function Personal({ auth }) {
                   className="form-control" 
                   rows="3" 
                   placeholder="Enter full contact address..." 
+                  style={{ borderColor: fieldErrors.address ? '#dc2626' : undefined }}
                   value={personal.address || ''} 
                   onChange={(e) => setPersonal({ ...personal, address: e.target.value })} 
                   required
                 />
+                {fieldErrors.address && (
+                  <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                    {fieldErrors.address}
+                  </span>
+                )}
               </div>
 
               <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>

@@ -92,9 +92,22 @@ export default function Login({ setAuth }) {
     }
   };
 
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+    
+    const errs = {};
+    if (!username || !username.trim()) errs.username = 'Staff User ID is required';
+    if (!password) errs.password = 'Password is required';
+    
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -107,7 +120,9 @@ export default function Login({ setAuth }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        const msg = data.error || 'Authentication failed';
+        setFieldErrors({ username: msg, password: msg });
+        throw new Error(msg);
       }
 
       // Save to localStorage
@@ -239,7 +254,7 @@ export default function Login({ setAuth }) {
                 placeholder="Enter Staff ID"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                style={{ paddingLeft: '44px', background: '#ffffff', color: '#0f331f', borderColor: '#b5cebf', fontWeight: 600 }}
+                style={{ paddingLeft: '44px', background: '#ffffff', color: '#0f331f', borderColor: fieldErrors.username ? '#dc2626' : '#b5cebf', fontWeight: 600 }}
                 required
                 autoFocus
               />
@@ -251,6 +266,11 @@ export default function Login({ setAuth }) {
                 color: '#15583b'
               }} />
             </div>
+            {fieldErrors.username && (
+              <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '6px', display: 'block', fontWeight: 600 }}>
+                {fieldErrors.username}
+              </span>
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -281,7 +301,7 @@ export default function Login({ setAuth }) {
                 placeholder="Enter Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ paddingLeft: '44px', background: '#ffffff', color: '#0f331f', borderColor: '#b5cebf', fontWeight: 600 }}
+                style={{ paddingLeft: '44px', background: '#ffffff', color: '#0f331f', borderColor: fieldErrors.password ? '#dc2626' : '#b5cebf', fontWeight: 600 }}
                 required
               />
               <Lock size={18} style={{
@@ -292,6 +312,11 @@ export default function Login({ setAuth }) {
                 color: '#15583b'
               }} />
             </div>
+            {fieldErrors.password && (
+              <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '6px', display: 'block', fontWeight: 600 }}>
+                {fieldErrors.password}
+              </span>
+            )}
           </div>
 
           <button
