@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState } from 'react';
 import { User, Camera, Upload, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
@@ -22,7 +23,7 @@ export default function Settings({ auth, updateProfilePic }) {
       const formData = new FormData();
       formData.append('file', fileObj);
 
-      const res = await fetch('http://localhost:5001/api/activities/upload/profile-pic', {
+      const res = await fetch(`${API_BASE_URL}/api/activities/upload/profile-pic`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${auth.token}` },
         body: formData
@@ -54,7 +55,7 @@ export default function Settings({ auth, updateProfilePic }) {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5001/api/auth/change-password', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ export default function Settings({ auth, updateProfilePic }) {
   };
 
   const profilePicUrl = auth?.profilePic 
-    ? `http://localhost:5001/uploads/upload/${auth.profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`
+    ? `${API_BASE_URL}/uploads/upload/${auth.profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`
     : null;
 
   return (

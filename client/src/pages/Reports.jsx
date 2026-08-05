@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { FileText, Printer, FileSpreadsheet, Eye, EyeOff, Search } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
@@ -51,8 +52,8 @@ export default function Reports({ auth }) {
 
       // 1. Fetch personal and academics (always needed)
       const [personalRes, academicsRes] = await Promise.all([
-        fetch(`http://localhost:5001/api/faculty/personal${targetQuery}`, { headers }),
-        fetch(`http://localhost:5001/api/faculty/academics${targetQuery}`, { headers })
+        fetch(`${API_BASE_URL}/api/faculty/personal${targetQuery}`, { headers }),
+        fetch(`${API_BASE_URL}/api/faculty/academics${targetQuery}`, { headers })
       ]);
 
       if (personalRes.ok) {
@@ -69,9 +70,9 @@ export default function Reports({ auth }) {
       const activeSections = Object.keys(sections).filter(s => sections[s] && s !== 'personal' && s !== 'academics');
 
       for (const section of activeSections) {
-        let url = `http://localhost:5001/api/activities/${section}${targetQuery}`;
+        let url = `${API_BASE_URL}/api/activities/${section}${targetQuery}`;
         if (section === 'education') {
-          url = `http://localhost:5001/api/faculty/education${targetQuery}`;
+          url = `${API_BASE_URL}/api/faculty/education${targetQuery}`;
         }
         
         dataPromises[section] = fetch(url, { headers })

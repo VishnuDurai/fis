@@ -18,7 +18,7 @@ const getApiBaseUrl = () => {
 
   url = (url || '').trim().replace(/\/+$/, '');
 
-  // Prevent mixed content errors on HTTPS deployments (e.g. Render)
+  // Prevent mixed content errors on HTTPS deployments (e.g. Render/AWS)
   if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
     url = url.replace('http://', 'https://');
   }

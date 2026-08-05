@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Plus, Trash2, Search, CheckCircle2, FileText, User, Edit2, Award } from 'lucide-react';
@@ -39,7 +40,7 @@ export default function Responsibilities({ auth }) {
     setLoading(true);
     try {
       // Fetch assigned responsibilities
-      let url = 'http://localhost:5001/api/faculty/responsibilities';
+      let url = `${API_BASE_URL}/api/faculty/responsibilities`;
       if (!canViewDept) {
         url += `?staffId=${auth.staffId}`;
       }
@@ -54,8 +55,8 @@ export default function Responsibilities({ auth }) {
       // If HOD/Admin/Principal/HR, fetch faculty for SearchableSelect
       if (isHOD) {
         const facUrl = isInstitutionalAdmin 
-          ? 'http://localhost:5001/api/faculty/personal?scope=institution' 
-          : 'http://localhost:5001/api/faculty/personal';
+          ? `${API_BASE_URL}/api/faculty/personal?scope=institution` 
+          : `${API_BASE_URL}/api/faculty/personal`;
 
         const facRes = await fetch(facUrl, {
           headers: { 'Authorization': `Bearer ${auth.token}` }
@@ -110,8 +111,8 @@ export default function Responsibilities({ auth }) {
     try {
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId 
-        ? `http://localhost:5001/api/faculty/responsibility/${editingId}`
-        : 'http://localhost:5001/api/faculty/responsibility';
+        ? `${API_BASE_URL}/api/faculty/responsibility/${editingId}`
+        : `${API_BASE_URL}/api/faculty/responsibility`;
 
       const res = await fetch(url, {
         method,
@@ -144,7 +145,7 @@ export default function Responsibilities({ auth }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this assigned responsibility?')) return;
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/responsibility/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/responsibility/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -161,7 +162,7 @@ export default function Responsibilities({ auth }) {
   const [selectedDepartment, setSelectedDepartment] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5001/api/admin/departments', {
+    fetch(`${API_BASE_URL}/api/admin/departments`, {
       headers: { 'Authorization': `Bearer ${auth.token}` }
     })
     .then(res => res.ok ? res.json() : [])

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
@@ -114,7 +115,7 @@ export default function Appraisal({ auth }) {
 
   const fetchGeneralInfo = async (targetStaffId = auth.staffId) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/appraisal/general-info/${targetStaffId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/general-info/${targetStaffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -128,7 +129,7 @@ export default function Appraisal({ auth }) {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/admin/departments', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/departments`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -173,7 +174,7 @@ export default function Appraisal({ auth }) {
 
   const fetchTemplate = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/appraisal/template', {
+      const res = await fetch(`${API_BASE_URL}/api/appraisal/template`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -193,7 +194,7 @@ export default function Appraisal({ auth }) {
     setError('');
     setSavingTemplate(true);
     try {
-      const res = await fetch('http://localhost:5001/api/appraisal/template', {
+      const res = await fetch(`${API_BASE_URL}/api/appraisal/template`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,42 +239,42 @@ export default function Appraisal({ auth }) {
 
   const fetchFpiSummary = async () => {
     try {
-      fetch(`http://localhost:5001/api/activities/interactions?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/interactions?staffId=${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setInteractionsList(data))
       .catch(err => console.error(err));
 
-      fetch(`http://localhost:5001/api/activities/responsibilities?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/responsibilities?staffId=${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setResponsibilitiesList(data))
       .catch(err => console.error(err));
 
-      fetch(`http://localhost:5001/api/activities/publications?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/publications?staffId=${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setPublicationsCount(data.length))
       .catch(err => console.error(err));
 
-      fetch(`http://localhost:5001/api/activities/books?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/books?staffId=${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setBooksCount(data.length))
       .catch(err => console.error(err));
 
-      fetch(`http://localhost:5001/api/activities/ipr?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/ipr?staffId=${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setPatentsCount(data.length))
       .catch(err => console.error(err));
 
-      fetch(`http://localhost:5001/api/activities/funding?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/funding?staffId=${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
@@ -284,7 +285,7 @@ export default function Appraisal({ auth }) {
       })
       .catch(err => console.error(err));
 
-      const res = await fetch(`http://localhost:5001/api/faculty/appraisal/fpi-summary/${auth.staffId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${auth.staffId}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -332,7 +333,7 @@ export default function Appraisal({ auth }) {
   const fetchAppraisals = async () => {
     setLoading(true);
     try {
-      let url = 'http://localhost:5001/api/faculty/appraisals';
+      let url = `${API_BASE_URL}/api/faculty/appraisals`;
       if (!isAdminOrHR && !isDeptAdmin) {
         url += `?staffId=${auth.staffId}`;
       }
@@ -365,7 +366,7 @@ export default function Appraisal({ auth }) {
     if (!selfAppraisalScore || !selfAppraisalScore.trim()) { setError('Self Appraisal Score is mandatory.'); return; }
 
     try {
-      const res = await fetch('http://localhost:5001/api/faculty/appraisal', {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -418,7 +419,7 @@ export default function Appraisal({ auth }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/appraisal/${appId}/hod-approve`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${appId}/hod-approve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -463,7 +464,7 @@ export default function Appraisal({ auth }) {
         remarks: fState.remarks || ''
       };
 
-      const res = await fetch(`http://localhost:5001/api/faculty/appraisal/${appId}/final-approve`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${appId}/final-approve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -483,7 +484,7 @@ export default function Appraisal({ auth }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this appraisal submission?')) return;
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/appraisal/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -502,7 +503,7 @@ export default function Appraisal({ auth }) {
   const handleOpenViewModal = async (app) => {
     setViewingAppraisal(app);
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/appraisal/general-info/${app.staff_id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/general-info/${app.staff_id}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {

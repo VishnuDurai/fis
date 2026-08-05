@@ -521,7 +521,7 @@ export default function Activities({ auth }) {
   const fetchMappedScholars = async () => {
     if (type === 'supervisors') {
       try {
-        const res = await fetch('http://localhost:5001/api/activities/scholars', {
+        const res = await fetch(`${API_BASE_URL}/api/activities/scholars`, {
           headers: { 'Authorization': `Bearer ${auth.token}` }
         });
         if (res.ok) {
@@ -571,7 +571,7 @@ export default function Activities({ auth }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/activities/scholars/${scholarId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/activities/scholars/${scholarId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -606,8 +606,8 @@ export default function Activities({ auth }) {
       }
 
       const url = editingExtScholar
-        ? `http://localhost:5001/api/activities/scholars/${editingExtScholar.id}`
-        : 'http://localhost:5001/api/activities/scholars';
+        ? `${API_BASE_URL}/api/activities/scholars/${editingExtScholar.id}`
+        : `${API_BASE_URL}/api/activities/scholars`;
 
       const method = editingExtScholar ? 'PUT' : 'POST';
 
@@ -633,7 +633,7 @@ export default function Activities({ auth }) {
 
   useEffect(() => {
     if (type === 'scholars') {
-      fetch('http://localhost:5001/api/activities/all-supervisors', {
+      fetch(`${API_BASE_URL}/api/activities/all-supervisors`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : [])
@@ -648,15 +648,15 @@ export default function Activities({ auth }) {
 
   const buildCitationMetricsUrl = () => {
     if (selectedFaculty) {
-      return `http://localhost:5001/api/faculty/fetch-citation-metrics?staffId=${encodeURIComponent(selectedFaculty)}`;
+      return `${API_BASE_URL}/api/faculty/fetch-citation-metrics?staffId=${encodeURIComponent(selectedFaculty)}`;
     }
     if (auth.role === 'dept_admin') {
-      return `http://localhost:5001/api/faculty/fetch-citation-metrics?department=${encodeURIComponent(auth.department || auth.dept || '')}`;
+      return `${API_BASE_URL}/api/faculty/fetch-citation-metrics?department=${encodeURIComponent(auth.department || auth.dept || '')}`;
     }
     if (auth.role === 'admin') {
-      return `http://localhost:5001/api/faculty/fetch-citation-metrics?department=${encodeURIComponent(selectedDepartment || '')}`;
+      return `${API_BASE_URL}/api/faculty/fetch-citation-metrics?department=${encodeURIComponent(selectedDepartment || '')}`;
     }
-    return `http://localhost:5001/api/faculty/fetch-citation-metrics?staffId=${encodeURIComponent(auth.staffId)}`;
+    return `${API_BASE_URL}/api/faculty/fetch-citation-metrics?staffId=${encodeURIComponent(auth.staffId)}`;
   };
 
   useEffect(() => {
@@ -672,7 +672,7 @@ export default function Activities({ auth }) {
 
   useEffect(() => {
     if (type === 'publications' && (auth.role === 'dept_admin' || auth.role === 'admin')) {
-      let url = 'http://localhost:5001/api/faculty/top-performing-bibliometrics';
+      let url = `${API_BASE_URL}/api/faculty/top-performing-bibliometrics`;
       if (auth.role === 'dept_admin') {
         url += `?department=${encodeURIComponent(auth.department || auth.dept || '')}`;
       } else if (auth.role === 'admin' && selectedDepartment) {
@@ -704,14 +704,14 @@ export default function Activities({ auth }) {
 
   useEffect(() => {
     if (auth.role === 'dept_admin' || auth.role === 'admin') {
-      fetch('http://localhost:5001/api/faculty/personal', {
+      fetch(`${API_BASE_URL}/api/faculty/personal`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : [])
       .then(data => setDeptFaculty(data))
       .catch(err => console.error(err));
 
-      fetch('http://localhost:5001/api/admin/departments', {
+      fetch(`${API_BASE_URL}/api/admin/departments`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : [])
@@ -722,7 +722,7 @@ export default function Activities({ auth }) {
 
   useEffect(() => {
     if (type === 'memberships') {
-      fetch('http://localhost:5001/api/admin/societies', {
+      fetch(`${API_BASE_URL}/api/admin/societies`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : [])
@@ -775,12 +775,12 @@ export default function Activities({ auth }) {
   const fetchActivities = async (staffIdFilter = selectedFaculty) => {
     setLoading(true);
     try {
-      let url = `http://localhost:5001/api/activities/${type}`;
+      let url = `${API_BASE_URL}/api/activities/${type}`;
       
       if (staffIdFilter) {
-        url = `http://localhost:5001/api/activities/${type}?staffId=${staffIdFilter}`;
+        url = `${API_BASE_URL}/api/activities/${type}?staffId=${staffIdFilter}`;
       } else if (auth.role !== 'dept_admin' && auth.role !== 'admin') {
-        url = `http://localhost:5001/api/activities/${type}?staffId=${auth.staffId}`;
+        url = `${API_BASE_URL}/api/activities/${type}?staffId=${auth.staffId}`;
       }
 
       const res = await fetch(url, {
@@ -814,7 +814,7 @@ export default function Activities({ auth }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/activities/${type}/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/activities/${type}/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -860,8 +860,8 @@ export default function Activities({ auth }) {
 
     try {
       const url = editItem 
-        ? `http://localhost:5001/api/activities/${type}/${editItem.id}` 
-        : `http://localhost:5001/api/activities/${type}`;
+        ? `${API_BASE_URL}/api/activities/${type}/${editItem.id}` 
+        : `${API_BASE_URL}/api/activities/${type}`;
 
       const method = editItem ? 'PUT' : 'POST';
 

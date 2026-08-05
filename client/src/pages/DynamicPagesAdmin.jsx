@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
@@ -50,7 +51,7 @@ export default function DynamicPagesAdmin({ auth }) {
   const fetchPages = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5001/api/dynamic-pages', {
+      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -151,8 +152,8 @@ export default function DynamicPagesAdmin({ auth }) {
 
     const payload = { title, slug, category, portals, fields, icon };
     const url = editingId 
-      ? `http://localhost:5001/api/dynamic-pages/${editingId}`
-      : 'http://localhost:5001/api/dynamic-pages';
+      ? `${API_BASE_URL}/api/dynamic-pages/${editingId}`
+      : `${API_BASE_URL}/api/dynamic-pages`;
     const method = editingId ? 'PUT' : 'POST';
 
     try {
@@ -182,7 +183,7 @@ export default function DynamicPagesAdmin({ auth }) {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5001/api/dynamic-pages/${page.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages/${page.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });

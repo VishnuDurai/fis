@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { FileSpreadsheet, FileText, Calendar, Filter, X, SlidersHorizontal, CheckSquare, Square, Archive } from 'lucide-react';
 import { downloadExcelReport, downloadPdfReport } from '../utils/reportGenerator';
@@ -243,7 +244,7 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
     setZipping(true);
     try {
       const token = auth?.token || localStorage.getItem('srec_token');
-      const response = await fetch('http://localhost:5001/api/utils/download-zip', {
+      const response = await fetch(`${API_BASE_URL}/api/utils/download-zip`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

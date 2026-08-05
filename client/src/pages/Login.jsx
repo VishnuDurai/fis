@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
@@ -30,7 +31,7 @@ export default function Login({ setAuth }) {
     setForgotLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5001/api/auth/forgot-password', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,7 +66,7 @@ export default function Login({ setAuth }) {
     setForgotLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5001/api/auth/reset-password', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,7 +98,7 @@ export default function Login({ setAuth }) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role })

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -22,14 +23,14 @@ export default function Home({ auth }) {
         const headers = { 'Authorization': `Bearer ${auth.token}` };
 
         // Fetch departments for acronym mapping
-        fetch('http://localhost:5001/api/admin/departments', { headers })
+        fetch(`${API_BASE_URL}/api/admin/departments`, { headers })
           .then(res => res.ok ? res.json() : [])
           .then(data => setDepartments(data))
           .catch(err => console.error(err));
         
         if (auth.role === 'admin' || auth.role === 'dept_admin') {
           // Fetch admin statistics
-          const res = await fetch('http://localhost:5001/api/admin/stats', { headers });
+          const res = await fetch(`${API_BASE_URL}/api/admin/stats`, { headers });
           if (res.ok) {
             const data = await res.json();
             setStats(data);
@@ -37,9 +38,9 @@ export default function Home({ auth }) {
         } else {
           // Fetch faculty academic, personal profile, and personal activity stats
           const [aRes, pRes, sRes] = await Promise.all([
-            fetch('http://localhost:5001/api/faculty/academics', { headers }),
-            fetch('http://localhost:5001/api/faculty/personal', { headers }),
-            fetch('http://localhost:5001/api/faculty/stats', { headers })
+            fetch(`${API_BASE_URL}/api/faculty/academics`, { headers }),
+            fetch(`${API_BASE_URL}/api/faculty/personal`, { headers }),
+            fetch(`${API_BASE_URL}/api/faculty/stats`, { headers })
           ]);
 
           if (aRes.ok) {
@@ -155,7 +156,7 @@ export default function Home({ auth }) {
                   }}>
                     {auth.profilePic ? (
                       <img 
-                        src={`http://localhost:5001/uploads/upload/${auth.profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
+                        src={`${API_BASE_URL}/uploads/upload/${auth.profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
                         alt="Profile" 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => { e.target.style.display = 'none'; }}

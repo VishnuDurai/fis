@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, Upload, Award, KeyRound, Layers } from 'lucide-react';
@@ -158,7 +159,7 @@ export default function AdminUsers({ auth, initialTab }) {
       const headers = { 'Authorization': `Bearer ${auth.token}` };
       
       // 1. Fetch Faculty List
-      const facRes = await fetch('http://localhost:5001/api/admin/staff', { headers });
+      const facRes = await fetch(`${API_BASE_URL}/api/admin/staff`, { headers });
       if (facRes.ok) {
         const facData = await facRes.json();
         setFacultyList(facData);
@@ -167,8 +168,8 @@ export default function AdminUsers({ auth, initialTab }) {
       // 2. Fetch Dept Admins & System Admins (System Admin / Principal / HR)
       if (isInstAdmin) {
         const [daRes, saRes] = await Promise.all([
-          fetch('http://localhost:5001/api/admin/dept-admins', { headers }),
-          fetch('http://localhost:5001/api/admin/system-admins', { headers })
+          fetch(`${API_BASE_URL}/api/admin/dept-admins`, { headers }),
+          fetch(`${API_BASE_URL}/api/admin/system-admins`, { headers })
         ]);
 
         if (daRes.ok) {
@@ -182,7 +183,7 @@ export default function AdminUsers({ auth, initialTab }) {
       }
 
       // 3. Fetch Departments
-      const deptRes = await fetch('http://localhost:5001/api/admin/departments', { headers });
+      const deptRes = await fetch(`${API_BASE_URL}/api/admin/departments`, { headers });
       if (deptRes.ok) {
         const deptData = await deptRes.json();
         setDepartments(deptData);
@@ -193,7 +194,7 @@ export default function AdminUsers({ auth, initialTab }) {
       }
 
       // 3.5 Fetch Designations
-      const desgRes = await fetch('http://localhost:5001/api/admin/designations', { headers });
+      const desgRes = await fetch(`${API_BASE_URL}/api/admin/designations`, { headers });
       if (desgRes.ok) {
         const desgData = await desgRes.json();
         setDesignations(desgData);
@@ -203,21 +204,21 @@ export default function AdminUsers({ auth, initialTab }) {
       }
 
       // 4. Fetch Societies
-      const socRes = await fetch('http://localhost:5001/api/admin/societies', { headers });
+      const socRes = await fetch(`${API_BASE_URL}/api/admin/societies`, { headers });
       if (socRes.ok) {
         const socData = await socRes.json();
         setSocieties(socData);
       }
 
       // 5. Fetch Universities
-      const uniRes = await fetch('http://localhost:5001/api/admin/universities', { headers });
+      const uniRes = await fetch(`${API_BASE_URL}/api/admin/universities`, { headers });
       if (uniRes.ok) {
         const uniData = await uniRes.json();
         setUniversities(uniData);
       }
 
       // 6. Fetch Clubs
-      const clubRes = await fetch('http://localhost:5001/api/admin/clubs', { headers });
+      const clubRes = await fetch(`${API_BASE_URL}/api/admin/clubs`, { headers });
       if (clubRes.ok) {
         const clubData = await clubRes.json();
         setClubsList(clubData);
@@ -243,7 +244,7 @@ export default function AdminUsers({ auth, initialTab }) {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5001/api/admin/clubs', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/clubs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -273,7 +274,7 @@ export default function AdminUsers({ auth, initialTab }) {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/clubs/${editClubTarget.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/clubs/${editClubTarget.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -296,7 +297,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/clubs/${club.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/clubs/${club.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -326,7 +327,7 @@ export default function AdminUsers({ auth, initialTab }) {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/api/admin/staff', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -363,7 +364,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/staff/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -385,7 +386,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:5001/api/admin/dept-admins', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/dept-admins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -416,7 +417,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/dept-admins/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/dept-admins/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -438,7 +439,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:5001/api/admin/system-admins', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/system-admins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -471,7 +472,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/system-admins/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/system-admins/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -499,7 +500,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/staff/${transferTarget.staff_id}/transfer`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff/${transferTarget.staff_id}/transfer`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -536,7 +537,7 @@ export default function AdminUsers({ auth, initialTab }) {
   const handleOpenEditFaculty = async (faculty) => {
     setEditFacultyTarget(faculty);
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/personal?staffId=${faculty.staff_id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/personal?staffId=${faculty.staff_id}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       const data = res.ok ? await res.json() : [];
@@ -599,7 +600,7 @@ export default function AdminUsers({ auth, initialTab }) {
     if (apaarErr) { setError(apaarErr); return; }
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/staff/${editFacultyTarget.staff_id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff/${editFacultyTarget.staff_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -644,10 +645,10 @@ export default function AdminUsers({ auth, initialTab }) {
     try {
       const headers = { 'Authorization': `Bearer ${auth.token}` };
       const [pRes, eRes, pubRes, awRes] = await Promise.all([
-        fetch(`http://localhost:5001/api/faculty/personal?staffId=${faculty.staff_id}`, { headers }),
-        fetch(`http://localhost:5001/api/faculty/education?staffId=${faculty.staff_id}`, { headers }),
-        fetch(`http://localhost:5001/api/activities/publications?staffId=${faculty.staff_id}`, { headers }),
-        fetch(`http://localhost:5001/api/activities/awards?staffId=${faculty.staff_id}`, { headers })
+        fetch(`${API_BASE_URL}/api/faculty/personal?staffId=${faculty.staff_id}`, { headers }),
+        fetch(`${API_BASE_URL}/api/faculty/education?staffId=${faculty.staff_id}`, { headers }),
+        fetch(`${API_BASE_URL}/api/activities/publications?staffId=${faculty.staff_id}`, { headers }),
+        fetch(`${API_BASE_URL}/api/activities/awards?staffId=${faculty.staff_id}`, { headers })
       ]);
 
       const pData = pRes.ok ? await pRes.json() : [];
@@ -676,7 +677,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch('http://localhost:5001/api/admin/departments', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/departments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -700,7 +701,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/departments/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/departments/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -718,7 +719,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch('http://localhost:5001/api/admin/designations', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/designations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -741,7 +742,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/designations/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/designations/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -766,7 +767,7 @@ export default function AdminUsers({ auth, initialTab }) {
 
     try {
       const orderedIds = newDesgs.map(d => d.id);
-      const res = await fetch('http://localhost:5001/api/admin/designations/reorder', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/designations/reorder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -788,7 +789,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch('http://localhost:5001/api/admin/societies', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/societies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -811,7 +812,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/societies/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/societies/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -829,7 +830,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch('http://localhost:5001/api/admin/universities', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/universities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -852,7 +853,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setMessage('');
     setError('');
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/universities/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/universities/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -875,7 +876,7 @@ export default function AdminUsers({ auth, initialTab }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/staff/${faculty.staff_id}/relieve`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff/${faculty.staff_id}/relieve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -902,7 +903,7 @@ export default function AdminUsers({ auth, initialTab }) {
     const targetPass = (resetCustomPassword && resetCustomPassword.trim()) ? resetCustomPassword.trim() : 'faculty123';
 
     try {
-      const res = await fetch(`http://localhost:5001/api/admin/staff/${resetPasswordTarget.staff_id}/reset-password`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff/${resetPasswordTarget.staff_id}/reset-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -923,7 +924,7 @@ export default function AdminUsers({ auth, initialTab }) {
 
   const handleDownloadZip = async (type, identifier = '') => {
     try {
-      let url = 'http://localhost:5001/api/admin/download/institution';
+      let url = `${API_BASE_URL}/api/admin/download/institution`;
       let defaultFilename = 'SREC_All_Documents.zip';
 
       if (type === 'department') {
@@ -932,11 +933,11 @@ export default function AdminUsers({ auth, initialTab }) {
           setError('Please select or specify a department to download department-wise documents.');
           return;
         }
-        url = `http://localhost:5001/api/admin/download/department/${encodeURIComponent(targetDept)}`;
+        url = `${API_BASE_URL}/api/admin/download/department/${encodeURIComponent(targetDept)}`;
         defaultFilename = `${targetDept}_documents.zip`;
       } else if (type === 'faculty') {
         if (!identifier) return;
-        url = `http://localhost:5001/api/admin/download/faculty/${encodeURIComponent(identifier)}`;
+        url = `${API_BASE_URL}/api/admin/download/faculty/${encodeURIComponent(identifier)}`;
         defaultFilename = `${identifier}_documents.zip`;
       }
 
@@ -969,7 +970,7 @@ export default function AdminUsers({ auth, initialTab }) {
 
   const handleDownloadTemplate = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/admin/bulk-faculty/template', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/bulk-faculty/template`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (!res.ok) throw new Error('Failed to download sample template');
@@ -1004,7 +1005,7 @@ export default function AdminUsers({ auth, initialTab }) {
       const formData = new FormData();
       formData.append('file', bulkFile);
 
-      const res = await fetch('http://localhost:5001/api/admin/bulk-faculty/upload', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/bulk-faculty/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${auth.token}` },
         body: formData

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell } from 'lucide-react';
@@ -15,8 +16,8 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
     if (auth && (auth.role === 'dept_admin' || auth.role === 'admin')) {
       const headers = { 'Authorization': `Bearer ${auth.token}` };
       Promise.all([
-        fetch('http://localhost:5001/api/admin/staff', { headers }),
-        fetch('http://localhost:5001/api/admin/departments', { headers })
+        fetch(`${API_BASE_URL}/api/admin/staff`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/departments`, { headers })
       ])
       .then(async ([sRes, dRes]) => {
         if (sRes.ok) setDeptFaculty(await sRes.json());
@@ -26,7 +27,7 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
     }
 
     if (auth && auth.token) {
-      fetch('http://localhost:5001/api/faculty/appraisals/pending-counts', {
+      fetch(`${API_BASE_URL}/api/faculty/appraisals/pending-counts`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : null)
@@ -71,7 +72,7 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const handleSignOut = () => {
     const token = localStorage.getItem('srec_token');
     if (token) {
-      fetch('http://localhost:5001/api/auth/logout', {
+      fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       }).catch(() => {});
@@ -99,7 +100,7 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
 
   // Construct absolute URL for profile picture
   const profilePicUrl = profilePic 
-    ? `http://localhost:5001/uploads/upload/${profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}` 
+    ? `${API_BASE_URL}/uploads/upload/${profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}` 
     : null;
 
   const isHodUser = auth?.isHod || (auth?.designation || '').toLowerCase().includes('hod') || (auth?.designation || '').toLowerCase().includes('head');

@@ -28,7 +28,7 @@ export default function DynamicPage({ auth }) {
   const fetchPageData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5001/api/dynamic-pages/${slug}/data`, {
+      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages/${slug}/data`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -67,7 +67,7 @@ export default function DynamicPage({ auth }) {
     }
 
     try {
-      const res = await fetch(`http://localhost:5001/api/dynamic-pages/${slug}/data`, {
+      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages/${slug}/data`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${auth.token}` },
         body
@@ -91,7 +91,7 @@ export default function DynamicPage({ auth }) {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/dynamic-pages/${slug}/data/${dataId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages/${slug}/data/${dataId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });

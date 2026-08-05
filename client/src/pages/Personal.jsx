@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, X, User, Download, FileText } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
@@ -30,7 +31,7 @@ export default function Personal({ auth }) {
         formData.append('staffId', targetStaffId);
       }
 
-      const res = await fetch('http://localhost:5001/api/faculty/personal/upload-doc', {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/personal/upload-doc`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${auth.token}` },
         body: formData
@@ -63,11 +64,11 @@ export default function Personal({ auth }) {
     try {
       const headers = { 'Authorization': `Bearer ${auth.token}` };
       
-      const dRes = await fetch('http://localhost:5001/api/admin/departments', { headers });
+      const dRes = await fetch(`${API_BASE_URL}/api/admin/departments`, { headers });
       if (dRes.ok) setDepartments(await dRes.json());
 
       if (auth.role === 'dept_admin' || auth.role === 'admin') {
-        const pRes = await fetch('http://localhost:5001/api/faculty/personal', { headers });
+        const pRes = await fetch(`${API_BASE_URL}/api/faculty/personal`, { headers });
         if (pRes.ok) {
           const data = await pRes.json();
           setPersonalList(data || []);
@@ -77,8 +78,8 @@ export default function Personal({ auth }) {
         }
       } else {
         const [pRes, aRes] = await Promise.all([
-          fetch(`http://localhost:5001/api/faculty/personal?staffId=${auth.staffId}`, { headers }),
-          fetch(`http://localhost:5001/api/faculty/academics?staffId=${auth.staffId}`, { headers })
+          fetch(`${API_BASE_URL}/api/faculty/personal?staffId=${auth.staffId}`, { headers }),
+          fetch(`${API_BASE_URL}/api/faculty/academics?staffId=${auth.staffId}`, { headers })
         ]);
 
         if (pRes.ok) {
@@ -143,7 +144,7 @@ export default function Personal({ auth }) {
     const targetStaffId = targetItem?.staff_id || auth.staffId;
 
     try {
-      const res = await fetch('http://localhost:5001/api/faculty/personal/update', {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/personal/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

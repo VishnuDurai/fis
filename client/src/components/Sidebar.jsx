@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -28,8 +29,8 @@ export default function Sidebar({ role, logout, auth }) {
   useEffect(() => {
     if (auth && auth.token) {
       Promise.all([
-        fetch('http://localhost:5001/api/dynamic-pages', { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-        fetch('http://localhost:5001/api/faculty/appraisals/pending-counts', { headers: { 'Authorization': `Bearer ${auth.token}` } })
+        fetch(`${API_BASE_URL}/api/dynamic-pages`, { headers: { 'Authorization': `Bearer ${auth.token}` } }),
+        fetch(`${API_BASE_URL}/api/faculty/appraisals/pending-counts`, { headers: { 'Authorization': `Bearer ${auth.token}` } })
       ])
         .then(async ([pRes, cRes]) => {
           if (pRes.ok) {

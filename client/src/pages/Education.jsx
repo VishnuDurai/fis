@@ -58,14 +58,14 @@ export default function Education({ auth }) {
 
   useEffect(() => {
     if (auth.role === 'dept_admin' || auth.role === 'admin') {
-      fetch('http://localhost:5001/api/faculty/personal', {
+      fetch(`${API_BASE_URL}/api/faculty/personal`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : [])
       .then(data => setDeptFaculty(data))
       .catch(err => console.error(err));
 
-      fetch('http://localhost:5001/api/admin/departments', {
+      fetch(`${API_BASE_URL}/api/admin/departments`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : [])
@@ -77,12 +77,12 @@ export default function Education({ auth }) {
   const fetchEducation = async (staffIdFilter = selectedFaculty) => {
     setLoading(true);
     try {
-      let url = `http://localhost:5001/api/faculty/education`;
+      let url = `${API_BASE_URL}/api/faculty/education`;
       
       if (staffIdFilter) {
-        url = `http://localhost:5001/api/faculty/education?staffId=${staffIdFilter}`;
+        url = `${API_BASE_URL}/api/faculty/education?staffId=${staffIdFilter}`;
       } else if (auth.role !== 'dept_admin' && auth.role !== 'admin') {
-        url = `http://localhost:5001/api/faculty/education?staffId=${auth.staffId}`;
+        url = `${API_BASE_URL}/api/faculty/education?staffId=${auth.staffId}`;
       }
 
       const res = await fetch(url, {
@@ -101,7 +101,7 @@ export default function Education({ auth }) {
 
   useEffect(() => {
     fetchEducation(selectedFaculty);
-    fetch('http://localhost:5001/api/admin/universities', {
+    fetch(`${API_BASE_URL}/api/admin/universities`, {
       headers: { 'Authorization': `Bearer ${auth.token}` }
     })
     .then(res => res.ok ? res.json() : [])
@@ -115,7 +115,7 @@ export default function Education({ auth }) {
     setError('');
 
     try {
-      const res = await fetch(`http://localhost:5001/api/faculty/education/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/education/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -178,8 +178,8 @@ export default function Education({ auth }) {
 
     try {
       const url = editItem 
-        ? `http://localhost:5001/api/faculty/education/${editItem.id}` 
-        : 'http://localhost:5001/api/faculty/education';
+        ? `${API_BASE_URL}/api/faculty/education/${editItem.id}` 
+        : `${API_BASE_URL}/api/faculty/education`;
       
       const method = editItem ? 'PUT' : 'POST';
 

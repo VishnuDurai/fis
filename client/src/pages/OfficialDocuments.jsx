@@ -45,7 +45,7 @@ export default function OfficialDocuments({ auth }) {
     setLoading(true);
     try {
       if (auth.role === 'dept_admin' || auth.role === 'admin') {
-        const deptsRes = await fetch('http://localhost:5001/api/admin/departments', {
+        const deptsRes = await fetch(`${API_BASE_URL}/api/admin/departments`, {
           headers: { 'Authorization': `Bearer ${auth.token}` }
         });
         if (deptsRes.ok) {
@@ -53,7 +53,7 @@ export default function OfficialDocuments({ auth }) {
           setDepartments(deptsData || []);
         }
 
-        const listRes = await fetch('http://localhost:5001/api/faculty/personal', {
+        const listRes = await fetch(`${API_BASE_URL}/api/faculty/personal`, {
           headers: { 'Authorization': `Bearer ${auth.token}` }
         });
         if (listRes.ok) {
@@ -61,7 +61,7 @@ export default function OfficialDocuments({ auth }) {
           setPersonalList(listData || []);
         }
       } else {
-        const res = await fetch('http://localhost:5001/api/faculty/personal', {
+        const res = await fetch(`${API_BASE_URL}/api/faculty/personal`, {
           headers: { 'Authorization': `Bearer ${auth.token}` }
         });
         if (res.ok) {
@@ -94,7 +94,7 @@ export default function OfficialDocuments({ auth }) {
       formData.append('file', fileObj);
       formData.append('docType', docType);
 
-      const res = await fetch('http://localhost:5001/api/faculty/personal/upload-doc', {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/personal/upload-doc`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${auth.token}` },
         body: formData

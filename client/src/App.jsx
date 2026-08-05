@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "./config";
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.jsx';
@@ -47,7 +48,7 @@ export default function App() {
   // Sync supervisor eligibility & HOD role claims from server
   const checkSupervisorEligibility = React.useCallback(() => {
     if (auth && auth.token && auth.role === 'faculty') {
-      fetch('http://localhost:5001/api/faculty/check-supervisor-eligibility', {
+      fetch(`${API_BASE_URL}/api/faculty/check-supervisor-eligibility`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
         .then(res => res.json())
@@ -94,7 +95,7 @@ export default function App() {
         })
         .catch(err => console.error('Error checking supervisor eligibility:', err));
 
-      fetch('http://localhost:5001/api/faculty/my-clubs', {
+      fetch(`${API_BASE_URL}/api/faculty/my-clubs`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
         .then(res => res.json())
@@ -130,7 +131,7 @@ export default function App() {
   const logout = () => {
     const token = localStorage.getItem('srec_token');
     if (token) {
-      fetch('http://localhost:5001/api/auth/logout', {
+      fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       }).catch(() => {});
