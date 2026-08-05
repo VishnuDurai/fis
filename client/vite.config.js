@@ -4,6 +4,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': 'http://localhost:5001',
+      '/uploads': 'http://localhost:5001',
+      '/SREC': 'http://localhost:5001'
+    }
+  },
   plugins: [
     react(),
     VitePWA({
@@ -41,6 +49,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        navigateFallbackDenylist: [/^\/uploads/, /^\/SREC/, /^\/api/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
         runtimeCaching: [
           {
@@ -58,6 +67,14 @@ export default defineConfig({
             }
           },
           {
+            urlPattern: /^https?:\/\/.*\/uploads\/.*/i,
+            handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /^https?:\/\/.*\/SREC\/.*/i,
+            handler: 'NetworkOnly'
+          },
+          {
             urlPattern: /^\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
@@ -72,5 +89,5 @@ export default defineConfig({
         ]
       }
     })
-  ],
+  ]
 })

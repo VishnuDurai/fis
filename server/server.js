@@ -22,19 +22,18 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// Authentication guard for saved files - redirects unauthorized requests to frontend login
+// Authentication guard for saved files - redirects unauthorized users directly to /login screen
 const requireFileAuth = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
-  const clientLoginUrl = process.env.CLIENT_URL || 'http://localhost:5173/login';
 
-  if (!token || isTokenBlacklisted(token)) {
-    return res.redirect(clientLoginUrl);
+  if (!token || token === 'undefined' || token === 'null' || isTokenBlacklisted(token)) {
+    return res.redirect('/login');
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      return res.redirect(clientLoginUrl);
+      return res.redirect('/login');
     }
     req.user = user;
     next();
@@ -44,7 +43,8 @@ const requireFileAuth = (req, res, next) => {
 // Universal dynamic file resolver for /uploads and /SREC requests
 app.use('/uploads', requireFileAuth, (req, res, next) => {
   const urlPath = (req.originalUrl || req.url || '').split('?')[0];
-  const filename = path.basename(urlPath);
+  let filename = path.basename(urlPath);
+  try { filename = decodeURIComponent(filename); } catch (e) {}
 
   if (!filename || filename === 'uploads' || filename === 'document' || filename === 'upload' || filename.includes('..')) {
     return next();
@@ -55,12 +55,26 @@ app.use('/uploads', requireFileAuth, (req, res, next) => {
     return res.sendFile(filePath);
   }
 
-  next();
+  return res.status(404).send(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>File Not Found - SREC FIS</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+    <body style="font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;">
+      <div style="background: white; padding: 32px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+        <h2 style="margin: 0 0 8px 0; color: #0f331f; font-size: 1.3rem;">File Not Found</h2>
+        <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 24px;">The requested document file could not be located on the server disk. Please re-upload the document.</p>
+        <a href="/profile/documents" style="display: inline-block; background: #15583b; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.9rem;">Back to Documents</a>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
 app.use('/SREC', requireFileAuth, (req, res, next) => {
   const urlPath = (req.originalUrl || req.url || '').split('?')[0];
-  const filename = path.basename(urlPath);
+  let filename = path.basename(urlPath);
+  try { filename = decodeURIComponent(filename); } catch (e) {}
 
   if (!filename || filename === 'SREC' || filename.includes('..')) {
     return next();
@@ -71,7 +85,20 @@ app.use('/SREC', requireFileAuth, (req, res, next) => {
     return res.sendFile(filePath);
   }
 
-  next();
+  return res.status(404).send(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>File Not Found - SREC FIS</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+    <body style="font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;">
+      <div style="background: white; padding: 32px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📁</div>
+        <h2 style="margin: 0 0 8px 0; color: #0f331f; font-size: 1.3rem;">File Not Found</h2>
+        <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 24px;">The requested document file could not be located on the server disk. Please re-upload the document.</p>
+        <a href="/profile/documents" style="display: inline-block; background: #15583b; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.9rem;">Back to Documents</a>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
 // Fallback static servers
@@ -152,6 +179,18 @@ app.post('/api/utils/download-zip', (req, res) => {
     }
   });
 });
+
+// Fallback static file server for frontend build
+const clientDistPath = path.join(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/SREC') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // Start Server
 app.listen(PORT, () => {

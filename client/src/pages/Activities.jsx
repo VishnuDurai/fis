@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Plus, Trash2, Download, FileSignature, Search, Edit } from 'lucide-react';
@@ -1631,7 +1632,7 @@ export default function Activities({ auth }) {
                       <td>
                         {item.file ? (
                           <a 
-                            href={`http://localhost:5001/uploads/document/${item.file}?token=${auth?.token}`} 
+                            href={`${API_BASE_URL}/uploads/document/${item.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} 
                             target="_blank" 
                             rel="noreferrer"
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
@@ -1810,7 +1811,7 @@ export default function Activities({ auth }) {
                         <td><span className="badge badge-secondary">{s.status || 'Pursuing'}</span></td>
                         <td>
                           {s.file ? (
-                            <a href={`http://localhost:5001/uploads/document/${s.file}?token=${auth?.token}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <a href={`${API_BASE_URL}/uploads/document/${s.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                               <Download size={14} /> File
                             </a>
                           ) : (

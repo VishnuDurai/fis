@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Dropzone from '../components/Dropzone';
@@ -282,7 +283,7 @@ export default function OfficialDocuments({ auth }) {
                           <td>
                             {f.pan_file ? (
                               <a
-                                href={`http://localhost:5001/uploads/document/${f.pan_file}?token=${auth?.token}`}
+                                href={`${API_BASE_URL}/uploads/document/${f.pan_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-secondary"
@@ -297,7 +298,7 @@ export default function OfficialDocuments({ auth }) {
                           <td>
                             {f.aadhar_file ? (
                               <a
-                                href={`http://localhost:5001/uploads/document/${f.aadhar_file}?token=${auth?.token}`}
+                                href={`${API_BASE_URL}/uploads/document/${f.aadhar_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-secondary"
@@ -312,7 +313,7 @@ export default function OfficialDocuments({ auth }) {
                           <td>
                             {f.appointment_order_file ? (
                               <a
-                                href={`http://localhost:5001/uploads/document/${f.appointment_order_file}?token=${auth?.token}`}
+                                href={`${API_BASE_URL}/uploads/document/${f.appointment_order_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-secondary"
@@ -327,7 +328,7 @@ export default function OfficialDocuments({ auth }) {
                           <td>
                             {f.joining_report_file ? (
                               <a
-                                href={`http://localhost:5001/uploads/document/${f.joining_report_file}?token=${auth?.token}`}
+                                href={`${API_BASE_URL}/uploads/document/${f.joining_report_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-secondary"
@@ -371,7 +372,7 @@ export default function OfficialDocuments({ auth }) {
                 </div>
                 {personal.pan_file ? (
                   <a
-                    href={`http://localhost:5001/uploads/document/${personal.pan_file}?token=${auth?.token}`}
+                    href={`${API_BASE_URL}/uploads/document/${personal.pan_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary"
@@ -413,7 +414,7 @@ export default function OfficialDocuments({ auth }) {
                 </div>
                 {personal.aadhar_file ? (
                   <a
-                    href={`http://localhost:5001/uploads/document/${personal.aadhar_file}?token=${auth?.token}`}
+                    href={`${API_BASE_URL}/uploads/document/${personal.aadhar_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary"
@@ -455,7 +456,7 @@ export default function OfficialDocuments({ auth }) {
                 </div>
                 {personal.appointment_order_file ? (
                   <a
-                    href={`http://localhost:5001/uploads/document/${personal.appointment_order_file}?token=${auth?.token}`}
+                    href={`${API_BASE_URL}/uploads/document/${personal.appointment_order_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary"
@@ -497,7 +498,7 @@ export default function OfficialDocuments({ auth }) {
                 </div>
                 {personal.joining_report_file ? (
                   <a
-                    href={`http://localhost:5001/uploads/document/${personal.joining_report_file}?token=${auth?.token}`}
+                    href={`${API_BASE_URL}/uploads/document/${personal.joining_report_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-secondary"

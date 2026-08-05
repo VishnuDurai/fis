@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Download, FileSignature, Search } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
@@ -544,7 +545,7 @@ export default function Education({ auth }) {
                   <td>
                     {edu.file ? (
                       <a 
-                        href={`http://localhost:5001/uploads/document/${edu.file}?token=${auth?.token}`} 
+                        href={`${API_BASE_URL}/uploads/document/${edu.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} 
                         target="_blank" 
                         rel="noreferrer"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}

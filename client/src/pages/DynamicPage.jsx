@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
@@ -355,7 +356,7 @@ export default function DynamicPage({ auth }) {
                     <td>
                       {r.file ? (
                         <a 
-                          href={`http://localhost:5001/uploads/${r.file}?token=${auth.token}`} 
+                          href={`${API_BASE_URL}/uploads/${r.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} 
                           target="_blank" 
                           rel="noreferrer"
                           className="btn btn-secondary"
