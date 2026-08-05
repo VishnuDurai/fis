@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import nodemailer from 'nodemailer';
 import db from '../db.js';
 import { authenticateToken } from './auth.js';
 import { calculateExperience, getHighestQualification } from './admin.js';
@@ -1026,6 +1027,129 @@ router.get('/appraisals', authenticateToken, (req, res) => {
   }
 });
 
+const sendAppraisalStatusEmail = (appraisalId, status, details = {}) => {
+  db.get('SELECT * FROM staff_appraisal WHERE id = ?', [appraisalId], (err, appraisal) => {
+    if (err || !appraisal) return;
+
+    const staffId = appraisal.staff_id;
+    const academicYear = appraisal.academic_year || 'Current Academic Year';
+
+    db.get('SELECT email, staff_name FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
+      if (pErr || !personal || !personal.email) {
+        console.log(`[Appraisal Email Notice]: No email found for Staff ID ${staffId}`);
+        return;
+      }
+
+      const facultyEmail = personal.email;
+      const facultyName = personal.staff_name || staffId;
+
+      const isRevision = status.toLowerCase().includes('revision');
+      const statusTitle = isRevision ? 'SENT BACK FOR REVISION' : status.toUpperCase();
+      const statusColor = isRevision ? '#dc2626' : '#16a34a';
+
+      const subject = isRevision
+        ? `[SREC FIS] Appraisal Form Sent Back for Revision (${academicYear})`
+        : `[SREC FIS] Appraisal Form ${status} (${academicYear})`;
+
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 24px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #15583b; padding-bottom: 14px;">
+            <h2 style="color: #0f331f; margin: 0; font-size: 1.5rem;">Sri Ramakrishna Engineering College</h2>
+            <p style="color: #475569; margin: 4px 0 0 0; font-size: 0.9rem;">Faculty Information System (FIS V3.0) — Appraisal Notification</p>
+          </div>
+
+          <p style="font-size: 1rem; color: #1e293b;">Dear <strong>${facultyName}</strong> (Staff ID: <strong>${staffId}</strong>),</p>
+
+          <p style="font-size: 0.95rem; color: #334155; line-height: 1.5;">
+            Your self-appraisal form for <strong>${academicYear}</strong> has been evaluated.
+          </p>
+
+          <div style="background: #f8fafc; border-left: 4px solid ${statusColor}; padding: 16px; border-radius: 6px; margin: 20px 0;">
+            <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 700;">Evaluation Result</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: ${statusColor}; margin-top: 4px;">${statusTitle}</div>
+          </div>
+
+          <h4 style="color: #0f172a; margin-bottom: 10px;">Evaluated Scores Breakdown:</h4>
+          <table style="width: 100%; border-collapse: collapse; margin: 10px 0 20px 0; font-size: 0.9rem;">
+            <thead>
+              <tr style="background: #f1f5f9; text-align: left;">
+                <th style="padding: 10px; border: 1px solid #cbd5e1; color: #0f172a;">Appraisal Evaluation Section</th>
+                <th style="padding: 10px; border: 1px solid #cbd5e1; color: #0f172a; text-align: right;">Approved Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #cbd5e1;">Part A: Teaching Learning Process</td>
+                <td style="padding: 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 700;">${details.part_a ?? appraisal.final_part_a_score ?? appraisal.hod_part_a_score ?? 0} Marks</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #cbd5e1;">Part B: Professional Development Activities</td>
+                <td style="padding: 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 700;">${details.part_b ?? appraisal.final_part_b_score ?? appraisal.hod_part_b_score ?? 0} Marks</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #cbd5e1;">Part C: Research & Consultancy</td>
+                <td style="padding: 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 700;">${details.part_c ?? appraisal.final_part_c_score ?? appraisal.hod_part_c_score ?? 0} Marks</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #cbd5e1;">Part D: Institutional Development & Contribution</td>
+                <td style="padding: 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 700;">${details.part_d ?? appraisal.final_part_d_score ?? appraisal.hod_part_d_score ?? 0} Marks</td>
+              </tr>
+              <tr style="background: #e6f4ea; font-weight: 800;">
+                <td style="padding: 12px; border: 1px solid #cbd5e1; color: #0f331f;">Total Final Evaluated Score</td>
+                <td style="padding: 12px; border: 1px solid #cbd5e1; text-align: right; color: #0f331f; font-size: 1.05rem;">${details.total_score ?? appraisal.final_total_score ?? appraisal.hod_total_score ?? appraisal.total_fpi_score ?? 0} Marks</td>
+              </tr>
+            </tbody>
+          </table>
+
+          ${details.remarks ? `
+          <div style="margin: 20px 0; padding: 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;">
+            <strong style="color: #b45309; font-size: 0.9rem; display: block; margin-bottom: 4px;">Reviewer Remarks & Revision Instructions:</strong>
+            <p style="margin: 0; color: #78350f; font-size: 0.9rem; white-space: pre-wrap;">${details.remarks}</p>
+          </div>` : ''}
+
+          ${isRevision ? `
+          <p style="font-size: 0.9rem; color: #475569; margin-top: 16px;">
+            Please log into the FIS Portal at <a href="https://srec-fis.duckdns.org/appraisal" style="color: #15583b; font-weight: 700;">https://srec-fis.duckdns.org/appraisal</a> to update your details and resubmit your appraisal form.
+          </p>` : ''}
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
+          <p style="font-size: 0.78rem; color: #94a3b8; text-align: center; margin: 0;">
+            This is an automated notification from Sri Ramakrishna Engineering College FIS Portal.
+          </p>
+        </div>
+      `;
+
+      const host = process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com';
+      const user = process.env.SMTP_USER || process.env.MAIL_USER;
+      const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+      const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587', 10);
+
+      if (user && pass) {
+        const transporter = nodemailer.createTransport({
+          host,
+          port,
+          secure: port === 465,
+          auth: { user, pass },
+          tls: { rejectUnauthorized: false }
+        });
+
+        transporter.sendMail({
+          from: `"SREC FIS System" <${user}>`,
+          to: facultyEmail,
+          subject,
+          html: htmlContent
+        }, (mErr, info) => {
+          if (mErr) {
+            console.error('[Appraisal Email Error]:', mErr.message);
+          } else {
+            console.log(`[Appraisal Email Success]: Delivered appraisal notice to ${facultyEmail} (${statusTitle})`);
+          }
+        });
+      }
+    });
+  });
+};
+
 // 11b. PUT HOD Appraisal Evaluation & Approval
 router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
   const isHod = req.user.isHod || req.user.role === 'dept_admin';
@@ -1063,6 +1187,17 @@ router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
     id
   ], function(err) {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    
+    // Trigger automated email notification to faculty member
+    sendAppraisalStatusEmail(id, status, {
+      part_a: hod_part_a_score,
+      part_b: hod_part_b_score,
+      part_c: hod_part_c_score,
+      part_d: hod_part_d_score,
+      total_score: hod_total_score,
+      remarks: hod_remarks
+    });
+
     res.json({ success: true, message: `Appraisal form ${status.toLowerCase()} successfully!` });
   });
 });
@@ -1102,6 +1237,17 @@ router.put('/appraisal/:id/final-approve', authenticateToken, (req, res) => {
     id
   ], function(err) {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    
+    // Trigger automated email notification to faculty member
+    sendAppraisalStatusEmail(id, status, {
+      part_a: final_part_a_score,
+      part_b: final_part_b_score,
+      part_c: final_part_c_score,
+      part_d: final_part_d_score,
+      total_score: final_total_score,
+      remarks: final_remarks || remarks
+    });
+
     res.json({ success: true, message: `Appraisal form ${status.toLowerCase()} successfully!` });
   });
 });
