@@ -99,8 +99,9 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
   };
 
   // Construct absolute URL for profile picture
-  const profilePicUrl = profilePic 
-    ? `${API_BASE_URL}/uploads/upload/${profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}` 
+  const activePic = profilePic || localStorage.getItem('srec_profilePic');
+  const profilePicUrl = activePic 
+    ? `${API_BASE_URL}/uploads/upload/${activePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}` 
     : null;
 
   const isHodUser = auth?.isHod || (auth?.designation || '').toLowerCase().includes('hod') || (auth?.designation || '').toLowerCase().includes('head');

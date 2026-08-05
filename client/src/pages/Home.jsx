@@ -154,9 +154,9 @@ export default function Home({ auth }) {
                     overflow: 'hidden',
                     flexShrink: 0
                   }}>
-                    {auth.profilePic ? (
+                    {(auth.profilePic || personal?.file || localStorage.getItem('srec_profilePic')) ? (
                       <img 
-                        src={`${API_BASE_URL}/uploads/upload/${auth.profilePic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
+                        src={`${API_BASE_URL}/uploads/upload/${auth.profilePic || personal?.file || localStorage.getItem('srec_profilePic')}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
                         alt="Profile" 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => { e.target.style.display = 'none'; }}
