@@ -18,7 +18,7 @@ import AdminUsers from './pages/AdminUsers.jsx';
 import Settings from './pages/Settings.jsx';
 import Footer from './components/Footer.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
-import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
+import PWAInstallBanner from './components/PWAInstallBanner.jsx';
 
 export default function App() {
   const [auth, setAuth] = useState(null);
@@ -258,6 +258,7 @@ export default function App() {
           <Footer />
         </div>
       )}
+      <PWAInstallBanner />
     </BrowserRouter>
   );
 }
