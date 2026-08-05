@@ -44,7 +44,10 @@ export default function Login({ setAuth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send OTP code');
 
-      setForgotMessage(data.message);
+      setForgotMessage(data.otp ? `${data.message} (Your OTP: ${data.otp})` : data.message);
+      if (data.otp) {
+        setOtpCode(data.otp);
+      }
       setForgotStep(2);
     } catch (err) {
       setForgotError(err.message);

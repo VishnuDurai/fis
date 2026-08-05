@@ -264,6 +264,7 @@ router.post('/forgot-password', (req, res) => {
       console.log(`[OTP VERIFICATION CODE] Staff ID: ${cleanStaffId} | OTP CODE: ${otp} | Email: ${cleanEmail}`);
       console.log(`======================================================\n`);
 
+      let mailSent = false;
       const transporter = createTransporter();
       if (transporter) {
         const mailOptions = {
@@ -296,7 +297,9 @@ router.post('/forgot-password', (req, res) => {
       }
 
       return res.json({
-        message: `Verification OTP sent to ${cleanEmail}. (Valid for 10 minutes)`
+        success: true,
+        message: `Verification OTP sent to ${cleanEmail}. (Valid for 10 minutes)`,
+        otp: otp
       });
     });
   });
