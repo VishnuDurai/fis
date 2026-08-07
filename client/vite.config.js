@@ -16,7 +16,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'logo.png', 'srec-crest.png', 'icons.svg'],
+      includeAssets: ['favicon.png', 'favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'logo.png', 'srec-crest.png', 'icons.svg'],
       manifest: {
         name: 'SREC Faculty Information System',
         short_name: 'SREC FIS',
