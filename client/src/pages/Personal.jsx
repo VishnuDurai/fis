@@ -627,65 +627,18 @@ export default function Personal({ auth }) {
                 </div>
 
                 <div className="form-group">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label className="form-label" style={{ fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
-                      Mobile Number <span style={{ color: 'hsl(var(--danger))' }}>*</span>
-                    </label>
-                    {((personal.mobile || '').trim() === (initialMobile || '').trim() || (personal.mobile || '').trim() === (verifiedMobile || '').trim()) ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                        <Check size={12} /> Verified
-                      </span>
-                    ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                        <AlertCircle size={12} /> Verification Required
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      placeholder="10-digit Mobile Number" 
-                      style={{ borderColor: fieldErrors.mobile ? '#dc2626' : undefined, flex: 1 }}
-                      value={personal.mobile || ''} 
-                      onChange={(e) => setPersonal({ ...personal, mobile: e.target.value })} 
-                      required
-                    />
-                    {((personal.mobile || '').trim() !== (initialMobile || '').trim() && (personal.mobile || '').trim() !== (verifiedMobile || '').trim()) && (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={mobileOtpSending}
-                        onClick={async () => {
-                          setMobileOtpError('');
-                          setMobileOtpMessage('');
-                          const rawMobile = personal?.mobile ? personal.mobile.trim() : '';
-                          const mobErr = validateMobile(rawMobile);
-                          if (mobErr) {
-                            setFieldErrors(prev => ({ ...prev, mobile: mobErr }));
-                            return;
-                          }
-                          const formattedNum = rawMobile.startsWith('+') ? rawMobile : `+91${rawMobile}`;
-                          setMobileOtpSending(true);
-                          try {
-                            await sendFirebaseMobileOtp(formattedNum, 'recaptcha-container');
-                            setMobileOtpMessage(`Firebase SMS OTP sent to ${formattedNum}. Enter 6-digit code below.`);
-                            setShowMobileOtpModal(true);
-                          } catch (err) {
-                            console.error(err);
-                            setMobileOtpError(err.message || 'Firebase SMS trigger initiated.');
-                            setShowMobileOtpModal(true);
-                          } finally {
-                            setMobileOtpSending(false);
-                          }
-                        }}
-                        style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0f5233' }}
-                      >
-                        <PhoneCall size={15} /> {mobileOtpSending ? 'Sending...' : 'Verify Mobile OTP'}
-                      </button>
-                    )}
-                  </div>
+                  <label className="form-label" style={{ fontWeight: 600, fontSize: '0.88rem' }}>
+                    Mobile Number <span style={{ color: 'hsl(var(--danger))' }}>*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="10-digit Mobile Number" 
+                    style={{ borderColor: fieldErrors.mobile ? '#dc2626' : undefined }}
+                    value={personal.mobile || ''} 
+                    onChange={(e) => setPersonal({ ...personal, mobile: e.target.value })} 
+                    required
+                  />
                   {fieldErrors.mobile && (
                     <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
                       {fieldErrors.mobile}
@@ -876,98 +829,6 @@ export default function Personal({ auth }) {
                 style={{ padding: '8px 20px', fontWeight: 700, fontSize: '0.88rem', background: '#0f5233' }}
               >
                 {otpVerifying ? 'Verifying...' : 'Verify Code'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invisible reCAPTCHA container for Firebase Phone Auth */}
-      <div id="recaptcha-container"></div>
-
-      {/* Firebase Mobile Phone Auth OTP Verification Modal */}
-      {showMobileOtpModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
-          <div className="card" style={{ maxWidth: '450px', width: '100%', background: '#ffffff', borderRadius: '12px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ background: '#e6f4ea', color: '#15583b', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <PhoneCall size={24} />
-                </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>Firebase Phone Auth OTP</h4>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Enter 6-digit SMS verification code</span>
-                </div>
-              </div>
-              <button onClick={() => setShowMobileOtpModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
-            </div>
-
-            <p style={{ fontSize: '0.88rem', color: '#334155', marginBottom: '16px', lineHeight: '1.5' }}>
-              Firebase SMS OTP verification for mobile number:<br />
-              <strong style={{ color: '#0f5233', fontSize: '0.95rem' }}>{personal?.mobile}</strong>
-            </p>
-
-            {mobileOtpError && (
-              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '14px', fontWeight: 600 }}>
-                {mobileOtpError}
-              </div>
-            )}
-
-            {mobileOtpMessage && (
-              <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '14px', fontWeight: 600 }}>
-                {mobileOtpMessage}
-              </div>
-            )}
-
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>6-Digit SMS Verification Code</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="e.g. 123456"
-                maxLength={6}
-                value={mobileOtpInput}
-                onChange={(e) => setMobileOtpInput(e.target.value.replace(/\D/g, ''))}
-                style={{ letterSpacing: '6px', fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', padding: '10px', borderRadius: '8px', border: '2px solid #0f5233' }}
-                autoFocus
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowMobileOtpModal(false)}
-                style={{ fontSize: '0.82rem', padding: '8px 14px' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={mobileOtpVerifying || mobileOtpInput.length !== 6}
-                onClick={async () => {
-                  setMobileOtpError('');
-                  if (!mobileOtpInput || mobileOtpInput.trim().length < 6) {
-                    setMobileOtpError('Please enter a valid 6-digit SMS OTP code.');
-                    return;
-                  }
-                  setMobileOtpVerifying(true);
-                  try {
-                    await verifyFirebaseMobileOtp(mobileOtpInput.trim());
-                    setVerifiedMobile((personal?.mobile || '').trim());
-                    setMessage('Mobile number verified successfully via Firebase Phone Auth!');
-                    setShowMobileOtpModal(false);
-                  } catch (err) {
-                    console.error(err);
-                    setMobileOtpError(err.message || 'Invalid SMS OTP code. Please try again.');
-                  } finally {
-                    setMobileOtpVerifying(false);
-                  }
-                }}
-                style={{ padding: '8px 20px', fontWeight: 700, fontSize: '0.88rem', background: '#0f5233' }}
-              >
-                {mobileOtpVerifying ? 'Verifying...' : 'Verify Mobile OTP'}
               </button>
             </div>
           </div>
