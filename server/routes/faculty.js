@@ -1082,10 +1082,10 @@ router.get('/appraisal/template', authenticateToken, (req, res) => {
   });
 });
 
-// 10c. POST Save/Update Appraisal Template Criteria & Rubrics (Admin, Principal, HR)
-router.post('/appraisal/template', authenticateToken, (req, res) => {
-  if (!['admin', 'principal', 'hr', 'dept_admin', 'hod'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Permission denied. Only System Admin, Principal, HR, or HOD can update appraisal criteria.' });
+// 10c. POST Save/Update Appraisal Template Criteria & Rubrics (Admin, Principal, HR Only)
+router.post('/appraisal/template', authenticateToken, async (req, res) => {
+  if (!['admin', 'principal', 'hr'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Permission denied. Only System Admin, Principal, or HR can update appraisal criteria.' });
   }
 
   const { items } = req.body;
@@ -1093,19 +1093,25 @@ router.post('/appraisal/template', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Invalid criteria items payload.' });
   }
 
-  db.serialize(() => {
-    db.run('DELETE FROM appraisal_template', [], (err) => {
-      if (err) return res.status(500).json({ error: 'Failed to clear old template items.' });
+  try {
+    // 1. Clear existing template items
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM appraisal_template', [], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
-      const stmt = db.prepare(`
-        INSERT INTO appraisal_template (
-          section_code, section_title, criteria_code, criteria_title,
-          rubric_description, mapping_type, fixed_mark_per_record, max_marks, display_order
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      items.forEach((item, index) => {
-        stmt.run([
+    // 2. Insert new template items sequentially
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+      await new Promise((resolve, reject) => {
+        db.run(`
+          INSERT INTO appraisal_template (
+            section_code, section_title, criteria_code, criteria_title,
+            rubric_description, mapping_type, fixed_mark_per_record, max_marks, display_order
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
           item.section_code || 'PART_A',
           item.section_title || 'PART A',
           item.criteria_code || `C${index + 1}`,
@@ -1115,15 +1121,18 @@ router.post('/appraisal/template', authenticateToken, (req, res) => {
           parseFloat(item.fixed_mark_per_record) || 0,
           parseFloat(item.max_marks) || 10,
           index + 1
-        ]);
+        ], (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
       });
+    }
 
-      stmt.finalize((err) => {
-        if (err) return res.status(500).json({ error: 'Failed to save updated template.' });
-        res.json({ success: true, message: 'Appraisal template, rubrics, and marks updated successfully!' });
-      });
-    });
-  });
+    return res.json({ success: true, message: 'Appraisal template, rubrics, fixed marks, and max marks saved successfully!' });
+  } catch (err) {
+    console.error('[Appraisal Template Save Error]:', err);
+    return res.status(500).json({ error: 'Failed to save appraisal template: ' + err.message });
+  }
 });
 
 // 10f. GET Pending Appraisal Notification Counts for HOD, Principal, HR
