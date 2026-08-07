@@ -656,8 +656,11 @@ export default function AdminUsers({ auth, initialTab }) {
       const pubData = pubRes.ok ? await pubRes.json() : [];
       const awData = awRes.ok ? await awRes.json() : [];
 
+      const pList = Array.isArray(pData) ? pData : [pData];
+      const personalRecord = pList.find(p => (p.staff_id || '').trim().toLowerCase() === (faculty.staff_id || '').trim().toLowerCase()) || pList[0] || {};
+
       setDossierData({
-        personal: pData[0] || {},
+        personal: personalRecord,
         academics: faculty,
         education: eData || [],
         publications: pubData || [],
@@ -2639,15 +2642,15 @@ export default function AdminUsers({ auth, initialTab }) {
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
                   <h4 style={{ fontSize: '1.05rem', marginBottom: '14px', color: 'hsl(var(--primary))', fontWeight: 800 }}>Personal & Identification Overview</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', fontSize: '0.9rem', color: '#334155' }}>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Designation:</strong> {dossierTarget.Designation}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Designation:</strong> {dossierTarget.Designation || dossierData.personal.Designation || 'N/A'}</div>
                     <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Date of Joining:</strong> {dossierData.personal.Date_of_joining || dossierTarget.Date_of_joining || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Email:</strong> {dossierTarget.email || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Mobile:</strong> {dossierData.personal.mobile || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Gender:</strong> {dossierData.personal.gender || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>DOB:</strong> {dossierData.personal.dob || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>AICTE ID:</strong> {dossierData.personal.aicte_id || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Anna Univ ID:</strong> {dossierData.personal.anna_univ_id || 'N/A'}</div>
-                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>APAAR ID:</strong> {dossierData.personal.apaar_id || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Email:</strong> {dossierData.personal.email || dossierTarget.email || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Mobile:</strong> {dossierData.personal.mobile || dossierData.personal.Mobile || dossierTarget.mobile || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Gender:</strong> {dossierData.personal.gender || dossierData.personal.Gender || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>DOB:</strong> {dossierData.personal.dob || dossierData.personal.DOB || dossierData.personal.date_of_birth || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>AICTE ID:</strong> {dossierData.personal.aicte_id || dossierData.personal.Aicte_id || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>Anna Univ ID:</strong> {dossierData.personal.anna_univ_id || dossierData.personal.Anna_univ_id || 'N/A'}</div>
+                    <div><strong style={{ color: '#0f172a', fontWeight: 700 }}>APAAR ID:</strong> {dossierData.personal.apaar_id || dossierData.personal.Apaar_id || 'N/A'}</div>
                   </div>
                 </div>
 

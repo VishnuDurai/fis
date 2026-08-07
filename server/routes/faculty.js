@@ -145,7 +145,7 @@ router.get('/personal', authenticateToken, (req, res) => {
     });
   };
 
-  if (reqStaffId && reqStaffId !== req.user.staffId) {
+  if (reqStaffId) {
     db.all(`
       SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
