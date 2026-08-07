@@ -7,8 +7,8 @@ const firebaseConfig = {
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "srec-fis.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "srec-fis",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "srec-fis.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789012:web:abcdef1234567890"
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "479537848744",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:479537848744:web:39e7d597a0fe0a8029bd9d"
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
