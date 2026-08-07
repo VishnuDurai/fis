@@ -77,12 +77,14 @@ export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptch
     }
 
     let userMsg = error.message;
-    if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
+    if (error.code === 'auth/configuration-not-found') {
+      userMsg = `Phone Authentication is disabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method and enable "Phone".`;
+    } else if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
       userMsg = `Firebase API Key is invalid or not activated. Please verify VITE_FIREBASE_API_KEY in client/.env file.`;
     } else if (error.code === 'auth/argument-error') {
       userMsg = `Invalid phone number format (${cleanNumber}) or reCAPTCHA initialization error.`;
     } else if (error.code === 'auth/unauthorized-domain') {
-      userMsg = `Domain is not authorized for Firebase Phone Auth. Please add srec-fis.duckdns.org to Authorized Domains in Firebase Console.`;
+      userMsg = `Domain is not authorized for Firebase Phone Auth. Please add srec-fis.duckdns.org to Authorized Domains in Firebase Console Settings.`;
     }
     throw new Error(userMsg);
   }
