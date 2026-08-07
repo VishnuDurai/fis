@@ -77,7 +77,9 @@ export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptch
     }
 
     let userMsg = error.message;
-    if (error.code === 'auth/configuration-not-found') {
+    if (error.code === 'auth/operation-not-allowed') {
+      userMsg = `SMS region policy restriction. Please go to Firebase Console > Authentication > Settings > SMS region policy and allow India (+91).`;
+    } else if (error.code === 'auth/configuration-not-found') {
       userMsg = `Phone Authentication is disabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method and enable "Phone".`;
     } else if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
       userMsg = `Firebase API Key is invalid or not activated. Please verify VITE_FIREBASE_API_KEY in client/.env file.`;
