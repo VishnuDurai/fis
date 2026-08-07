@@ -103,7 +103,9 @@ export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptch
     }
 
     let userMsg = error.message;
-    if (error.code === 'auth/operation-not-allowed') {
+    if (error.code === 'auth/billing-not-enabled') {
+      userMsg = `Real SMS delivery requires Firebase Blaze Plan (10,000 free SMS/mo), OR add a Test Phone Number (+919994299922) under Firebase Console > Authentication > Phone > Phone numbers for testing (100% Free).`;
+    } else if (error.code === 'auth/operation-not-allowed') {
       userMsg = `SMS region policy restriction. Please go to Firebase Console > Authentication > Settings > SMS region policy and allow India (+91).`;
     } else if (error.code === 'auth/configuration-not-found') {
       userMsg = `Phone Authentication is disabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method and enable "Phone".`;
