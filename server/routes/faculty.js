@@ -1084,8 +1084,8 @@ router.get('/appraisal/template', authenticateToken, (req, res) => {
 
 // 10c. POST Save/Update Appraisal Template Criteria & Rubrics (Admin, Principal, HR)
 router.post('/appraisal/template', authenticateToken, (req, res) => {
-  if (!['admin', 'principal', 'hr'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Permission denied. Only Admin, Principal, or HR can update appraisal criteria.' });
+  if (!['admin', 'principal', 'hr', 'dept_admin', 'hod'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Permission denied. Only System Admin, Principal, HR, or HOD can update appraisal criteria.' });
   }
 
   const { items } = req.body;

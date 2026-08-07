@@ -177,7 +177,8 @@ export default function Appraisal({ auth }) {
       const res = await fetch(`${API_BASE_URL}/api/appraisal/template`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         setTemplateItems(data && data.length > 0 ? data : defaultFpiItemsFallback);
       } else {
@@ -202,11 +203,20 @@ export default function Appraisal({ auth }) {
         },
         body: JSON.stringify({ items: templateItems })
       });
-      const data = await res.json();
+
+      const contentType = res.headers.get('content-type') || '';
+      let data = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Server returned non-JSON response (${res.status}): ${text.substring(0, 100)}`);
+      }
+
       if (!res.ok) throw new Error(data.error || 'Failed to save template');
       setMessage('Appraisal template, rubrics, fixed marks, and max marks saved successfully! Changes are now live for all faculty members.');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to save template due to a network or server error.');
     } finally {
       setSavingTemplate(false);
     }
