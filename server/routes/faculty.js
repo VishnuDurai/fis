@@ -14,28 +14,28 @@ router.get('/stats', authenticateToken, (req, res) => {
   const staffId = req.query.staffId || req.user.staffId;
 
   const queries = {
-    publications: 'SELECT COUNT(*) as count FROM staff_publications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
-    books: 'SELECT COUNT(*) as count FROM staff_books WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
-    awards: 'SELECT COUNT(*) as count FROM staff_awards WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
-    memberships: 'SELECT COUNT(*) as count FROM staff_memberships WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
-    resource: 'SELECT COUNT(*) as count FROM staff_resource_talks WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    publications: 'SELECT COUNT(*) as count FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    books: 'SELECT COUNT(*) as count FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    awards: 'SELECT COUNT(*) as count FROM staff_award WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    memberships: 'SELECT COUNT(*) as count FROM staff_member WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    resource: 'SELECT COUNT(*) as count FROM staff_resource WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
     funding: 'SELECT COUNT(*) as count FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
     ipr: 'SELECT COUNT(*) as count FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
-    certifications: 'SELECT COUNT(*) as count FROM staff_certifications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
-    events: 'SELECT COUNT(*) as count FROM staff_events WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    certifications: 'SELECT COUNT(*) as count FROM staff_certificate WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+    events: 'SELECT COUNT(*) as count FROM staff_event_organized WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
     responsibilities: 'SELECT COUNT(*) as count FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) OR LOWER(TRIM(staff_id)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))'
   };
 
   const results = {};
   let completed = 0;
-  const keys = Object.keys(queries);
+  const total = Object.keys(queries).length;
 
-  keys.forEach(key => {
+  Object.entries(queries).forEach(([key, sql]) => {
     const params = key === 'responsibilities' ? [staffId, staffId] : [staffId];
-    db.get(queries[key], params, (err, row) => {
-      results[key] = row ? (row.count || 0) : 0;
+    db.get(sql, params, (err, row) => {
+      results[key] = row ? row.count : 0;
       completed++;
-      if (completed === keys.length) {
+      if (completed === total) {
         res.json(results);
       }
     });
@@ -48,7 +48,7 @@ router.get('/notifications', authenticateToken, (req, res) => {
 
   db.get('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
     db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (eErr, edu) => {
-      db.get('SELECT COUNT(*) as pubCount FROM staff_publications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pubErr, pubRow) => {
+      db.get('SELECT COUNT(*) as pubCount FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pubErr, pubRow) => {
         const notifications = [];
 
         if (!personal || !personal.pan_file) {
@@ -91,11 +91,11 @@ router.get('/cv-data', authenticateToken, (req, res) => {
   db.get('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
     db.get('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (aErr, academics) => {
       db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (eErr, education) => {
-        db.all('SELECT * FROM staff_publications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (pubErr, publications) => {
-          db.all('SELECT * FROM staff_books WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (bErr, books) => {
+        db.all('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (pubErr, publications) => {
+          db.all('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (bErr, books) => {
             db.all('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (fErr, funding) => {
               db.all('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (iprErr, ipr) => {
-                db.all('SELECT * FROM staff_awards WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (awErr, awards) => {
+                db.all('SELECT * FROM staff_award WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (awErr, awards) => {
                   res.json({
                     personal: personal || {},
                     academics: academics || {},
