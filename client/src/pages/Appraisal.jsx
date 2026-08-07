@@ -457,13 +457,13 @@ export default function Appraisal({ auth }) {
     const totalPartA = Math.min(60, calcA1 + calcA2 + calcA3 + calcA4 + calcA5 + calcA6 + calcA7);
 
     // Manual B4 & B7
-    let calcB4 = Math.min(5, b4Rows.filter(r => (r.title || r.activity || '').trim().length > 0).length * 5);
-    let calcB7 = Math.min(5, b7Rows.filter(r => (r.company || r.title || '').trim().length > 0).length * 5);
+    let calcB4 = Math.min(5, b4Rows.filter(r => (r.course_name || r.details || r.title || r.activity || '').trim().length > 0).length * 5);
+    let calcB7 = Math.min(5, b7Rows.filter(r => (r.name || r.company || r.duration || r.title || '').trim().length > 0).length * 5);
     const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
     const totalPartB = Math.min(40, autoPartB + calcB4 + calcB7);
 
     // Manual C3
-    let calcC3 = Math.min(5, c3Rows.filter(r => (r.title || r.organization || '').trim().length > 0).length * 5);
+    let calcC3 = Math.min(5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * 5);
     const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0);
     const totalPartC = Math.min(80, autoPartC + calcC3);
 
@@ -1629,6 +1629,124 @@ export default function Appraisal({ auth }) {
                         </td>
                         <td><input type="text" className="form-control" value={r.position === 'Participation' ? '5 pts (Auto)' : '10 pts (Auto)'} readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="10 marks for Prize Won, 5 marks for Participation" /></td>
                         <td><button type="button" onClick={() => removeRow(setA7Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* PART B: PROFESSIONAL DEVELOPMENT ACTIVITIES (MANUAL ENTRY TABLES) */}
+          <div style={{ marginBottom: '28px', background: '#fafafa', padding: '20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              PART B: Professional Development Activities (Manual Entry Tables)
+            </h4>
+
+            {/* B4: Contribution to Curriculum Development */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</span>
+                <button type="button" onClick={() => addRow(setB4Rows, { course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name of Course / Syllabus Revised</th>
+                      <th>Academic Year</th>
+                      <th>Details of Contribution / BoS Role</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {b4Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Course Name" value={r.course_name || r.title || ''} onChange={(e) => updateRow(setB4Rows, i, 'course_name', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="2025-2026" value={r.academic_year} onChange={(e) => updateRow(setB4Rows, i, 'academic_year', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Details / BoS Role" value={r.details || r.activity || ''} onChange={(e) => updateRow(setB4Rows, i, 'details', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="5 marks per curriculum contribution" /></td>
+                        <td><button type="button" onClick={() => removeRow(setB4Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* B7: Faculty Internship / Training / Industry Collaboration */}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b7. Faculty Internship / Training / Collaboration with Industry / MoUs (Max: 5 Marks)</span>
+                <button type="button" onClick={() => addRow(setB7Rows, { name: '', company: '', duration: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name of Internship / Training / Collaboration</th>
+                      <th>Name of Company & Place</th>
+                      <th>Duration / Dates</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {b7Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Internship / Training Name" value={r.name || r.title || ''} onChange={(e) => updateRow(setB7Rows, i, 'name', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Company Name & Place" value={r.company} onChange={(e) => updateRow(setB7Rows, i, 'company', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="e.g. 2 Weeks / July 2025" value={r.duration} onChange={(e) => updateRow(setB7Rows, i, 'duration', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="5 marks per internship/training" /></td>
+                        <td><button type="button" onClick={() => removeRow(setB7Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* PART C: RESEARCH & DEVELOPMENT ACTIVITIES (MANUAL ENTRY TABLES) */}
+          <div style={{ marginBottom: '28px', background: '#fafafa', padding: '20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              PART C: Research & Development Activities (Manual Entry Tables)
+            </h4>
+
+            {/* C3: Community Service & Outreach Activities */}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>c3. Organizing Community Service / Outreach Activities (Yoga / NSS / NCC / Rural Development / Awareness) (Max: 5 Marks)</span>
+                <button type="button" onClick={() => addRow(setC3Rows, { activity_name: '', event_type: '', location: '', date: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name of Activity</th>
+                      <th>Type of Event (Yoga/NSS/NCC/Outreach)</th>
+                      <th>Place / Location</th>
+                      <th>Date(s)</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {c3Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Activity Name" value={r.activity_name || r.title || ''} onChange={(e) => updateRow(setC3Rows, i, 'activity_name', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Type of Event" value={r.event_type} onChange={(e) => updateRow(setC3Rows, i, 'event_type', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Location" value={r.location} onChange={(e) => updateRow(setC3Rows, i, 'location', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="DD/MM/YYYY" value={r.date} onChange={(e) => updateRow(setC3Rows, i, 'date', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="5 marks per outreach activity" /></td>
+                        <td><button type="button" onClick={() => removeRow(setC3Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
                   </tbody>
