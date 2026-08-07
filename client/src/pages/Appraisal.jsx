@@ -1387,7 +1387,7 @@ export default function Appraisal({ auth }) {
                         <td><input type="text" className="form-control" placeholder="e.g. III Year IT-A" value={r.class_name} onChange={(e) => updateRow(setA1Rows, i, 'class_name', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="e.g. 20IT101 Data Structures" value={r.course} onChange={(e) => updateRow(setA1Rows, i, 'course', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="e.g. Kahoot, Virtual Labs, Google Classroom" value={r.ict_tool} onChange={(e) => updateRow(setA1Rows, i, 'ict_tool', e.target.value)} /></td>
-                        <td><input type="number" className="form-control" placeholder="Marks" value={r.score} onChange={(e) => updateRow(setA1Rows, i, 'score', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="Automatically calculated: 5 marks per ICT tool" /></td>
                         <td><button type="button" onClick={() => removeRow(setA1Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
@@ -1423,7 +1423,7 @@ export default function Appraisal({ auth }) {
                         <td><input type="text" className="form-control" placeholder="Course" value={r.course} onChange={(e) => updateRow(setA4Rows, i, 'course', e.target.value)} /></td>
                         <td><input type="number" step="0.1" className="form-control" placeholder="4.5" value={r.mid_score} onChange={(e) => handleA4Change(i, 'mid_score', e.target.value)} /></td>
                         <td><input type="number" step="0.1" className="form-control" placeholder="4.8" value={r.end_score} onChange={(e) => handleA4Change(i, 'end_score', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="Auto Calc" value={r.avg_score} onChange={(e) => handleA4Change(i, 'avg_score', e.target.value)} style={{ fontWeight: 700, color: '#0369a1' }} /></td>
+                        <td><input type="text" className="form-control" placeholder="Auto Calc" value={r.avg_score ? `${r.avg_score} (Auto)` : ''} readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0369a1' }} title="Automatically calculated average rating" /></td>
                         <td><button type="button" onClick={() => removeRow(setA4Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
@@ -1459,7 +1459,7 @@ export default function Appraisal({ auth }) {
                         <td><input type="text" className="form-control" placeholder="Course" value={r.course} onChange={(e) => updateRow(setA5Rows, i, 'course', e.target.value)} /></td>
                         <td><input type="number" step="0.1" className="form-control" placeholder="85.5%" value={r.odd_pass} onChange={(e) => handleA5Change(i, 'odd_pass', e.target.value)} /></td>
                         <td><input type="number" step="0.1" className="form-control" placeholder="92.0%" value={r.even_pass} onChange={(e) => handleA5Change(i, 'even_pass', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="Auto Calc" value={r.avg_pass} onChange={(e) => handleA5Change(i, 'avg_pass', e.target.value)} style={{ fontWeight: 700, color: '#0369a1' }} /></td>
+                        <td><input type="text" className="form-control" placeholder="Auto Calc" value={r.avg_pass ? `${r.avg_pass}% (Auto)` : ''} readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0369a1' }} title="Automatically calculated average pass percentage" /></td>
                         <td><button type="button" onClick={() => removeRow(setA5Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
