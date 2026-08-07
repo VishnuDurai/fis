@@ -495,6 +495,7 @@ const createTables = async () => {
       criteria_title TEXT NOT NULL,
       rubric_description TEXT,
       mapping_type VARCHAR(50) DEFAULT 'manual',
+      fixed_mark_per_record DOUBLE DEFAULT 0,
       max_marks DOUBLE DEFAULT 10,
       display_order INT DEFAULT 1,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -639,38 +640,47 @@ const createTables = async () => {
     }
   } catch (e) {}
 
+  // Add fixed_mark_per_record column if missing
+  try {
+    await pool.query('ALTER TABLE appraisal_template ADD COLUMN fixed_mark_per_record DOUBLE DEFAULT 0');
+  } catch (e) {}
+
   // Seed default appraisal template if empty
   try {
     const [rows] = await pool.query('SELECT COUNT(*) as count FROM appraisal_template');
     if (rows[0].count === 0) {
       const defaultItems = [
-        ['PART_A', 'PART A: Teaching Learning Process', 'A1', 'Use of Innovative ICT Tools', '5 marks per innovative ICT tool integrated in course delivery', 'manual', 10, 1],
-        ['PART_A', 'PART A: Teaching Learning Process', 'A2', 'E-Content Development', '5 marks per e-content / video lecture launched on YouTube/LMS', 'manual', 10, 2],
-        ['PART_A', 'PART A: Teaching Learning Process', 'A3', 'Development of New Experiments / Labs', '5 marks per new lab experiment or virtual lab manual developed', 'manual', 10, 3],
-        ['PART_A', 'PART A: Teaching Learning Process', 'A4', 'Student Feedback Rating', '5 marks for >=4.0 rating, 3 marks for 2.5-3.9 rating', 'manual', 10, 4],
-        ['PART_A', 'PART A: Teaching Learning Process', 'A5', 'End Semester Course Pass Percentage', '10 marks for >=80% pass rate, 5 marks for 60-79% pass rate', 'manual', 10, 5],
-        ['PART_A', 'PART A: Teaching Learning Process', 'A6', 'Value Added Courses / Industry Workshops Organized', '5 marks per value added course or industry workshop delivered', 'manual', 5, 6],
-        ['PART_A', 'PART A: Teaching Learning Process', 'A7', 'Mentoring Students in Hackathons & Competitions', '5 marks for winning/finalist mentoring in national hackathons', 'manual', 5, 7],
-        ['PART_B', 'PART B: Professional Development Activities', 'B1', 'Professional Society Memberships', 'Automatic mapping: 2.5 marks per active professional society membership', 'auto', 5, 8],
-        ['PART_B', 'PART B: Professional Development Activities', 'B2', 'Resource Speaker / Session Chair', 'Automatic mapping: 5 marks per invited talk / resource person role', 'auto', 10, 9],
-        ['PART_B', 'PART B: Professional Development Activities', 'B3', 'External Academic / Professional Interactions', 'Automatic mapping: 2.5 marks per external interaction detail', 'auto', 5, 10],
-        ['PART_B', 'PART B: Professional Development Activities', 'B4', 'Professional Development Programs / FDPs / NPTEL', 'Automatic mapping: 5 marks per FDP / NPTEL certification completed', 'auto', 10, 11],
-        ['PART_B', 'PART B: Professional Development Activities', 'B5', 'Professional Certifications Earned', 'Automatic mapping: 2.5 marks per professional certification earned', 'auto', 5, 12],
-        ['PART_B', 'PART B: Professional Development Activities', 'B6', 'Industrial Training / Internship Completed', '5 marks per industrial training or corporate fellowship completed', 'manual', 5, 13],
-        ['PART_C', 'PART C: Research & Consultancy', 'C1', 'Research Publications in Indexed Journals', 'Automatic mapping: 10 marks per Scopus/WoS publication, 5 per UGC', 'auto', 20, 14],
-        ['PART_C', 'PART C: Research & Consultancy', 'C2', 'Books & Book Chapters Published', 'Automatic mapping: 5 marks per book or book chapter published', 'auto', 10, 15],
-        ['PART_C', 'PART C: Research & Consultancy', 'C3', 'Research Proposals Submitted / Grants Sanctioned', 'Automatic mapping: 5 marks per proposal, 10 per sanctioned grant', 'auto', 15, 16],
-        ['PART_C', 'PART C: Research & Consultancy', 'C4', 'Patents & IPR Filed / Granted', 'Automatic mapping: 5 marks per patent filed, 10 per patent granted', 'auto', 10, 17],
-        ['PART_C', 'PART C: Research & Consultancy', 'C5', 'Seed Money & Internal Research Grants', 'Automatic mapping: 5 marks per internal seed money grant received', 'auto', 5, 18],
-        ['PART_D', 'PART D: Institutional Development & Contribution', 'D1', 'Departmental & Institutional Assigned Responsibilities', 'Automatic mapping: 5 marks per assigned institutional responsibility', 'auto', 20, 19],
-        ['PART_D', 'PART D: Institutional Development & Contribution', 'D2', 'Student Mentoring & Counseling Contributions', '5 marks for active student counseling and mentee performance tracking', 'manual', 10, 20],
-        ['PART_D', 'PART D: Institutional Development & Contribution', 'D3', 'Contribution to NBA / NAAC / Autonomous Accreditations', '5 marks for active module coordination in accreditations', 'manual', 10, 21]
+        ['PART_A', 'PART A: Teaching Learning Process', 'A1', 'Use of Innovative ICT Tools', '5 marks per innovative ICT tool integrated in course delivery', 'manual', 5, 10, 1],
+        ['PART_A', 'PART A: Teaching Learning Process', 'A2', 'E-Content Development', '5 marks per e-content / video lecture launched on YouTube/LMS', 'manual', 5, 10, 2],
+        ['PART_A', 'PART A: Teaching Learning Process', 'A3', 'Development of New Experiments / Labs', '5 marks per new lab experiment or virtual lab manual developed', 'manual', 5, 10, 3],
+        ['PART_A', 'PART A: Teaching Learning Process', 'A4', 'Student Feedback Rating', '5 marks for >=4.0 rating, 3 marks for 2.5-3.9 rating', 'manual', 5, 10, 4],
+        ['PART_A', 'PART A: Teaching Learning Process', 'A5', 'End Semester Course Pass Percentage', '10 marks for >=80% pass rate, 5 marks for 60-79% pass rate', 'manual', 10, 10, 5],
+        ['PART_A', 'PART A: Teaching Learning Process', 'A6', 'Value Added Courses / Industry Workshops Organized', '5 marks per value added course or industry workshop delivered', 'manual', 5, 5, 6],
+        ['PART_A', 'PART A: Teaching Learning Process', 'A7', 'Mentoring Students in Hackathons & Competitions', '5 marks for winning/finalist mentoring in national hackathons', 'manual', 5, 5, 7],
+        ['PART_B', 'PART B: Professional Development Activities', 'B1', 'Professional Society Memberships', 'Automatic mapping: 3 marks per active professional society membership', 'auto', 3, 3, 8],
+        ['PART_B', 'PART B: Professional Development Activities', 'B2', 'Resource Speaker / Session Chair', 'Automatic mapping: 2 marks per invited talk / resource person role', 'auto', 2, 4, 9],
+        ['PART_B', 'PART B: Professional Development Activities', 'B3', 'External Academic / Professional Interactions', 'Automatic mapping: 2.5 marks per external interaction detail', 'auto', 2.5, 5, 10],
+        ['PART_B', 'PART B: Professional Development Activities', 'B4', 'Professional Development Programs / FDPs / NPTEL', 'Automatic mapping: 5 marks per FDP / NPTEL certification completed', 'auto', 5, 5, 11],
+        ['PART_B', 'PART B: Professional Development Activities', 'B5', 'Professional Certifications Earned', 'Automatic mapping: 4 marks per national/international conference organized', 'auto', 4, 8, 12],
+        ['PART_B', 'PART B: Professional Development Activities', 'B6', 'Industrial Training / Internship Completed', '5 marks per online certification completed (SWAYAM/NPTEL)', 'auto', 5, 10, 13],
+        ['PART_B', 'PART B: Professional Development Activities', 'B7', 'Industrial Training / Internship Completed', '5 marks per industrial training completed', 'manual', 5, 5, 14],
+        ['PART_C', 'PART C: Research & Consultancy', 'C1', 'Research Publications in Indexed Journals', 'Automatic mapping: 10 marks per Scopus/WoS publication', 'auto', 10, 20, 15],
+        ['PART_C', 'PART C: Research & Consultancy', 'C2', 'Books & Book Chapters Published', 'Automatic mapping: 5 marks per book or book chapter published', 'auto', 5, 10, 16],
+        ['PART_C', 'PART C: Research & Consultancy', 'C3', 'Community Service & Extension Activities', '5 marks per community outreach project', 'manual', 5, 5, 17],
+        ['PART_C', 'PART C: Research & Consultancy', 'C4', 'Patents & IPR Filed / Granted', 'Automatic mapping: 10 marks for granted, 7 for published, 3 for filed', 'auto', 10, 10, 18],
+        ['PART_C', 'PART C: Research & Consultancy', 'C5', 'Seed Money & Internal Research Grants', 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs', 'auto', 10, 15, 19],
+        ['PART_C', 'PART C: Research & Consultancy', 'C6', 'Seed Money & Consultancy Services', 'Automatic mapping: 5 marks per internal seed money grant', 'auto', 5, 10, 20],
+        ['PART_C', 'PART C: Research & Consultancy', 'C8', 'Research Scholars Guidance (Ph.D)', 'Automatic mapping: 2.5 marks per registered Ph.D scholar', 'auto', 2.5, 5, 21],
+        ['PART_C', 'PART C: Research & Consultancy', 'C9', 'Awards & Recognitions Received', 'Automatic mapping: 5 marks per national award', 'auto', 5, 5, 22],
+        ['PART_D', 'PART D: Institutional Development & Contribution', 'D1', 'Departmental & Institutional Assigned Responsibilities', 'Automatic mapping: 5 marks per assigned institutional responsibility', 'auto', 5, 20, 23],
+        ['PART_D', 'PART D: Institutional Development & Contribution', 'D2', 'Student Mentoring & Counseling Contributions', '10 marks for active student counseling tracking', 'manual', 10, 10, 24],
+        ['PART_D', 'PART D: Institutional Development & Contribution', 'D3', 'Contribution to NBA / NAAC / Autonomous Accreditations', '10 marks for active module coordination in accreditations', 'manual', 10, 10, 25]
       ];
 
       for (const item of defaultItems) {
         await pool.query(`
-          INSERT INTO appraisal_template (section_code, section_title, criteria_code, criteria_title, rubric_description, mapping_type, max_marks, display_order)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO appraisal_template (section_code, section_title, criteria_code, criteria_title, rubric_description, mapping_type, fixed_mark_per_record, max_marks, display_order)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE criteria_title = VALUES(criteria_title)
         `, item);
       }
