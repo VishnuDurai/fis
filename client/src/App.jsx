@@ -38,7 +38,15 @@ export default function App() {
     const isInstitutionalAdmin = localStorage.getItem('srec_isInst') === 'true';
     const isSupervisorEligible = role === 'admin' || role === 'dept_admin' || localStorage.getItem('srec_isSupervisorEligible') === 'true';
     const isClubCoordinator = localStorage.getItem('srec_isClubCoord') === 'true';
-    const myClubs = JSON.parse(localStorage.getItem('srec_myClubs') || '[]');
+    let myClubs = [];
+    try {
+      const rawClubs = localStorage.getItem('srec_myClubs');
+      if (rawClubs && rawClubs !== 'undefined' && rawClubs !== 'null') {
+        myClubs = JSON.parse(rawClubs);
+      }
+    } catch (e) {
+      myClubs = [];
+    }
 
     if (token && role && staffId) {
       setAuth({ token, role, staffId, name, profilePic, department, designation, isHod, isInstitutionalAdmin, isSupervisorEligible, isClubCoordinator, myClubs });
@@ -101,21 +109,14 @@ export default function App() {
       })
         .then(res => res.json())
         .then(data => {
-          if (data && typeof data.isClubCoordinator === 'boolean') {
-            const isCoord = data.isClubCoordinator;
-            const clubs = data.clubs || [];
-            localStorage.setItem('srec_isClubCoord', isCoord ? 'true' : 'false');
-            localStorage.setItem('srec_myClubs', JSON.stringify(clubs));
-            setAuth(prev => {
-              if (!prev) return null;
-              if (prev.isClubCoordinator !== isCoord || JSON.stringify(prev.myClubs) !== JSON.stringify(clubs)) {
-                return { ...prev, isClubCoordinator: isCoord, myClubs: clubs };
-              }
-              return prev;
-            });
+          if (data && Array.isArray(data.clubs)) {
+            const hasCoord = data.clubs.some(c => c.role === 'coordinator');
+            localStorage.setItem('srec_isClubCoord', hasCoord ? 'true' : 'false');
+            localStorage.setItem('srec_myClubs', JSON.stringify(data.clubs));
+            setAuth(prev => prev ? { ...prev, isClubCoordinator: hasCoord, myClubs: data.clubs } : null);
           }
         })
-        .catch(err => console.error('Error checking club coordinator status:', err));
+        .catch(err => console.error('Error checking user clubs:', err));
     }
   }, [auth?.token, auth?.staffId, auth?.role]);
 
@@ -169,7 +170,7 @@ export default function App() {
 
     const handleInactivityLogout = () => {
       logout();
-      alert('Your session has expired due to 5 minutes of inactivity. Please log in again.');
+      alert('You have been logged out due to 5 minutes of inactivity for security.');
     };
 
     const resetTimer = () => {
@@ -177,25 +178,23 @@ export default function App() {
       timer = setTimeout(handleInactivityLogout, INACTIVITY_TIMEOUT_MS);
     };
 
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-    activityEvents.forEach(event => {
-      window.addEventListener(event, resetTimer, { passive: true });
-    });
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetTimer));
 
     // Start timer on mount
     resetTimer();
 
     return () => {
       if (timer) clearTimeout(timer);
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, resetTimer);
-      });
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetTimer));
     };
   }, [auth]);
 
-  const updateProfilePic = (fileName) => {
-    localStorage.setItem('srec_profilePic', fileName);
-    setAuth(prev => ({ ...prev, profilePic: fileName }));
+  const updateProfilePic = (newPic) => {
+    if (newPic) {
+      localStorage.setItem('srec_profilePic', newPic);
+      setAuth(prev => prev ? { ...prev, profilePic: newPic } : null);
+    }
   };
 
   if (checkingAuth) {
@@ -203,14 +202,14 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
-      <PWAInstallPrompt />
-      {auth ? (
-        <div className="dashboard-layout">
-          <Sidebar role={auth.role} logout={logout} auth={auth} />
-          <main className="main-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <div style={{ flex: 1 }}>
-              <ErrorBoundary>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <PWAInstallPrompt />
+        {auth ? (
+          <div className="dashboard-layout">
+            <Sidebar role={auth.role} logout={logout} auth={auth} />
+            <main className="main-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+              <div style={{ flex: 1 }}>
                 <Routes>
                   <Route path="/dashboard" element={<Home auth={auth} />} />
                   <Route path="/profile/academic" element={<AcademicInfo auth={auth} />} />
@@ -243,23 +242,23 @@ export default function App() {
                   <Route path="/settings" element={<Settings auth={auth} updateProfilePic={updateProfilePic} />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
-              </ErrorBoundary>
+              </div>
+              <Footer />
+            </main>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <div style={{ flex: 1 }}>
+              <Routes>
+                <Route path="/login" element={<Login setAuth={setAuth} />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
             </div>
             <Footer />
-          </main>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <div style={{ flex: 1 }}>
-            <Routes>
-              <Route path="/login" element={<Login setAuth={setAuth} />} />
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
           </div>
-          <Footer />
-        </div>
-      )}
-      <PWAInstallBanner />
-    </BrowserRouter>
+        )}
+        <PWAInstallBanner />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
