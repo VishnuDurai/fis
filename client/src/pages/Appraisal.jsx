@@ -358,6 +358,111 @@ export default function Appraisal({ auth }) {
     setter(prev => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
   };
 
+  // Helper for A4 Feedback rating change with automatic score calculation (>=4.0 -> 5 pts, >=2.5 -> 3 pts)
+  const handleA4Change = (index, field, value) => {
+    setA4Rows(prev => prev.map((row, i) => {
+      if (i !== index) return row;
+      const updated = { ...row, [field]: value };
+      const mid = parseFloat(field === 'mid_score' ? value : row.mid_score);
+      const end = parseFloat(field === 'end_score' ? value : row.end_score);
+      let avg = null;
+      if (!isNaN(mid) && !isNaN(end)) avg = (mid + end) / 2;
+      else if (!isNaN(mid)) avg = mid;
+      else if (!isNaN(end)) avg = end;
+
+      if (avg !== null) {
+        updated.avg_score = avg.toFixed(2);
+        updated.score = avg >= 4.0 ? 5 : avg >= 2.5 ? 3 : 0;
+      }
+      return updated;
+    }));
+  };
+
+  // Helper for A5 Pass Percentage change with automatic score calculation (>=80% -> 10 pts, >=60% -> 5 pts)
+  const handleA5Change = (index, field, value) => {
+    setA5Rows(prev => prev.map((row, i) => {
+      if (i !== index) return row;
+      const updated = { ...row, [field]: value };
+      const odd = parseFloat(field === 'odd_pass' ? value : row.odd_pass);
+      const even = parseFloat(field === 'even_pass' ? value : row.even_pass);
+      let avg = null;
+      if (!isNaN(odd) && !isNaN(even)) avg = (odd + even) / 2;
+      else if (!isNaN(odd)) avg = odd;
+      else if (!isNaN(even)) avg = even;
+
+      if (avg !== null) {
+        updated.avg_pass = avg.toFixed(2);
+        updated.score = avg >= 80 ? 10 : avg >= 60 ? 5 : 0;
+      }
+      return updated;
+    }));
+  };
+
+  // Real-time automatic score calculation for manual entry rows matching FPI.docx
+  useEffect(() => {
+    if (isAdminOrHR) return;
+
+    let calcA1 = Math.min(10, a1Rows.filter(r => (r.ict_tool || r.course || r.class_name || '').trim().length > 0).length * 5);
+    let calcA2 = Math.min(10, a2Rows.filter(r => (r.title || r.platform || '').trim().length > 0).length * 5);
+    let calcA3 = Math.min(10, a3Rows.filter(r => (r.lab_name || r.experiment_title || '').trim().length > 0).length * 5);
+
+    let calcA4 = 0;
+    a4Rows.forEach(r => {
+      const avg = parseFloat(r.avg_score);
+      if (!isNaN(avg)) {
+        if (avg >= 4.0) calcA4 += 5;
+        else if (avg >= 2.5) calcA4 += 3;
+      } else if (r.score) {
+        calcA4 += (parseFloat(r.score) || 0);
+      }
+    });
+    calcA4 = Math.min(10, calcA4);
+
+    let calcA5 = 0;
+    a5Rows.forEach(r => {
+      const pass = parseFloat(r.avg_pass);
+      if (!isNaN(pass)) {
+        if (pass >= 80) calcA5 += 10;
+        else if (pass >= 60) calcA5 += 5;
+      } else if (r.score) {
+        calcA5 += (parseFloat(r.score) || 0);
+      }
+    });
+    calcA5 = Math.min(10, calcA5);
+
+    let calcA6 = Math.min(5, a6Rows.filter(r => (r.course_title || r.duration || '').trim().length > 0).length * 5);
+    let calcA7 = Math.min(5, a7Rows.filter(r => (r.event_title || r.team_name || '').trim().length > 0).length * 5);
+
+    const totalPartA = Math.min(60, calcA1 + calcA2 + calcA3 + calcA4 + calcA5 + calcA6 + calcA7);
+
+    // Manual B4 & B7
+    let calcB4 = Math.min(5, b4Rows.filter(r => (r.title || r.activity || '').trim().length > 0).length * 5);
+    let calcB7 = Math.min(5, b7Rows.filter(r => (r.company || r.title || '').trim().length > 0).length * 5);
+    const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
+    const totalPartB = Math.min(40, autoPartB + calcB4 + calcB7);
+
+    // Manual C3
+    let calcC3 = Math.min(5, c3Rows.filter(r => (r.title || r.organization || '').trim().length > 0).length * 5);
+    const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0);
+    const totalPartC = Math.min(80, autoPartC + calcC3);
+
+    // Part D
+    const autoPartD = fpiBreakdown.d_responsibilities || 0;
+    const totalPartD = Math.min(20, autoPartD);
+
+    const grandTotal = Math.min(200, totalPartA + totalPartB + totalPartC + totalPartD);
+
+    setFpiSummary({
+      part_a_score: totalPartA,
+      part_b_score: totalPartB,
+      part_c_score: totalPartC,
+      part_d_score: totalPartD,
+      total_fpi_score: grandTotal
+    });
+
+    setSelfAppraisalScore(`${grandTotal} / 200`);
+  }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
@@ -1316,9 +1421,9 @@ export default function Appraisal({ auth }) {
                       <tr key={i}>
                         <td><input type="text" className="form-control" placeholder="Class" value={r.class_name} onChange={(e) => updateRow(setA4Rows, i, 'class_name', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="Course" value={r.course} onChange={(e) => updateRow(setA4Rows, i, 'course', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="4.5" value={r.mid_score} onChange={(e) => updateRow(setA4Rows, i, 'mid_score', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="4.8" value={r.end_score} onChange={(e) => updateRow(setA4Rows, i, 'end_score', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="4.65" value={r.avg_score} onChange={(e) => updateRow(setA4Rows, i, 'avg_score', e.target.value)} /></td>
+                        <td><input type="number" step="0.1" className="form-control" placeholder="4.5" value={r.mid_score} onChange={(e) => handleA4Change(i, 'mid_score', e.target.value)} /></td>
+                        <td><input type="number" step="0.1" className="form-control" placeholder="4.8" value={r.end_score} onChange={(e) => handleA4Change(i, 'end_score', e.target.value)} /></td>
+                        <td><input type="number" step="0.1" className="form-control" placeholder="Auto Calc" value={r.avg_score} onChange={(e) => handleA4Change(i, 'avg_score', e.target.value)} style={{ fontWeight: 700, color: '#0369a1' }} /></td>
                         <td><button type="button" onClick={() => removeRow(setA4Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
@@ -1352,9 +1457,9 @@ export default function Appraisal({ auth }) {
                       <tr key={i}>
                         <td><input type="text" className="form-control" placeholder="Class" value={r.class_name} onChange={(e) => updateRow(setA5Rows, i, 'class_name', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="Course" value={r.course} onChange={(e) => updateRow(setA5Rows, i, 'course', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="85.5%" value={r.odd_pass} onChange={(e) => updateRow(setA5Rows, i, 'odd_pass', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="92.0%" value={r.even_pass} onChange={(e) => updateRow(setA5Rows, i, 'even_pass', e.target.value)} /></td>
-                        <td><input type="number" step="0.1" className="form-control" placeholder="88.75%" value={r.avg_pass} onChange={(e) => updateRow(setA5Rows, i, 'avg_pass', e.target.value)} /></td>
+                        <td><input type="number" step="0.1" className="form-control" placeholder="85.5%" value={r.odd_pass} onChange={(e) => handleA5Change(i, 'odd_pass', e.target.value)} /></td>
+                        <td><input type="number" step="0.1" className="form-control" placeholder="92.0%" value={r.even_pass} onChange={(e) => handleA5Change(i, 'even_pass', e.target.value)} /></td>
+                        <td><input type="number" step="0.1" className="form-control" placeholder="Auto Calc" value={r.avg_pass} onChange={(e) => handleA5Change(i, 'avg_pass', e.target.value)} style={{ fontWeight: 700, color: '#0369a1' }} /></td>
                         <td><button type="button" onClick={() => removeRow(setA5Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
