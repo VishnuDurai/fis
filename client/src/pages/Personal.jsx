@@ -882,6 +882,9 @@ export default function Personal({ auth }) {
         </div>
       )}
 
+      {/* Invisible reCAPTCHA container for Firebase Phone Auth */}
+      <div id="recaptcha-container"></div>
+
       {/* Firebase Mobile Phone Auth OTP Verification Modal */}
       {showMobileOtpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>

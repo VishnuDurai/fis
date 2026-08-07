@@ -15,21 +15,30 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 /**
- * Initializes invisible or button reCAPTCHA verifier for Phone Auth
+ * Initializes invisible reCAPTCHA verifier safely for Phone Auth
  * @param {string} containerId Element ID where reCAPTCHA container is rendered
  */
-export function setupRecaptcha(containerId) {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-      'size': 'invisible',
-      'callback': (response) => {
-        // reCAPTCHA solved - allow signInWithPhoneNumber
-      },
-      'expired-callback': () => {
-        // Response expired. Ask user to solve reCAPTCHA again.
-      }
-    });
+export function setupRecaptcha(containerId = 'recaptcha-container') {
+  if (window.recaptchaVerifier) {
+    try {
+      window.recaptchaVerifier.clear();
+    } catch (e) {}
+    window.recaptchaVerifier = null;
   }
+
+  let el = document.getElementById(containerId);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = containerId;
+    document.body.appendChild(el);
+  }
+
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+    'size': 'invisible',
+    'callback': () => {},
+    'expired-callback': () => {}
+  });
+
   return window.recaptchaVerifier;
 }
 
@@ -39,21 +48,37 @@ export function setupRecaptcha(containerId) {
  * @param {string} containerId recaptcha container element ID
  */
 export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptcha-container') {
+  // Strict E.164 phone number formatting (e.g. +91XXXXXXXXXX)
+  let cleanNumber = String(phoneNumber || '').trim().replace(/[^\d+]/g, '');
+  if (!cleanNumber.startsWith('+')) {
+    if (cleanNumber.length === 10) {
+      cleanNumber = `+91${cleanNumber}`;
+    } else {
+      cleanNumber = `+${cleanNumber}`;
+    }
+  }
+
   try {
     const verifier = setupRecaptcha(containerId);
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+    const confirmationResult = await signInWithPhoneNumber(auth, cleanNumber, verifier);
     window.confirmationResult = confirmationResult;
-    return { success: true, confirmationResult };
+    return { success: true, confirmationResult, formattedNumber: cleanNumber };
   } catch (error) {
     console.error("Firebase Phone Auth error:", error);
-    // Reset recaptcha verifier on error
     if (window.recaptchaVerifier) {
       try {
         window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
       } catch (e) {}
+      window.recaptchaVerifier = null;
     }
-    throw error;
+
+    let userMsg = error.message;
+    if (error.code === 'auth/argument-error') {
+      userMsg = `Invalid phone format (${cleanNumber}) or reCAPTCHA initialization error.`;
+    } else if (error.code === 'auth/invalid-app-credential' || error.code === 'auth/api-key-not-valid') {
+      userMsg = `Firebase API Key config required.`;
+    }
+    throw new Error(userMsg);
   }
 }
 
