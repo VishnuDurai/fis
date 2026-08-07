@@ -195,7 +195,7 @@ const activityConfigs = {
       // Conference Specific Fields
       { name: 'isbn', label: 'ISBN Number (Proceedings)', type: 'text', confOnly: true, required: false },
       { name: 'conf_venue', label: 'Conference Venue', type: 'text', confOnly: true, required: false },
-      { name: 'conf_dates', label: 'Conference Dates', type: 'text', confOnly: true, required: false }
+      { name: 'conf_dates', label: 'Conference Date', type: 'date', confOnly: true, required: false }
     ],
     renderRow: (row) => [
       row.type_pub || 'Journal',
