@@ -11,14 +11,39 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:479537848744:web:39e7d597a0fe0a8029bd9d"
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+let app = null;
+let authInstance = null;
+
+// Safe Firebase initialization - never crash top-level JS module evaluation on startup
+try {
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey.length > 5) {
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    authInstance = getAuth(app);
+  }
+} catch (err) {
+  console.warn("Firebase Auth top-level init deferred:", err?.message || err);
+}
+
+export const auth = authInstance;
+
+export function getFirebaseAuth() {
+  if (!authInstance) {
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey.length <= 5) {
+      throw new Error("Firebase API Key is missing. Please configure VITE_FIREBASE_API_KEY in client/.env file.");
+    }
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    authInstance = getAuth(app);
+  }
+  return authInstance;
+}
 
 /**
  * Initializes invisible reCAPTCHA verifier safely for Phone Auth
  * @param {string} containerId Element ID where reCAPTCHA container is rendered
  */
 export function setupRecaptcha(containerId = 'recaptcha-container') {
+  const activeAuth = getFirebaseAuth();
+
   if (window.recaptchaVerifier) {
     try {
       window.recaptchaVerifier.clear();
@@ -33,7 +58,7 @@ export function setupRecaptcha(containerId = 'recaptcha-container') {
     document.body.appendChild(el);
   }
 
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+  window.recaptchaVerifier = new RecaptchaVerifier(activeAuth, containerId, {
     'size': 'invisible',
     'callback': () => {},
     'expired-callback': () => {}
@@ -48,7 +73,7 @@ export function setupRecaptcha(containerId = 'recaptcha-container') {
  * @param {string} containerId recaptcha container element ID
  */
 export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptcha-container') {
-  if (!firebaseConfig.apiKey) {
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.length <= 5) {
     throw new Error("Firebase API Key is missing. Please configure VITE_FIREBASE_API_KEY in client/.env file.");
   }
 
@@ -63,8 +88,9 @@ export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptch
   }
 
   try {
+    const activeAuth = getFirebaseAuth();
     const verifier = setupRecaptcha(containerId);
-    const confirmationResult = await signInWithPhoneNumber(auth, cleanNumber, verifier);
+    const confirmationResult = await signInWithPhoneNumber(activeAuth, cleanNumber, verifier);
     window.confirmationResult = confirmationResult;
     return { success: true, confirmationResult, formattedNumber: cleanNumber };
   } catch (error) {
