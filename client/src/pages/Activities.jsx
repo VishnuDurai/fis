@@ -186,13 +186,13 @@ const activityConfigs = {
       { name: 'index_pub', label: 'Indexing (Scopus, WoS, SCI, SCIE, ESCI, UGC Care)', type: 'multiselect', options: ['Scopus', 'WoS', 'SCI', 'SCIE', 'ESCI', 'UGC Care', 'Other'], required: true },
       { name: 'citations', label: 'Citations Count', type: 'number', required: false },
 
-      // Journal Only Fields
-      { name: 'issn_no', label: 'ISSN Number', type: 'text', journalOnly: true, required: false },
+      // Journal & Conference Fields
+      { name: 'issn_no', label: 'ISSN Number (e.g. 1611-3349)', type: 'text', required: false },
       { name: 'volume_pub', label: 'Volume Number', type: 'text', journalOnly: true, required: false },
       { name: 'issue_no', label: 'Issue Number', type: 'text', journalOnly: true, required: false },
       { name: 'impact', label: 'Impact Factor', type: 'number', step: '0.01', journalOnly: true, required: false },
 
-      // Conference Only Fields
+      // Conference Specific Fields
       { name: 'isbn', label: 'ISBN Number (Proceedings)', type: 'text', confOnly: true, required: false },
       { name: 'conf_venue', label: 'Conference Venue', type: 'text', confOnly: true, required: false },
       { name: 'conf_dates', label: 'Conference Dates', type: 'text', confOnly: true, required: false }
@@ -204,7 +204,7 @@ const activityConfigs = {
       row.journel || 'N/A',
       row.co_authors || 'N/A',
       row.author_position || 'N/A',
-      ((row.type_pub || '').toLowerCase() === 'conference' ? (row.isbn ? `ISBN: ${row.isbn}` : 'N/A') : (row.issn_no ? `ISSN: ${row.issn_no}` : 'N/A')),
+      (row.issn_no ? `ISSN: ${row.issn_no}` : (row.isbn ? `ISBN: ${row.isbn}` : 'N/A')),
       ((row.type_pub || '').toLowerCase() === 'conference' ? (row.conf_venue || row.conf_dates ? `${row.conf_venue || ''} ${row.conf_dates ? `(${row.conf_dates})` : ''}`.trim() : 'N/A') : `Vol: ${row.volume_pub || '-'}, Issue: ${row.issue_no || '-'}`),
       `${row.date_con || ''} ${row.month_pub ? `(${row.month_pub})` : ''}`.trim() || 'N/A',
       row.organizer || 'N/A',
