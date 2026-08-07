@@ -542,12 +542,12 @@ export default function Appraisal({ auth }) {
     return true;
   });
 
-  // Calculate Section Max Marks from Dynamic Template
-  const partAMax = templateItems.filter(i => i.section_code === 'PART_A').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 60;
-  const partBMax = templateItems.filter(i => i.section_code === 'PART_B').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 40;
-  const partCMax = templateItems.filter(i => i.section_code === 'PART_C').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 60;
-  const partDMax = templateItems.filter(i => i.section_code === 'PART_D').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 40;
-  const totalMax = partAMax + partBMax + partCMax + partDMax;
+  // Calculate Section Max Marks from Dynamic Template (Matching official FPI.docx: Part A=60, Part B=40, Part C=80, Part D=20, Total=200)
+  const partAMax = Math.min(60, templateItems.filter(i => i.section_code === 'PART_A').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 60);
+  const partBMax = Math.min(40, templateItems.filter(i => i.section_code === 'PART_B').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 40);
+  const partCMax = Math.min(80, templateItems.filter(i => i.section_code === 'PART_C').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 80);
+  const partDMax = Math.min(20, templateItems.filter(i => i.section_code === 'PART_D').reduce((acc, curr) => acc + (parseFloat(curr.max_marks) || 0), 0) || 20);
+  const totalMax = Math.min(200, partAMax + partBMax + partCMax + partDMax);
 
   // General Information Table Component matching FPI.docx
   const GeneralInfoTable = ({ data }) => {
@@ -971,8 +971,8 @@ export default function Appraisal({ auth }) {
             const sectionTitleMap = {
               'PART_A': 'PART A: Teaching Learning Process (Default Max: 60)',
               'PART_B': 'PART B: Professional Development Activities (Default Max: 40)',
-              'PART_C': 'PART C: Research & Consultancy (Default Max: 60)',
-              'PART_D': 'PART D: Institutional Development & Contribution (Default Max: 40)'
+              'PART_C': 'PART C: Research & Consultancy (Default Max: 80)',
+              'PART_D': 'PART D: Institutional Development & Contribution (Default Max: 20)'
             };
             const sectionItems = templateItems.filter(i => i.section_code === sectionCode);
 
