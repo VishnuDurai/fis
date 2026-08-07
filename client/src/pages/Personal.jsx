@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, X, User, Download, FileText } from 'lucide-react';
+import { Search, Eye, X, User, Download, FileText, Check, Mail, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import EditableField from '../components/EditableField.jsx';
 import Dropzone from '../components/Dropzone.jsx';
@@ -17,8 +17,109 @@ export default function Personal({ auth }) {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const [initialEmail, setInitialEmail] = useState('');
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
 
   const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+    let timer;
+    if (otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
+
+  const handleSendEmailOtp = async () => {
+    setOtpError('');
+    setOtpMessage('');
+    const emailToVerify = personal?.email ? personal.email.trim() : '';
+
+    if (!emailToVerify) {
+      setError('Please enter an email address to verify.');
+      return;
+    }
+
+    const emailErr = validateEmail(emailToVerify);
+    if (emailErr) {
+      setFieldErrors(prev => ({ ...prev, email: emailErr }));
+      return;
+    }
+
+    setOtpSending(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/personal/send-email-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth.token}`
+        },
+        body: JSON.stringify({ email: emailToVerify, staffId: auth.staffId })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send verification OTP');
+
+      setShowOtpModal(true);
+      setOtpInput('');
+      setOtpMessage(data.message || `Verification code sent to ${emailToVerify}`);
+      setOtpCountdown(60);
+    } catch (err) {
+      setOtpError(err.message);
+      setError(err.message);
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    setOtpError('');
+    setOtpMessage('');
+    if (!otpInput || otpInput.trim().length !== 6) {
+      setOtpError('Please enter the complete 6-digit OTP code.');
+      return;
+    }
+
+    setOtpVerifying(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/personal/verify-email-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth.token}`
+        },
+        body: JSON.stringify({ email: personal.email, otp: otpInput, staffId: auth.staffId })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+
+      setVerifiedEmail((data.verifiedEmail || personal.email).trim().toLowerCase());
+      setShowOtpModal(false);
+      setOtpInput('');
+      setMessage('Email address verified successfully! You can now save your personal details.');
+      setFieldErrors(prev => {
+        const next = { ...prev };
+        delete next.email;
+        return next;
+      });
+    } catch (err) {
+      setOtpError(err.message);
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
 
   const handlePersonalDocUpload = async (fileObj, docType, targetStaffId = null) => {
     setMessage('');
@@ -84,7 +185,11 @@ export default function Personal({ auth }) {
 
         if (pRes.ok) {
           const data = await pRes.json();
-          setPersonal(data && data.length > 0 ? data[0] : null);
+          const pRecord = data && data.length > 0 ? data[0] : null;
+          setPersonal(pRecord);
+          if (pRecord && pRecord.email) {
+            setInitialEmail(pRecord.email);
+          }
         }
         if (aRes.ok) {
           const aData = await aRes.json();
@@ -136,7 +241,15 @@ export default function Personal({ auth }) {
         errs.email = 'Email ID is mandatory';
       } else {
         const eErr = validateEmail(targetItem.email);
-        if (eErr) errs.email = eErr;
+        if (eErr) {
+          errs.email = eErr;
+        } else if (auth.role === 'faculty') {
+          const currentSavedEmail = (initialEmail || '').trim().toLowerCase();
+          const inputEmail = (targetItem.email || '').trim().toLowerCase();
+          if (inputEmail !== currentSavedEmail && inputEmail !== verifiedEmail) {
+            errs.email = 'Email verification required. Please click "Verify Email" to verify your email via OTP before saving.';
+          }
+        }
       }
 
       if (!targetItem.pan || !targetItem.pan.trim()) {
@@ -191,6 +304,10 @@ export default function Personal({ auth }) {
       if (!res.ok) throw new Error(data.error || 'Failed to update personal details');
 
       setMessage('Personal details saved successfully!');
+      if (targetItem?.email) {
+        setInitialEmail(targetItem.email);
+        setVerifiedEmail(targetItem.email.trim().toLowerCase());
+      }
       if (selectedFacultyTarget) setSelectedFacultyTarget(null);
       fetchDetails();
       window.dispatchEvent(new Event('srec_profile_updated'));
@@ -508,18 +625,43 @@ export default function Personal({ auth }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600, fontSize: '0.88rem' }}>
-                    Email ID <span style={{ color: 'hsl(var(--danger))' }}>*</span>
-                  </label>
-                  <input 
-                    type="email" 
-                    className="form-control" 
-                    placeholder="Email Address (e.g. faculty@srec.ac.in)" 
-                    style={{ borderColor: fieldErrors.email ? '#dc2626' : undefined }}
-                    value={personal.email || ''} 
-                    onChange={(e) => setPersonal({ ...personal, email: e.target.value })} 
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
+                      Email ID <span style={{ color: 'hsl(var(--danger))' }}>*</span>
+                    </label>
+                    {((personal.email || '').trim().toLowerCase() === (initialEmail || '').trim().toLowerCase() || (personal.email || '').trim().toLowerCase() === (verifiedEmail || '').trim().toLowerCase()) ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                        <Check size={12} /> Verified
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                        <AlertCircle size={12} /> Verification Required
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <input 
+                      type="email" 
+                      className="form-control" 
+                      placeholder="Email Address (e.g. faculty@srec.ac.in)" 
+                      style={{ borderColor: fieldErrors.email ? '#dc2626' : ((personal.email || '').trim().toLowerCase() !== (initialEmail || '').trim().toLowerCase() && (personal.email || '').trim().toLowerCase() !== (verifiedEmail || '').trim().toLowerCase() ? '#f59e0b' : undefined), flex: 1 }}
+                      value={personal.email || ''} 
+                      onChange={(e) => setPersonal({ ...personal, email: e.target.value })} 
+                      required
+                    />
+                    {((personal.email || '').trim().toLowerCase() !== (initialEmail || '').trim().toLowerCase() && (personal.email || '').trim().toLowerCase() !== (verifiedEmail || '').trim().toLowerCase()) && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={otpSending}
+                        onClick={handleSendEmailOtp}
+                        style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0f5233' }}
+                      >
+                        <Mail size={15} /> {otpSending ? 'Sending...' : 'Verify Email'}
+                      </button>
+                    )}
+                  </div>
                   {fieldErrors.email && (
                     <span style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: 600 }}>
                       {fieldErrors.email}
@@ -598,6 +740,77 @@ export default function Personal({ auth }) {
         ) : (
           <div style={{ textAlign: 'center', padding: '40px' }}>Personal details not found.</div>
         )
+      )}
+      {/* OTP Verification Modal */}
+      {showOtpModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+          <div className="card" style={{ maxWidth: '450px', width: '100%', background: '#ffffff', borderRadius: '12px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#e6f4ea', color: '#15583b', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>Verify Email Address</h4>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Enter 6-digit OTP code</span>
+                </div>
+              </div>
+              <button onClick={() => setShowOtpModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: '#334155', marginBottom: '16px', lineHeight: '1.5' }}>
+              A 6-digit verification OTP code has been sent to:<br />
+              <strong style={{ color: '#0f5233', fontSize: '0.95rem' }}>{personal?.email}</strong>
+            </p>
+
+            {otpError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '14px', fontWeight: 600 }}>
+                {otpError}
+              </div>
+            )}
+
+            {otpMessage && (
+              <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '14px', fontWeight: 600 }}>
+                {otpMessage}
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>6-Digit Verification Code</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. 123456"
+                maxLength={6}
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                style={{ letterSpacing: '6px', fontSize: '1.4rem', fontWeight: 800, textAlign: 'center', padding: '10px', borderRadius: '8px', border: '2px solid #0f5233' }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={otpCountdown > 0 || otpSending}
+                onClick={handleSendEmailOtp}
+                style={{ fontSize: '0.82rem', padding: '8px 14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={14} /> {otpCountdown > 0 ? `Resend (${otpCountdown}s)` : 'Resend Code'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={otpVerifying || otpInput.length !== 6}
+                onClick={handleVerifyEmailOtp}
+                style={{ padding: '8px 20px', fontWeight: 700, fontSize: '0.88rem', background: '#0f5233' }}
+              >
+                {otpVerifying ? 'Verifying...' : 'Verify Code'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

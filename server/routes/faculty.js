@@ -150,6 +150,132 @@ router.get('/personal', authenticateToken, (req, res) => {
   }
 });
 
+// In-Memory Stores for Email OTP Verification
+const emailOtpStore = new Map();
+const verifiedEmailStore = new Map();
+
+const createMailTransporter = () => {
+  const host = process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com';
+  const user = process.env.SMTP_USER || process.env.MAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+  const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '587', 10);
+
+  if (user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    });
+  }
+  return null;
+};
+
+// 1b. Send Email Verification OTP
+router.post('/personal/send-email-otp', authenticateToken, (req, res) => {
+  const { email } = req.body;
+  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
+
+  if (!email || !email.trim()) {
+    return res.status(400).json({ error: 'Email address is required.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cleanEmail)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+
+  const cleanStaffId = staffId.trim().toUpperCase();
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  emailOtpStore.set(cleanStaffId, { otp, expiresAt, email: cleanEmail });
+
+  console.log(`\n======================================================`);
+  console.log(`[FACULTY EMAIL OTP VERIFICATION] Staff ID: ${cleanStaffId} | OTP: ${otp} | Email: ${cleanEmail}`);
+  console.log(`======================================================\n`);
+
+  const transporter = createMailTransporter();
+  if (transporter) {
+    const mailOptions = {
+      from: `"SREC FIS System" <${process.env.SMTP_USER || process.env.MAIL_USER}>`,
+      to: cleanEmail,
+      subject: 'SREC FIS - Email Verification Code (OTP)',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0f331f;">SREC Faculty Information System</h2>
+          <p>Hello,</p>
+          <p>You requested email verification for Staff ID: <strong>${cleanStaffId}</strong>.</p>
+          <p>Your 6-digit Verification OTP Code is:</p>
+          <div style="font-size: 28px; font-weight: 800; letter-spacing: 4px; color: #15583b; background: #e6f4ea; padding: 14px; text-align: center; border-radius: 6px; margin: 16px 0;">
+            ${otp}
+          </div>
+          <p>This code is valid for 10 minutes. Please enter this code on the FIS portal to verify your email address before saving.</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 0.8rem; color: #64748b;">Sri Ramakrishna Engineering College (SREC) FIS V3.0</p>
+        </div>
+      `
+    };
+
+    transporter.sendMail(mailOptions, (mailErr, info) => {
+      if (mailErr) {
+        console.error('[Nodemailer Error]:', mailErr.message);
+      } else {
+        console.log('[Nodemailer Success]: Verification OTP email sent to', cleanEmail, info.response);
+      }
+    });
+  }
+
+  return res.json({
+    success: true,
+    message: `Verification code sent to ${cleanEmail}. (Valid for 10 minutes)`,
+    otp: otp
+  });
+});
+
+// 1c. Verify Email OTP
+router.post('/personal/verify-email-otp', authenticateToken, (req, res) => {
+  const { email, otp } = req.body;
+  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: 'Email address and 6-digit OTP code are required.' });
+  }
+
+  const cleanStaffId = staffId.trim().toUpperCase();
+  const cleanEmail = email.trim().toLowerCase();
+  const record = emailOtpStore.get(cleanStaffId);
+
+  if (!record) {
+    return res.status(400).json({ error: 'No verification request found for this account. Please click "Verify Email" to get a new code.' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    emailOtpStore.delete(cleanStaffId);
+    return res.status(400).json({ error: 'Verification code has expired. Please request a new OTP.' });
+  }
+
+  if (record.email !== cleanEmail) {
+    return res.status(400).json({ error: 'The email address does not match the address the OTP code was sent to.' });
+  }
+
+  if (record.otp !== otp.toString().trim()) {
+    return res.status(400).json({ error: 'Invalid 6-digit verification code. Please check your code and try again.' });
+  }
+
+  // Success: mark email as verified
+  verifiedEmailStore.set(cleanStaffId, cleanEmail);
+  emailOtpStore.delete(cleanStaffId);
+
+  return res.json({
+    success: true,
+    message: 'Email address verified successfully!',
+    verifiedEmail: cleanEmail
+  });
+});
+
 // 2. UPDATE Personal Details (supports inline updates and full form updates)
 router.post('/personal/update', authenticateToken, (req, res) => {
   const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
@@ -172,19 +298,33 @@ router.post('/personal/update', authenticateToken, (req, res) => {
     const { staff_name, dob, gender, address, mobile, email, pan, aadhar, type, aicte_id, anna_univ_id, apaar_id } = req.body;
 
     if (req.user.role === 'faculty') {
-      // Preserve existing locked fields for faculty
-      db.get('SELECT staff_name, email, type FROM staff_personal WHERE staff_id = ?', [staffId], (pErr, existing) => {
+      db.get('SELECT staff_name, email, type FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, existing) => {
         const finalName = existing ? existing.staff_name : staff_name;
-        const finalEmail = existing ? existing.email : email;
         const finalType = existing ? existing.type : type;
+
+        const currentSavedEmail = existing ? (existing.email || '').trim().toLowerCase() : '';
+        const requestedEmail = (email || '').trim().toLowerCase();
+
+        // If faculty changed their email, check if it has been verified via OTP
+        if (requestedEmail !== currentSavedEmail) {
+          const verified = verifiedEmailStore.get(staffId.trim().toUpperCase());
+          if (!verified || verified !== requestedEmail) {
+            return res.status(400).json({
+              error: 'Email address verification required. Please click "Verify Email" and complete OTP verification before saving your changes.'
+            });
+          }
+        }
+
+        const finalEmail = requestedEmail ? email.trim() : (existing ? existing.email : '');
 
         db.run(`
           UPDATE staff_personal 
           SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
               aicte_id = ?, anna_univ_id = ?, apaar_id = ?
-          WHERE staff_id = ?
+          WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
         `, [finalName, dob, gender, address, mobile, finalEmail, pan, aadhar, finalType, aicte_id || '', anna_univ_id || '', apaar_id || '', staffId], function(err) {
           if (err) return res.status(500).json({ error: 'Failed to update profile' });
+          verifiedEmailStore.delete(staffId.trim().toUpperCase());
           res.json({ success: true, message: 'Profile updated successfully' });
         });
       });
@@ -193,7 +333,7 @@ router.post('/personal/update', authenticateToken, (req, res) => {
         UPDATE staff_personal 
         SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
             aicte_id = ?, anna_univ_id = ?, apaar_id = ?
-        WHERE staff_id = ?
+        WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
       `, [staff_name, dob, gender, address, mobile, email, pan, aadhar, type, aicte_id || '', anna_univ_id || '', apaar_id || '', staffId], function(err) {
         if (err) return res.status(500).json({ error: 'Failed to update profile' });
         res.json({ success: true, message: 'Profile updated successfully' });
