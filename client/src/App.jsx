@@ -19,6 +19,7 @@ import Settings from './pages/Settings.jsx';
 import Footer from './components/Footer.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import PWAInstallBanner from './components/PWAInstallBanner.jsx';
+import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
 
 export default function App() {
   const [auth, setAuth] = useState(null);
