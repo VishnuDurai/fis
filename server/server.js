@@ -185,11 +185,32 @@ app.post('/api/utils/download-zip', (req, res) => {
 // Fallback static file server for frontend build
 const clientDistPath = path.join(__dirname, '../client/dist');
 if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  // Never serve index.html for missing /assets or JS chunks - return 404 so browser invalidates cache
+  app.use('/assets', (req, res, next) => {
+    const assetPath = path.join(clientDistPath, 'assets', req.path);
+    if (!fs.existsSync(assetPath)) {
+      return res.status(404).send('Asset not found');
+    }
+    next();
+  });
+
+  app.use(express.static(clientDistPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  }));
+
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/SREC') || req.path.startsWith('/health')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/SREC') || req.path.startsWith('/health') || req.path.startsWith('/assets')) {
       return next();
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
