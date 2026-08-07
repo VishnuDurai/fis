@@ -3,7 +3,7 @@ import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth
 
 // Official SREC FIS Firebase App Configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForDevelopment12345",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "srec-fis.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "srec-fis",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "srec-fis.appspot.com",
@@ -48,7 +48,11 @@ export function setupRecaptcha(containerId = 'recaptcha-container') {
  * @param {string} containerId recaptcha container element ID
  */
 export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptcha-container') {
-  // Strict E.164 phone number formatting (e.g. +91XXXXXXXXXX)
+  if (!firebaseConfig.apiKey) {
+    throw new Error("Firebase API Key is missing. Please configure VITE_FIREBASE_API_KEY in client/.env file.");
+  }
+
+  // Format phone number to E.164 standard (e.g. +91XXXXXXXXXX)
   let cleanNumber = String(phoneNumber || '').trim().replace(/[^\d+]/g, '');
   if (!cleanNumber.startsWith('+')) {
     if (cleanNumber.length === 10) {
@@ -73,10 +77,12 @@ export async function sendFirebaseMobileOtp(phoneNumber, containerId = 'recaptch
     }
 
     let userMsg = error.message;
-    if (error.code === 'auth/argument-error') {
-      userMsg = `Invalid phone format (${cleanNumber}) or reCAPTCHA initialization error.`;
-    } else if (error.code === 'auth/invalid-app-credential' || error.code === 'auth/api-key-not-valid') {
-      userMsg = `Firebase API Key config required.`;
+    if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
+      userMsg = `Firebase API Key is invalid or not activated. Please verify VITE_FIREBASE_API_KEY in client/.env file.`;
+    } else if (error.code === 'auth/argument-error') {
+      userMsg = `Invalid phone number format (${cleanNumber}) or reCAPTCHA initialization error.`;
+    } else if (error.code === 'auth/unauthorized-domain') {
+      userMsg = `Domain is not authorized for Firebase Phone Auth. Please add srec-fis.duckdns.org to Authorized Domains in Firebase Console.`;
     }
     throw new Error(userMsg);
   }
