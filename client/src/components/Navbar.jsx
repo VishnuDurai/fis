@@ -9,8 +9,11 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const [departments, setDepartments] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState(localStorage.getItem('srec_view_staffId') || '');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [notifData, setNotifData] = useState({ unreadCount: 0, notifications: [] });
   const [pendingNotice, setPendingNotice] = useState({ userPendingCount: 0, pendingHodCount: 0, pendingPrincipalHrCount: 0 });
   const profileMenuRef = useRef(null);
+  const notifMenuRef = useRef(null);
 
   useEffect(() => {
     if (auth && (auth.role === 'dept_admin' || auth.role === 'admin')) {
@@ -35,14 +38,26 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
         if (data) setPendingNotice(data);
       })
       .catch(err => console.error(err));
+
+      fetch(`${API_BASE_URL}/api/faculty/notifications`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) setNotifData(data);
+      })
+      .catch(err => console.error(err));
     }
   }, [auth]);
 
-  // Click outside listener to close profile dropdown menu
+  // Click outside listener to close profile & notification dropdown menus
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
         setShowProfileMenu(false);
+      }
+      if (notifMenuRef.current && !notifMenuRef.current.contains(event.target)) {
+        setShowNotifMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -195,6 +210,98 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
             </span>
           </button>
         )}
+
+        {/* SYSTEM & PROFILE ACTION NOTIFICATIONS BELL DROPDOWN */}
+        <div ref={notifMenuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setShowNotifMenu(!showNotifMenu)}
+            title="System & Action Notifications"
+            style={{
+              position: 'relative',
+              background: '#f8fafc',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#0f172a',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Bell size={18} />
+            {notifData.unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-2px',
+                background: '#ef4444',
+                color: '#ffffff',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid #ffffff'
+              }}>
+                {notifData.unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifMenu && (
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: '48px',
+              width: '320px',
+              background: '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+              border: '1px solid #e2e8f0',
+              zIndex: 1050,
+              padding: '12px',
+              animation: 'fadeIn 0.15s ease-out'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>Notifications</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{notifData.notifications?.length || 0} total</span>
+              </div>
+              <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {notifData.notifications?.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.82rem', color: '#64748b' }}>No pending notifications.</div>
+                ) : (
+                  notifData.notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        setShowNotifMenu(false);
+                        if (n.link) navigate(n.link);
+                      }}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '8px',
+                        background: n.type === 'warning' ? '#fffbe6' : n.type === 'info' ? '#f0f9ff' : '#f0fdf4',
+                        border: '1px solid ' + (n.type === 'warning' ? '#ffe58f' : n.type === 'info' ? '#bae6fd' : '#bbf7d0'),
+                        cursor: 'pointer',
+                        transition: 'transform 0.1s ease'
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a', marginBottom: '2px' }}>{n.title}</div>
+                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: '1.3' }}>{n.message}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* CLICKABLE PROFILE PICTURE AVATAR BLOCK & DROPDOWN MENU */}
         <div ref={profileMenuRef} style={{ position: 'relative' }}>

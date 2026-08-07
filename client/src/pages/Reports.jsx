@@ -190,7 +190,50 @@ export default function Reports({ auth }) {
 
       {/* Control Panel (no-print) */}
       <div className="card no-print" style={{ marginBottom: '32px' }}>
-        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>Configure Report</h3>
+        {/* Accreditation Quick Presets */}
+        <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+          <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', display: 'block', marginBottom: '10px' }}>
+            Accreditation Audit Quick Presets:
+          </span>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setSections({ personal: true, academics: true, education: true, publications: false, books: false, awards: false, memberships: false, resource: false, funding: false, ipr: false, certifications: true, events: true });
+                setEventCategoryFilter('FDP');
+              }}
+              style={{ fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              NAAC Criteria 2 (Faculty Quality & FDPs)
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setSections({ personal: true, academics: true, education: false, publications: true, books: true, awards: false, memberships: false, resource: false, funding: true, ipr: true, certifications: false, events: false });
+                setPubCategoryFilter('');
+              }}
+              style={{ fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              NAAC / NBA Criteria 3 (Research, Patents & Grants)
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setSections({ personal: true, academics: true, education: true, publications: true, books: true, awards: true, memberships: true, resource: true, funding: true, ipr: true, certifications: true, events: true });
+                setPubCategoryFilter('');
+                setEventCategoryFilter('');
+              }}
+              style={{ fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              Full Institutional Dossier (NBA / NIRF Audit)
+            </button>
+          </div>
+        </div>
+
+        <h3 style={{ marginBottom: '20px', fontSize: '1.2rem' }}>Configure Custom Report</h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           <div className="form-group">

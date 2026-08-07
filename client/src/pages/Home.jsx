@@ -139,146 +139,148 @@ export default function Home({ auth }) {
 
           {/* Welcome and Academic Details (Faculty Portal) */}
           {auth.role === 'faculty' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '32px', alignItems: 'stretch' }}>
-              <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', textAlign: 'center', height: '100%', padding: '24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
-                  <div style={{ 
-                    width: '165px', 
-                    height: '165px', 
-                    borderRadius: '50%', 
-                    background: 'hsla(var(--primary), 0.1)', 
-                    border: '3px solid hsl(var(--primary))', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    overflow: 'hidden',
-                    flexShrink: 0
-                  }}>
-                    {(auth.profilePic || personal?.file || localStorage.getItem('srec_profilePic')) ? (
-                      <img 
-                        src={`${API_BASE_URL}/uploads/upload/${auth.profilePic || personal?.file || localStorage.getItem('srec_profilePic')}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
-                        alt="Profile" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    ) : (
-                      <Users size={64} style={{ color: 'hsl(var(--primary))' }} />
-                    )}
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '32px', alignItems: 'stretch' }}>
+                <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', textAlign: 'center', height: '100%', padding: '24px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
+                    <div style={{ 
+                      width: '165px', 
+                      height: '165px', 
+                      borderRadius: '50%', 
+                      background: 'hsla(var(--primary), 0.1)', 
+                      border: '3px solid hsl(var(--primary))', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      {(auth.profilePic || personal?.file || localStorage.getItem('srec_profilePic')) ? (
+                        <img 
+                          src={`${API_BASE_URL}/uploads/upload/${auth.profilePic || personal?.file || localStorage.getItem('srec_profilePic')}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
+                          alt="Profile" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <Users size={64} style={{ color: 'hsl(var(--primary))' }} />
+                      )}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '4px' }}>{auth.name}</h3>
+                      <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Staff ID: {auth.staffId}</span>
+                      {academic?.Designation && (
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--primary))', display: 'block', marginTop: '4px' }}>
+                          {academic.Designation}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', marginBottom: '4px' }}>{auth.name}</h3>
-                    <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Staff ID: {auth.staffId}</span>
-                    {academic?.Designation && (
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--primary))', display: 'block', marginTop: '4px' }}>
-                        {academic.Designation}
-                      </span>
-                    )}
-                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => navigate('/profile/personal')}
+                    style={{ width: '100%', marginTop: '16px', fontWeight: 700 }}
+                  >
+                    Edit Profile
+                  </button>
                 </div>
-                <button 
-                  className="btn btn-primary" 
-                  onClick={() => navigate('/profile/personal')}
-                  style={{ width: '100%', marginTop: '16px' }}
-                >
-                  Edit Profile
-                </button>
+
+                {/* Academic Information Card (Right of Profile Card) */}
+                <div className="card">
+                  <h3 style={{ marginBottom: '24px', fontSize: '1.25rem', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '12px' }}>
+                    Academic Information
+                  </h3>
+                  {academic ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))' }}>
+                          <GraduationCap size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Department</span>
+                          <span style={{ fontWeight: 600 }}>{getDeptWithAcronym(academic.Department) || 'Not configured'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--accent), 0.1)', color: 'hsl(var(--accent))' }}>
+                          <Calendar size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Date of Joining</span>
+                          <span style={{ fontWeight: 600 }}>{academic.Date_of_joining || 'Not configured'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))' }}>
+                          <Briefcase size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Experience at SREC</span>
+                          <span style={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>{academic.exp_srec || '0 Years, 0 Months'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--success), 0.1)', color: 'hsl(var(--success))' }}>
+                          <Award size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Total Experience</span>
+                          <span style={{ fontWeight: 700, color: 'hsl(var(--success))' }}>{academic.total_exp || '0 Years, 0 Months'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--success), 0.1)', color: 'hsl(var(--success))' }}>
+                          <GraduationCap size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Highest Qualification</span>
+                          <span style={{ fontWeight: 600 }}>{academic.Qualification || 'Not configured'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))' }}>
+                          <Briefcase size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>AICTE Faculty ID</span>
+                          <span style={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>{personal?.aicte_id || 'Not Assigned'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--secondary), 0.1)', color: 'hsl(var(--secondary))' }}>
+                          <GraduationCap size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Anna University ID</span>
+                          <span style={{ fontWeight: 700, color: 'hsl(var(--secondary))' }}>{personal?.anna_univ_id || 'Not Assigned'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--accent), 0.1)', color: 'hsl(var(--accent))' }}>
+                          <Award size={20} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>APAAR ID</span>
+                          <span style={{ fontWeight: 700, color: 'hsl(var(--accent))' }}>{personal?.apaar_id || 'Not Assigned'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '24px', color: 'hsl(var(--text-muted))' }}>
+                      Academic information is empty. Please contact Administrator.
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="card">
-                <h3 style={{ marginBottom: '24px', fontSize: '1.25rem', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '12px' }}>
-                  Academic Information
-                </h3>
-                {academic ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))' }}>
-                        <GraduationCap size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Department</span>
-                        <span style={{ fontWeight: 600 }}>{getDeptWithAcronym(academic.Department) || 'Not configured'}</span>
-                      </div>
-                    </div>
-
-
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--accent), 0.1)', color: 'hsl(var(--accent))' }}>
-                        <Calendar size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Date of Joining</span>
-                        <span style={{ fontWeight: 600 }}>{academic.Date_of_joining || 'Not configured'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))' }}>
-                        <Briefcase size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Experience at SREC</span>
-                        <span style={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>{academic.exp_srec || '0 Years, 0 Months'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--success), 0.1)', color: 'hsl(var(--success))' }}>
-                        <Award size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Total Experience</span>
-                        <span style={{ fontWeight: 700, color: 'hsl(var(--success))' }}>{academic.total_exp || '0 Years, 0 Months'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--success), 0.1)', color: 'hsl(var(--success))' }}>
-                        <GraduationCap size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Highest Qualification</span>
-                        <span style={{ fontWeight: 600 }}>{academic.Qualification || 'Not configured'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))' }}>
-                        <Briefcase size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>AICTE Faculty ID</span>
-                        <span style={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>{personal?.aicte_id || 'Not Assigned'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--secondary), 0.1)', color: 'hsl(var(--secondary))' }}>
-                        <GraduationCap size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>Anna University ID</span>
-                        <span style={{ fontWeight: 700, color: 'hsl(var(--secondary))' }}>{personal?.anna_univ_id || 'Not Assigned'}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ padding: '8px', borderRadius: '8px', background: 'hsla(var(--accent), 0.1)', color: 'hsl(var(--accent))' }}>
-                        <Award size={20} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', display: 'block' }}>APAAR ID</span>
-                        <span style={{ fontWeight: 700, color: 'hsl(var(--accent))' }}>{personal?.apaar_id || 'Not Assigned'}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '24px', color: 'hsl(var(--text-muted))' }}>
-                    Academic information is empty. Please contact Administrator.
-                  </div>
-                )}
-              </div>
-            </div>
+            </>
           )}
 
           {/* Faculty Activity Statistics Summary */}
@@ -440,6 +442,99 @@ export default function Home({ auth }) {
                   </div>
                 </div>
               </div>
+
+              {/* Profile Strength & Completion Status SVG Pie/Donut Chart Card (At End of Page) */}
+              {(() => {
+                const { score, checks } = (() => {
+                  let s = 0;
+                  const c = [];
+                  if (personal?.dob) { s += 15; c.push({ text: 'Date of Birth registered', done: true }); }
+                  else c.push({ text: 'Add Date of Birth', done: false, link: '/profile/personal' });
+                  if (personal?.address) { s += 15; c.push({ text: 'Contact Address registered', done: true }); }
+                  else c.push({ text: 'Add Contact Address', done: false, link: '/profile/personal' });
+                  if (personal?.email) { s += 15; c.push({ text: 'Email ID registered & verified', done: true }); }
+                  else c.push({ text: 'Add Email Address', done: false, link: '/profile/personal' });
+                  if (personal?.pan_file) { s += 20; c.push({ text: 'PAN Card Proof Uploaded', done: true }); }
+                  else c.push({ text: 'Upload PAN Card Proof', done: false, link: '/profile/personal' });
+                  if (personal?.aadhar_file) { s += 20; c.push({ text: 'Aadhaar Proof Uploaded', done: true }); }
+                  else c.push({ text: 'Upload Aadhaar Proof', done: false, link: '/profile/personal' });
+                  if (academic?.Qualification) { s += 15; c.push({ text: 'Academic Qualification logged', done: true }); }
+                  else c.push({ text: 'Configure Qualification', done: false, link: '/profile/academic' });
+                  return { score: Math.min(s, 100), checks: c };
+                })();
+
+                const radius = 55;
+                const circumference = 2 * Math.PI * radius;
+                const strokeDashoffset = circumference - (score / 100) * circumference;
+                const chartColor = score >= 80 ? '#16a34a' : score >= 50 ? '#d97706' : '#dc2626';
+
+                return (
+                  <div className="card" style={{ marginTop: '36px', padding: '28px' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '24px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CheckCircle2 size={24} style={{ color: chartColor }} />
+                      Profile Strength Score & Completion Status
+                    </h3>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '36px', alignItems: 'center' }}>
+                      {/* SVG Pie / Donut Chart */}
+                      <div style={{ position: 'relative', width: '150px', height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="150" height="150" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r={radius}
+                            fill="transparent"
+                            stroke="#e2e8f0"
+                            strokeWidth="14"
+                          />
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r={radius}
+                            fill="transparent"
+                            stroke={chartColor}
+                            strokeWidth="14"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="round"
+                            style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                          />
+                        </svg>
+                        <div style={{ position: 'absolute', textAlign: 'center' }}>
+                          <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1 }}>{score}%</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: chartColor, textTransform: 'uppercase', tracking: '0.5px', marginTop: '4px', display: 'block' }}>
+                            {score >= 80 ? 'Excellent' : score >= 50 ? 'Good' : 'Needs Action'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Checklist Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+                        {checks.map((item, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => !item.done && item.link && navigate(item.link)}
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between', 
+                              fontSize: '0.84rem', 
+                              padding: '10px 14px', 
+                              background: item.done ? '#f0fdf4' : '#fef2f2', 
+                              border: '1.5px solid ' + (item.done ? '#bbf7d0' : '#fecaca'), 
+                              borderRadius: '8px', 
+                              cursor: item.done ? 'default' : 'pointer' 
+                            }}
+                          >
+                            <span style={{ color: item.done ? '#166534' : '#991b1b', fontWeight: 600 }}>{item.text}</span>
+                            <span style={{ fontWeight: 800, fontSize: '0.78rem', color: item.done ? '#166534' : '#dc2626' }}>{item.done ? '✓ Done' : 'Pending Action →'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

@@ -42,6 +42,80 @@ router.get('/stats', authenticateToken, (req, res) => {
   });
 });
 
+// 0b. GET Faculty Notifications & Pending Action Items
+router.get('/notifications', authenticateToken, (req, res) => {
+  const staffId = req.query.staffId || req.user.staffId;
+
+  db.get('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
+    db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (eErr, edu) => {
+      db.get('SELECT COUNT(*) as pubCount FROM staff_publications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pubErr, pubRow) => {
+        const notifications = [];
+
+        if (!personal || !personal.pan_file) {
+          notifications.push({ id: 'pan_proof', type: 'warning', title: 'PAN Card Proof Missing', message: 'Please upload your PAN card document proof in Personal Details.', link: '/profile/personal' });
+        }
+        if (!personal || !personal.aadhar_file) {
+          notifications.push({ id: 'aadhar_proof', type: 'warning', title: 'Aadhaar Card Proof Missing', message: 'Please upload your Aadhaar card document proof in Personal Details.', link: '/profile/personal' });
+        }
+        if (!personal || !personal.dob || !personal.address) {
+          notifications.push({ id: 'personal_info', type: 'info', title: 'Complete Personal Profile', message: 'Some personal details (DOB / Address) are incomplete.', link: '/profile/personal' });
+        }
+        if (!edu || edu.length === 0) {
+          notifications.push({ id: 'edu_info', type: 'info', title: 'Add Qualification History', message: 'No education history records found. Please add your UG/PG/Ph.D. details.', link: '/profile/education' });
+        }
+        if (!pubRow || pubRow.pubCount === 0) {
+          notifications.push({ id: 'pub_info', type: 'system', title: 'Research Publications', message: 'Remember to log your recent journal and conference publications.', link: '/activities/publications' });
+        }
+
+        notifications.push({
+          id: 'appraisal_notice',
+          type: 'success',
+          title: 'Annual Performance Appraisal',
+          message: 'Academic Year Performance Appraisal portal is active for submission.',
+          link: '/appraisal'
+        });
+
+        res.json({
+          unreadCount: notifications.filter(n => n.type === 'warning' || n.type === 'info').length,
+          notifications
+        });
+      });
+    });
+  });
+});
+
+// 0c. GET Aggregated Faculty Profile CV Data
+router.get('/cv-data', authenticateToken, (req, res) => {
+  const staffId = req.query.staffId || req.user.staffId;
+
+  db.get('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
+    db.get('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (aErr, academics) => {
+      db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (eErr, education) => {
+        db.all('SELECT * FROM staff_publications WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (pubErr, publications) => {
+          db.all('SELECT * FROM staff_books WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (bErr, books) => {
+            db.all('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (fErr, funding) => {
+              db.all('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (iprErr, ipr) => {
+                db.all('SELECT * FROM staff_awards WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (awErr, awards) => {
+                  res.json({
+                    personal: personal || {},
+                    academics: academics || {},
+                    education: education || [],
+                    publications: publications || [],
+                    books: books || [],
+                    funding: funding || [],
+                    ipr: ipr || [],
+                    awards: awards || []
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
 // 1. GET Personal Profile & Academic details
 router.get('/personal', authenticateToken, (req, res) => {
   const reqStaffId = req.query.staffId;
