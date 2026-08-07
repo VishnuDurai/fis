@@ -834,9 +834,18 @@ export default function Activities({ auth }) {
     setMessage('');
     setError('');
 
-    // Strict JavaScript Form Validation for Mandatory Fields
-    for (const f of config.fields) {
-      if (f.readOnly) continue; // Skip auto-populated read-only fields
+    // Strict JavaScript Form Validation for Mandatory Active Fields based on Publication Type
+    const activeFields = config.fields.filter(f => {
+      if (type === 'publications') {
+        const isConf = (formData.type_pub || 'Journal') === 'Conference';
+        if (f.journalOnly && isConf) return false;
+        if (f.confOnly && !isConf) return false;
+      }
+      return true;
+    });
+
+    for (const f of activeFields) {
+      if (f.readOnly || !f.required) continue; // Skip read-only & optional fields
       const val = formData[f.name];
       if (val === undefined || val === null || String(val).trim() === '') {
         setError(`Mandatory Field Missing: Please provide a valid entry for "${f.label}".`);
