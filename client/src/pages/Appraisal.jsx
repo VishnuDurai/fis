@@ -412,36 +412,47 @@ export default function Appraisal({ auth }) {
   useEffect(() => {
     if (isAdminOrHR) return;
 
-    let calcA1 = Math.min(10, a1Rows.filter(r => (r.ict_tool || r.course || r.class_name || '').trim().length > 0).length * 5);
-    let calcA2 = Math.min(10, a2Rows.filter(r => (r.title || r.platform || '').trim().length > 0).length * 5);
-    let calcA3 = Math.min(10, a3Rows.filter(r => (r.lab_name || r.experiment_title || '').trim().length > 0).length * 5);
+    // A1: 2 marks per ICT tool (Max 10)
+    let calcA1 = Math.min(10, a1Rows.filter(r => (r.ict_tool || r.course || r.class_name || '').trim().length > 0).length * 2);
+    // A2: 5 marks per e-content (Max 10)
+    let calcA2 = Math.min(10, a2Rows.filter(r => (r.title || r.platform || r.course || '').trim().length > 0).length * 5);
+    // A3: 2.5 marks per lab experiment (Max 10)
+    let calcA3 = Math.min(10, a3Rows.filter(r => (r.experiment || r.lab_name || r.course || r.class_name || '').trim().length > 0).length * 2.5);
 
+    // A4: Feedback Rating >4 -> 5 marks, 2.5 to 4 -> 3 marks (Max 5)
     let calcA4 = 0;
     a4Rows.forEach(r => {
       const avg = parseFloat(r.avg_score);
       if (!isNaN(avg)) {
         if (avg >= 4.0) calcA4 += 5;
         else if (avg >= 2.5) calcA4 += 3;
-      } else if (r.score) {
-        calcA4 += (parseFloat(r.score) || 0);
       }
     });
-    calcA4 = Math.min(10, calcA4);
+    calcA4 = Math.min(5, calcA4);
 
+    // A5: Pass Percentage >80% -> 10 marks, 60-80% -> 5 marks (Max 10)
     let calcA5 = 0;
     a5Rows.forEach(r => {
       const pass = parseFloat(r.avg_pass);
       if (!isNaN(pass)) {
         if (pass >= 80) calcA5 += 10;
         else if (pass >= 60) calcA5 += 5;
-      } else if (r.score) {
-        calcA5 += (parseFloat(r.score) || 0);
       }
     });
     calcA5 = Math.min(10, calcA5);
 
-    let calcA6 = Math.min(5, a6Rows.filter(r => (r.course_title || r.duration || '').trim().length > 0).length * 5);
-    let calcA7 = Math.min(5, a7Rows.filter(r => (r.event_title || r.team_name || '').trim().length > 0).length * 5);
+    // A6: Industry Institute Partnerships (Max 5)
+    let calcA6 = Math.min(5, a6Rows.filter(r => (r.name || r.industry || r.course_name || '').trim().length > 0).length * 5);
+
+    // A7: Hackathons Guidance (Prize Won -> 10 marks, Participation -> 5 marks, Max 10)
+    let calcA7 = 0;
+    a7Rows.forEach(r => {
+      if ((r.competition || r.project_title || r.team_members || '').trim().length > 0) {
+        if (r.position === 'Prize Won') calcA7 += 10;
+        else calcA7 += 5;
+      }
+    });
+    calcA7 = Math.min(10, calcA7);
 
     const totalPartA = Math.min(60, calcA1 + calcA2 + calcA3 + calcA4 + calcA5 + calcA6 + calcA7);
 
@@ -1375,8 +1386,8 @@ export default function Appraisal({ auth }) {
             {/* A1: ICT Tools */}
             <div style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>A1. Innovative ICT Tools Integrated in Course Delivery</span>
-                <button type="button" onClick={() => addRow(setA1Rows, { class_name: '', course: '', ict_tool: '', score: '' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery (Max: 10 Marks)</span>
+                <button type="button" onClick={() => addRow(setA1Rows, { class_name: '', course: '', ict_tool: '', score: '2' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
               </div>
@@ -1387,8 +1398,8 @@ export default function Appraisal({ auth }) {
                       <th>Class & Year</th>
                       <th>Course Title / Code</th>
                       <th>Innovative ICT Tool / Methodology Used</th>
-                      <th style={{ width: '100px' }}>Score</th>
-                      <th style={{ width: '50px' }}></th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1397,8 +1408,80 @@ export default function Appraisal({ auth }) {
                         <td><input type="text" className="form-control" placeholder="e.g. III Year IT-A" value={r.class_name} onChange={(e) => updateRow(setA1Rows, i, 'class_name', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="e.g. 20IT101 Data Structures" value={r.course} onChange={(e) => updateRow(setA1Rows, i, 'course', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="e.g. Kahoot, Virtual Labs, Google Classroom" value={r.ict_tool} onChange={(e) => updateRow(setA1Rows, i, 'ict_tool', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="Automatically calculated: 5 marks per ICT tool" /></td>
+                        <td><input type="text" className="form-control" value="2 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="Automatically calculated: 2 marks per ICT tool" /></td>
                         <td><button type="button" onClick={() => removeRow(setA1Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* A2: E-Content Development */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS) (Max: 10 Marks)</span>
+                <button type="button" onClick={() => addRow(setA2Rows, { class_name: '', course: '', title: '', platform: '', launch_date: '', link: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Class & Year</th>
+                      <th>Course Code & Title</th>
+                      <th>Title of E-Content / Video Module</th>
+                      <th>Platform (YouTube / Slideshare / LMS)</th>
+                      <th>Link to E-Content</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {a2Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Class" value={r.class_name} onChange={(e) => updateRow(setA2Rows, i, 'class_name', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Course" value={r.course} onChange={(e) => updateRow(setA2Rows, i, 'course', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Module Title" value={r.title} onChange={(e) => updateRow(setA2Rows, i, 'title', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Platform" value={r.platform} onChange={(e) => updateRow(setA2Rows, i, 'platform', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="URL Link" value={r.link} onChange={(e) => updateRow(setA2Rows, i, 'link', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="Automatically calculated: 5 marks per e-content module" /></td>
+                        <td><button type="button" onClick={() => removeRow(setA2Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* A3: New Laboratory Experiments */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a3. New Laboratory Experiments Developed (Max: 10 Marks)</span>
+                <button type="button" onClick={() => addRow(setA3Rows, { class_name: '', course: '', experiment: '', score: '2.5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Class & Year</th>
+                      <th>Course Code & Title</th>
+                      <th>Name of Experiment / Virtual Lab Manual Developed</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {a3Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Class" value={r.class_name} onChange={(e) => updateRow(setA3Rows, i, 'class_name', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Course" value={r.course} onChange={(e) => updateRow(setA3Rows, i, 'course', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Experiment Name" value={r.experiment} onChange={(e) => updateRow(setA3Rows, i, 'experiment', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="2.5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="Automatically calculated: 2.5 marks per experiment" /></td>
+                        <td><button type="button" onClick={() => removeRow(setA3Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -1409,7 +1492,7 @@ export default function Appraisal({ auth }) {
             {/* A4: Student Feedback Rating */}
             <div style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>A4. Student Feedback Score Rating</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a4. Student Mid Sem & End Sem Feedback Rating (Max: 5 Marks)</span>
                 <button type="button" onClick={() => addRow(setA4Rows, { class_name: '', course: '', mid_score: '', end_score: '', avg_score: '' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1423,7 +1506,7 @@ export default function Appraisal({ auth }) {
                       <th style={{ width: '120px' }}>Mid-Sem Score (/5)</th>
                       <th style={{ width: '120px' }}>End-Sem Score (/5)</th>
                       <th style={{ width: '120px' }}>Average Rating</th>
-                      <th style={{ width: '50px' }}></th>
+                      <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1443,9 +1526,9 @@ export default function Appraisal({ auth }) {
             </div>
 
             {/* A5: Course Pass Percentage */}
-            <div style={{ marginBottom: '10px' }}>
+            <div style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>A5. End Semester Course Pass Percentage</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a5. Success Rate in Theory Courses (End Semester Pass %) (Max: 10 Marks)</span>
                 <button type="button" onClick={() => addRow(setA5Rows, { class_name: '', course: '', odd_pass: '', even_pass: '', avg_pass: '' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1459,7 +1542,7 @@ export default function Appraisal({ auth }) {
                       <th style={{ width: '130px' }}>Odd Sem Pass %</th>
                       <th style={{ width: '130px' }}>Even Sem Pass %</th>
                       <th style={{ width: '130px' }}>Avg Pass %</th>
-                      <th style={{ width: '50px' }}></th>
+                      <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1471,6 +1554,81 @@ export default function Appraisal({ auth }) {
                         <td><input type="number" step="0.1" className="form-control" placeholder="92.0%" value={r.even_pass} onChange={(e) => handleA5Change(i, 'even_pass', e.target.value)} /></td>
                         <td><input type="text" className="form-control" placeholder="Auto Calc" value={r.avg_pass ? `${r.avg_pass}% (Auto)` : ''} readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0369a1' }} title="Automatically calculated average pass percentage" /></td>
                         <td><button type="button" onClick={() => removeRow(setA5Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* A6: Industry Institute Partnerships */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships (Max: 5 Marks)</span>
+                <button type="button" onClick={() => addRow(setA6Rows, { name: '', industry: '', duration: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name of Course / Training / Program</th>
+                      <th>Industry / Partner Company</th>
+                      <th>Duration / Dates</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {a6Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Program Name" value={r.name || r.course_name} onChange={(e) => updateRow(setA6Rows, i, 'name', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Industry Name" value={r.industry} onChange={(e) => updateRow(setA6Rows, i, 'industry', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="e.g. 2 Weeks / July 2025" value={r.duration} onChange={(e) => updateRow(setA6Rows, i, 'duration', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="5 marks per industry partnership item" /></td>
+                        <td><button type="button" onClick={() => removeRow(setA6Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* A7: Hackathons Guidance */}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests (Max: 10 Marks)</span>
+                <button type="button" onClick={() => addRow(setA7Rows, { competition: '', team_members: '', project_title: '', position: 'Prize Won', score: '10' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                  <Plus size={12} /> Add Row
+                </button>
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name of Competition / Contest</th>
+                      <th>Team Members</th>
+                      <th>Title of Project</th>
+                      <th style={{ width: '170px' }}>Position Held / Result</th>
+                      <th style={{ width: '110px' }}>Score</th>
+                      <th style={{ width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {a7Rows.map((r, i) => (
+                      <tr key={i}>
+                        <td><input type="text" className="form-control" placeholder="Competition Name" value={r.competition} onChange={(e) => updateRow(setA7Rows, i, 'competition', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Student Team" value={r.team_members} onChange={(e) => updateRow(setA7Rows, i, 'team_members', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" placeholder="Project Title" value={r.project_title} onChange={(e) => updateRow(setA7Rows, i, 'project_title', e.target.value)} /></td>
+                        <td>
+                          <select className="form-control" value={r.position || 'Prize Won'} onChange={(e) => updateRow(setA7Rows, i, 'position', e.target.value)} style={{ fontSize: '0.82rem', padding: '4px 8px' }}>
+                            <option value="Prize Won">Prize Won (10 pts)</option>
+                            <option value="Participation">Participation (5 pts)</option>
+                          </select>
+                        </td>
+                        <td><input type="text" className="form-control" value={r.position === 'Participation' ? '5 pts (Auto)' : '10 pts (Auto)'} readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="10 marks for Prize Won, 5 marks for Participation" /></td>
+                        <td><button type="button" onClick={() => removeRow(setA7Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
                   </tbody>
