@@ -21,8 +21,8 @@ export const validateEmail = (email) => {
 export const validateMobile = (mobile) => {
   if (!mobile || !mobile.trim()) return null;
   const digitsOnly = mobile.replace(/\D/g, '');
-  if (digitsOnly.length !== 10) {
-    return 'Mobile number must be a valid 10-digit phone number.';
+  if (digitsOnly.length !== 10 || !/^[6-9]\d{9}$/.test(digitsOnly)) {
+    return 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.';
   }
   return null;
 };
