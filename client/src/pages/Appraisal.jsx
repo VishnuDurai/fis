@@ -664,19 +664,38 @@ export default function Appraisal({ auth }) {
     const d = details || fpiDetails || {};
     const b = breakdown || fpiBreakdown || {};
 
-    const categories = [
-      { key: 'publications', title: 'Research Publications', icon: '📚', count: (d.publications || []).length, score: b.c1_publications || 0, max: 20 },
-      { key: 'books', title: 'Books & Chapters Published', icon: '📖', count: (d.books || []).length, score: b.c2_books || 0, max: 10 },
-      { key: 'ipr', title: 'Patents & IPR', icon: '🛡️', count: (d.ipr || []).length, score: b.c4_ipr || 0, max: 10 },
-      { key: 'funding', title: 'Research Grants Received', icon: '💰', count: (d.funding || []).length, score: b.c5_funding || 0, max: 15 },
-      { key: 'seedMoney', title: 'Seed Money Grants', icon: '🌱', count: (d.seedMoney || []).length, score: b.c6_seed_money || 0, max: 10 },
-      { key: 'certs', title: 'Online Certifications', icon: '🎓', count: (d.certs || []).length, score: b.b6_certs || 0, max: 10 },
-      { key: 'interactions', title: 'FDPs & Interactions Attended', icon: '🎤', count: (d.interactions || []).length, score: b.b3_interactions || 0, max: 5 },
-      { key: 'members', title: 'Professional Memberships', icon: '👥', count: (d.members || []).length, score: b.b1_memberships || 0, max: 3 },
-      { key: 'responsibilities', title: 'Assigned Responsibilities', icon: '📋', count: (d.responsibilities || []).length, score: b.d_responsibilities || 0, max: 20 }
+    const groupedCategories = [
+      {
+        sectionCode: 'PART_B',
+        sectionTitle: 'PART B: Professional Development Activities',
+        items: [
+          { key: 'members', title: 'Professional Memberships', icon: '👥', count: (d.members || []).length, score: b.b1_memberships || 0, max: 3, code: 'B1' },
+          { key: 'interactions', title: 'FDPs & Interactions Attended', icon: '🎤', count: (d.interactions || []).length, score: b.b3_interactions || 0, max: 5, code: 'B3' },
+          { key: 'certs', title: 'Online Certifications', icon: '🎓', count: (d.certs || []).length, score: b.b6_certs || 0, max: 10, code: 'B6' }
+        ]
+      },
+      {
+        sectionCode: 'PART_C',
+        sectionTitle: 'PART C: Research & Consultancy',
+        items: [
+          { key: 'publications', title: 'Research Publications', icon: '📚', count: (d.publications || []).length, score: b.c1_publications || 0, max: 20, code: 'C1' },
+          { key: 'books', title: 'Books & Chapters Published', icon: '📖', count: (d.books || []).length, score: b.c2_books || 0, max: 10, code: 'C2' },
+          { key: 'ipr', title: 'Patents & IPR', icon: '🛡️', count: (d.ipr || []).length, score: b.c4_ipr || 0, max: 10, code: 'C4' },
+          { key: 'funding', title: 'Research Grants Received', icon: '💰', count: (d.funding || []).length, score: b.c5_funding || 0, max: 15, code: 'C5' },
+          { key: 'seedMoney', title: 'Seed Money Grants', icon: '🌱', count: (d.seedMoney || []).length, score: b.c6_seed_money || 0, max: 10, code: 'C6' }
+        ]
+      },
+      {
+        sectionCode: 'PART_D',
+        sectionTitle: 'PART D: Institutional Development & Contribution',
+        items: [
+          { key: 'responsibilities', title: 'Assigned Responsibilities', icon: '📋', count: (d.responsibilities || []).length, score: b.d_responsibilities || 0, max: 20, code: 'D1' }
+        ]
+      }
     ];
 
-    const currentCatObj = categories.find(c => c.key === activeDetailCategory) || categories[0];
+    const allCategories = groupedCategories.flatMap(g => g.items);
+    const currentCatObj = allCategories.find(c => c.key === activeDetailCategory) || allCategories[0];
     const currentList = d[currentCatObj.key] || [];
 
     const cols = (catKey) => {
@@ -788,39 +807,49 @@ export default function Appraisal({ auth }) {
           </span>
         </div>
 
-        {/* Category Pills Bar */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px' }}>
-          {categories.map((cat) => {
-            const isActive = activeDetailCategory === cat.key;
-            return (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => setActiveDetailCategory(cat.key)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '20px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: isActive ? '1.5px solid #0284c7' : '1px solid #bae6fd',
-                  background: isActive ? '#0284c7' : '#ffffff',
-                  color: isActive ? '#ffffff' : '#0369a1',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.title} ({cat.count})</span>
-                <span style={{ padding: '2px 6px', borderRadius: '10px', background: isActive ? 'rgba(255,255,255,0.25)' : '#e0f2fe', color: isActive ? '#ffffff' : '#0369a1', fontSize: '0.75rem' }}>
-                  +{cat.score}/{cat.max} pts
-                </span>
-              </button>
-            );
-          })}
+        {/* Grouped Category Section Blocks */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+          {groupedCategories.map((group) => (
+            <div key={group.sectionCode} style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
+                {group.sectionTitle}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {group.items.map((cat) => {
+                  const isActive = activeDetailCategory === cat.key;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setActiveDetailCategory(cat.key)}
+                      style={{
+                        padding: '7px 12px',
+                        borderRadius: '16px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: isActive ? '1.5px solid #0284c7' : '1px solid #e0f2fe',
+                        background: isActive ? '#0284c7' : '#f8fafc',
+                        color: isActive ? '#ffffff' : '#334155',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.title} ({cat.count})</span>
+                      <span style={{ padding: '2px 6px', borderRadius: '8px', background: isActive ? 'rgba(255,255,255,0.25)' : '#e0f2fe', color: isActive ? '#ffffff' : '#0369a1', fontSize: '0.75rem', fontWeight: 800 }}>
+                        +{cat.score}/{cat.max} pts
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Detailed Itemized Table View */}
