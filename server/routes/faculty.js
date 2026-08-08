@@ -1696,8 +1696,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
 
     const finalPartC = Math.min(80, scoreC);
 
-    // Part D Calculation (Max 20)
-    const ruleD1 = getCriteriaRule('D1', 5, 20);
+    // Part D Calculation (Max 20: 10 per Dept level max 10 cap, 10 per Institutional level max 20 cap)
+    const ruleD1 = getCriteriaRule('D1', 10, 20);
     let collegeCount = 0;
     let deptCount = 0;
     responsibilities.forEach(r => {
@@ -1707,8 +1707,10 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         deptCount++;
       }
     });
-    const rawD1 = (collegeCount * ruleD1.fixedMark) + (deptCount * ruleD1.fixedMark);
-    const finalPartD = Math.min(ruleD1.maxMark, rawD1);
+    const deptScore = Math.min(10, deptCount * 10);
+    const collegeScore = Math.min(20, collegeCount * 10);
+    const rawD1 = deptScore + collegeScore;
+    const finalPartD = Math.min(20, rawD1);
 
     res.json({
       part_b_score: finalPartB,
