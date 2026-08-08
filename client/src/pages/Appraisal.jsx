@@ -797,6 +797,7 @@ export default function Appraisal({ auth }) {
         items: [
           { key: 'members', title: 'Professional Memberships', icon: '👥', count: (d.members || []).length, score: b.b1_memberships || 0, max: 3, code: 'B1' },
           { key: 'interactions', title: 'FDPs & Interactions Attended', icon: '🎤', count: (d.interactions || []).length, score: b.b3_interactions || 0, max: 5, code: 'B3' },
+          { key: 'events', title: 'Events Organized', icon: '🎪', count: (d.events || []).length, score: b.b5_events || 0, max: 8, code: 'B5' },
           { key: 'certs', title: 'Online Certifications', icon: '🎓', count: (d.certs || []).length, score: b.b6_certs || 0, max: 10, code: 'B6' }
         ]
       },
@@ -832,6 +833,7 @@ export default function Appraisal({ auth }) {
         case 'funding': return { col1: 'Project Title', col2: 'Funding Agency', col3: 'Sanctioned Amount', col4: 'Status' };
         case 'seedMoney': return { col1: 'Scheme / Proposal Title', col2: 'Sanctioned Amount', col3: 'Year', col4: 'Status' };
         case 'certs': return { col1: 'Course Title', col2: 'Platform / Organization', col3: 'Duration', col4: 'Score %' };
+        case 'events': return { col1: 'Event Title / Name', col2: 'Organizer / Sponsorship', col3: 'Dates', col4: 'Category' };
         case 'interactions': return { col1: 'Event / Program Title', col2: 'Organizer / Venue', col3: 'Duration / Dates', col4: 'Category' };
         case 'members': return { col1: 'Professional Body / Organization', col2: 'Membership ID', col3: 'Type / Period', col4: 'Status' };
         case 'responsibilities': return { col1: 'Assigned Role / Position', col2: 'Department / College Level', col3: 'Academic Year', col4: 'Level' };
@@ -882,6 +884,13 @@ export default function Appraisal({ auth }) {
             field2: item.issuer || item.platform || item.organization || 'NPTEL / SWAYAM',
             field3: item.duration_weeks ? `${item.duration_weeks} Weeks` : item.duration || 'N/A',
             field4: item.score || item.percentage ? `${item.score || item.percentage}%` : 'Completed'
+          };
+        case 'events':
+          return {
+            field1: item.title || item.name || item.event_title || 'N/A',
+            field2: item.organizer || item.sponsership || item.institution || 'N/A',
+            field3: item.from_date && item.to_date ? `${item.from_date} to ${item.to_date}` : item.date || 'N/A',
+            field4: item.type || item.role || 'Organized'
           };
         case 'interactions':
           return {
