@@ -206,6 +206,18 @@ export default function Appraisal({ auth }) {
         if (data) setViewingGeneralInfo(data);
       })
       .catch(() => {});
+
+      fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${viewingAppraisal.staff_id}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          setFpiDetails(data.details || null);
+          setFpiBreakdown(data.breakdown || {});
+        }
+      })
+      .catch(() => {});
     } else {
       setViewingGeneralInfo(null);
     }
@@ -2929,21 +2941,23 @@ export default function Appraisal({ auth }) {
 
                   {/* a1 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery (Max: 10 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class & Year</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Title / Code</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Innovative ICT Tool / Methodology Used</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Code & Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>ICT Tools Used</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA1.length === 0 ? (
-                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No ICT tools logged</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No ICT tools logged</td></tr>
                         ) : vA1.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.ict_tool || 'N/A'}</td>
@@ -2956,27 +2970,31 @@ export default function Appraisal({ auth }) {
 
                   {/* a2 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS)</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS) (Max: 10 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Module Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Code & Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of the e-content</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Platform</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date of launching</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Link</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA2.length === 0 ? (
-                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No e-content logged</td></tr>
+                          <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No e-content logged</td></tr>
                         ) : vA2.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.title || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.platform || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.launch_date || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.link ? <a href={r.link} target="_blank" rel="noreferrer" style={{ color: '#0284c7' }}>View Link</a> : 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
                           </tr>
@@ -2987,21 +3005,23 @@ export default function Appraisal({ auth }) {
 
                   {/* a3 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a3. New Laboratory Experiments Developed</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a3. New Laboratory Experiments Developed (Max: 10 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class & Year</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Title</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Experiment / Virtual Lab Manual</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Code & Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the experiment</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA3.length === 0 ? (
-                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No lab experiments logged</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No lab experiments logged</td></tr>
                         ) : vA3.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.experiment || 'N/A'}</td>
@@ -3014,27 +3034,31 @@ export default function Appraisal({ auth }) {
 
                   {/* a4 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a4. Student Mid Sem & End Sem Feedback Rating</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a4. Student Mid Sem & End Sem Feedback Rating (Max: 5 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Mid-Sem (/5)</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>End-Sem (/5)</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Average Rating</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Code & Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Mid Sem Score</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>End Sem Score</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Average</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA4.length === 0 ? (
-                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No feedback ratings logged</td></tr>
+                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No feedback ratings logged</td></tr>
                         ) : vA4.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.mid_score || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.end_score || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0369a1' }}>{r.avg_score || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{parseFloat(r.avg_score) >= 4.0 ? '5 Pts' : '3 Pts'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3043,27 +3067,31 @@ export default function Appraisal({ auth }) {
 
                   {/* a5 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a5. Success Rate in Theory Courses (End Semester Pass %)</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a5. Success Rate in Theory Courses (End Semester Pass %) (Max: 10 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class & Semester</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Title</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Odd Sem %</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Even Sem %</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Avg Pass %</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Code & Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Pass % (ODD Sem)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Pass % (EVEN Sem)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Average</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA5.length === 0 ? (
-                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No pass percentage logged</td></tr>
+                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No pass percentage logged</td></tr>
                         ) : vA5.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.odd_pass ? `${r.odd_pass}%` : 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.even_pass ? `${r.even_pass}%` : 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0369a1' }}>{r.avg_pass ? `${r.avg_pass}%` : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{parseFloat(r.avg_pass) >= 80 ? '10 Pts' : '5 Pts'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3072,21 +3100,23 @@ export default function Appraisal({ auth }) {
 
                   {/* a6 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships (Max: 5 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Program Name</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Partner Industry</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Courses/ Training</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Industry</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA6.length === 0 ? (
-                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No industry partnerships logged</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No industry partnerships logged</td></tr>
                         ) : vA6.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.name || r.course_name || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.industry || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.duration || 'N/A'}</td>
@@ -3099,22 +3129,24 @@ export default function Appraisal({ auth }) {
 
                   {/* a7 Table */}
                   <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests (Max: 10 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Competition Name</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Student Team</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Project Title</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Result / Position</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Competition</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Team Members</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of the Project</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Position held</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vA7.length === 0 ? (
-                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No hackathon guidance logged</td></tr>
+                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No hackathon guidance logged</td></tr>
                         ) : vA7.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.competition || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.team_members || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.project_title || 'N/A'}</td>
@@ -3138,23 +3170,126 @@ export default function Appraisal({ auth }) {
                     </span>
                   </div>
 
-                  {/* b4 Table */}
+                  {/* b1 Table (Auto-Mapped) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS)</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b1. Membership in Professional Societies at National/ International levels (Max: 3 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Name / Syllabus Revised</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Academic Year</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Membership in Professional Society</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Membership Number</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Life / Annual Membership</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.members || fpiDetails.members.length === 0) ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No professional society memberships logged in portal</td></tr>
+                        ) : fpiDetails.members.map((m, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.organization || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.membershipid || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.membership_type || 'Life'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>3 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* b2 Table (Auto-Mapped) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b2. Faculty as Resource person in External STTPs/ FDPs/ Workshops/ Conferences/ Guest Speaker/ BOS/ Reviewer (Max: 4 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Nature of work</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organizer</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s) [DD/MM/YY]</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.resource || fpiDetails.resource.length === 0) ? (
+                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No resource person activities logged in portal</td></tr>
+                        ) : fpiDetails.resource.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.actedas || r.type || 'Resource Person'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.organizer || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.from_date ? (r.to_date ? `${r.from_date} to ${r.to_date}` : r.from_date) : (r.date || 'N/A')}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* b3 Table (Auto-Mapped) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b3. Faculty member’s Participation in STTPs/ FDPs/ Malaviya Mission / Workshop / Seminar / Conferences (Max: 5 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of the event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organizer</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>No. of days</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s) From - To</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.interactions || fpiDetails.interactions.length === 0) ? (
+                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No FDP/workshop participation logged in portal</td></tr>
+                        ) : fpiDetails.interactions.map((it, i) => {
+                          let days = 1;
+                          if (it.from_date && it.to_date) {
+                            const d1 = new Date(it.from_date);
+                            const d2 = new Date(it.to_date);
+                            days = Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+                          }
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.type || 'FDP / Workshop'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.title || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.organizer || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{days}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.from_date ? (it.to_date ? `${it.from_date} to ${it.to_date}` : it.from_date) : (it.date || 'N/A')}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{days >= 5 ? '2.5 Pts' : '2 Pts'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* b4 Table (Manual) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the course</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Academic year</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Details of Contribution / BoS Role</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vB4.length === 0 ? (
-                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No curriculum contributions logged</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No curriculum contributions logged</td></tr>
                         ) : vB4.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course_name || r.title || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.academic_year || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.details || r.activity || 'N/A'}</td>
@@ -3165,23 +3300,95 @@ export default function Appraisal({ auth }) {
                     </table>
                   </div>
 
-                  {/* b7 Table */}
-                  <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b7. Faculty Internship / Training / Industry Collaboration / MoUs</h5>
+                  {/* b5 Table (Auto-Mapped) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b5. Organized - FDP/ STTP/Conferences/Seminars/Skill development Programmes/Internship/Guest Lecture (Max: 8 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Internship / Training Name</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Company Name & Place</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Convener/ Organizer /Coordinator</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Sponsored by</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>No. of days</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s) From - To</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.events || fpiDetails.events.length === 0) ? (
+                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No organized events logged in portal</td></tr>
+                        ) : fpiDetails.events.map((ev, i) => {
+                          let days = 1;
+                          if (ev.from_date && ev.to_date) {
+                            const d1 = new Date(ev.from_date);
+                            const d2 = new Date(ev.to_date);
+                            days = Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+                          }
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.title || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.role || ev.organizer || 'Coordinator'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.sponsership || 'SREC'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{days}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.from_date ? (ev.to_date ? `${ev.from_date} to ${ev.to_date}` : ev.from_date) : (ev.date || 'N/A')}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>4 Pts</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* b6 Table (Auto-Mapped) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b6. Faculty certification through SWAYAM/ SWAYAM PLUS/ NPTEL/ COURSERA (Max: 10 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Certification Agency</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of the Course</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration in weeks</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.certs || fpiDetails.certs.length === 0) ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No online certifications logged in portal</td></tr>
+                        ) : fpiDetails.certs.map((c, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{c.organisation || 'NPTEL / SWAYAM'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{c.course_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{c.duration_weeks ? `${c.duration_weeks} Weeks` : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{(c.duration_weeks || '').includes('4') ? '2.5 Pts' : '5 Pts'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* b7 Table (Manual) */}
+                  <div>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b7. Faculty Internship/ Training/ Collaboration with Industry/ MoUs (Max: 5 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Internship/ Training/ Collaboration</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the company & Place</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                         </tr>
                       </thead>
                       <tbody>
                         {vB7.length === 0 ? (
-                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No faculty internships logged</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No faculty internships logged</td></tr>
                         ) : vB7.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.name || r.title || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.company || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.duration || 'N/A'}</td>
@@ -3204,12 +3411,97 @@ export default function Appraisal({ auth }) {
                     </span>
                   </div>
 
-                  {/* c3 Table */}
-                  <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c3. Community Service & Outreach Activities (Yoga / NSS / NCC / Rural Dev)</h5>
+                  {/* c1 Table (Auto-Mapped Journal Publications) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c1. Publication of Research Article in Journals (Scopus / WoS / SCI) (Max: 20 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S.No</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Author, Co-Author(s)</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Title of the paper</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Name of journal</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>ISSN No</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Month/Year</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Page No</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Vol</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Issue</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1' }}>Indexed in</th>
+                          <th style={{ padding: '6px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const journalPubs = (fpiDetails?.publications || []).filter(p => !((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
+                          if (journalPubs.length === 0) {
+                            return <tr><td colSpan={11} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No journal publications logged in portal</td></tr>;
+                          }
+                          return journalPubs.map((p, i) => (
+                            <tr key={i}>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{[p.staff_name, p.co_authors].filter(Boolean).join(', ') || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.title || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.journel || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.issn_no || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.month_pub || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.pp || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.volume_pub || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.issue_no || 'N/A'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>{p.index_pub || 'Scopus / WoS'}</td>
+                              <td style={{ padding: '6px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>10 Pts</td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* c2 Table (Auto-Mapped Conference Papers & Books) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c2. Publication in Conference Proceedings / Book / Book Chapters (Max: 10 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of Author, Co-Author(s)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Category</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Paper / Book / Chapter</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Month & Year</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organizer / Publisher</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const confPubs = (fpiDetails?.publications || []).filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
+                          const bookPubs = fpiDetails?.books || [];
+                          const combined = [...confPubs.map(cp => ({ ...cp, isConf: true })), ...bookPubs.map(bp => ({ ...bp, isBook: true }))];
+                          if (combined.length === 0) {
+                            return <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No conference proceedings or books logged in portal</td></tr>;
+                          }
+                          return combined.map((item, i) => (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{[item.staff_name, item.co_authors || item.coauthor].filter(Boolean).join(', ') || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.isConf ? 'Conference' : (item.type || 'Book / Chapter')}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.title || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.month_pub || item.dateofpublication || item.date || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.organizer || item.publisher || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* c3 Table (Manual) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c3. Organizing Community service / Outreach activities (Yoga / NSS / NCC / Rural Dev) (Max: 5 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Activity Name</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Type of Event</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Location</th>
@@ -3219,9 +3511,10 @@ export default function Appraisal({ auth }) {
                       </thead>
                       <tbody>
                         {vC3.length === 0 ? (
-                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No outreach activities logged</td></tr>
+                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No outreach activities logged</td></tr>
                         ) : vC3.map((r, i) => (
                           <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.activity_name || r.title || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.event_type || 'N/A'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.location || 'N/A'}</td>
@@ -3232,10 +3525,207 @@ export default function Appraisal({ auth }) {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* c4 Table (Auto-Mapped IPR / Patents) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c4. Intellectual Property- Published and Granted: Patents / Copy Rights (Max: 10 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Patents/Copyrights/ Trade Marks</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Filed/Published/ Granted</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.ipr || fpiDetails.ipr.length === 0) ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No patents or copyrights logged in portal</td></tr>
+                        ) : fpiDetails.ipr.map((ip, i) => {
+                          const st = (ip.patent_status || ip.generation || '').toLowerCase();
+                          const pts = st.includes('grant') || st.includes('reg') ? '10 Pts' : st.includes('publ') ? '7 Pts' : '3 Pts';
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ip.ip_type || ip.patent || 'Patent'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ip.propose || ip.title || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ip.patent_status || ip.generation || 'Published'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{pts}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* c5 Table (Auto-Mapped Research & Event Grants) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Project / Event Category</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>PI / Co-PI</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Project / Event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Amount</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Applied / Sanctioned</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.funding || fpiDetails.funding.length === 0) ? (
+                          <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No research grants or event funding logged in portal</td></tr>
+                        ) : fpiDetails.funding.map((fn, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.grant_category || 'Research Project'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.faculty_role || 'PI'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.fa || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.amount ? `₹ ${parseFloat(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.status || 'Sanctioned'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>10 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* c6 Table (Auto-Mapped Seed Money & Consultancy) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Faculty Members Involved</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>PI / Co-PI</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Project</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Amount Sanctioned</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.seedMoney || fpiDetails.seedMoney.length === 0) ? (
+                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No seed money or consultancy logged in portal</td></tr>
+                        ) : fpiDetails.seedMoney.map((sm, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.staff_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.faculty_role || 'PI'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.duration || sm.sanctioned_date || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.amount ? `₹ ${parseFloat(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* c8 Table (Auto-Mapped Ph.D Research Scholars) */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c8. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Supervisor Category</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Scholar Name & University</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Status (Ongoing / Completed)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.scholars || fpiDetails.scholars.length === 0) ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No research scholars logged in portal</td></tr>
+                        ) : fpiDetails.scholars.map((sc, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sc.supervisor_type || 'Supervisor'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{[sc.staff_name, sc.university].filter(Boolean).join(' - ') || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sc.status || 'Ongoing'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2.5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* c9 Table (Auto-Mapped Awards & Recognitions) */}
+                  <div>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c9. Awards and Recognitions (Max: 5 Marks)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of the award</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organization details</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date (DD/MM/YYYY)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.awards || fpiDetails.awards.length === 0) ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No awards or recognitions logged in portal</td></tr>
+                        ) : fpiDetails.awards.map((aw, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{aw.awardname || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{aw.awardby || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{aw.awa_date || aw.date || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
-                {/* 5. AUTO-MAPPED PORTAL ACTIVITIES VERIFICATION PANEL */}
-                <AutoMappedVerificationPanel details={fpiDetails} breakdown={fpiBreakdown} />
+                {/* 5. PART D: INSTITUTIONAL DEVELOPMENT & CONTRIBUTION */}
+                <div style={{ border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '20px', background: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      PART D: Additional Responsibilities (Max Score: 20 Marks)
+                    </h4>
+                    <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                      Part D Score: {viewingAppraisal.part_d_score || 0} / 20 Pts
+                    </span>
+                  </div>
+
+                  {/* d1 Table (Auto-Mapped Additional Responsibilities) */}
+                  <div>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>d1. Additional Responsibilities (Institute & Department Level)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Institute Level / Department Level</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Responsibilities</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Description</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!fpiDetails?.responsibilities || fpiDetails.responsibilities.length === 0) ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No additional responsibilities logged in portal</td></tr>
+                        ) : fpiDetails.responsibilities.map((resp, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{resp.level || 'Department Level'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{resp.responsibility || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{[resp.assigned_by, resp.academic_year].filter(Boolean).join(' | ') || 'Assigned Responsibility'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>10 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
 
                 {/* 6. GOALS NEXT YEAR */}
                 {viewingAppraisal.goals_next_year && (
