@@ -1017,6 +1017,12 @@ export default function Appraisal({ auth }) {
         </table>
       </div>
     );
+  };
+
+  // Detailed Activity Verification Component for Auto-Mapped Portal Data
+  const AutoMappedVerificationPanel = ({ details, breakdown }) => {
+    const d = details || fpiDetails || {};
+    const b = breakdown || fpiBreakdown || {};
 
     const groupedCategories = [
       {
