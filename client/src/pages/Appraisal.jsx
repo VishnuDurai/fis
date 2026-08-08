@@ -303,8 +303,8 @@ export default function Appraisal({ auth }) {
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C4', criteria_title: 'IPR, Patents & Copyrights', rubric_description: 'Automatic mapping: 10 marks for Patent Granted / Copyright Registered, 7 marks for Patent Published, 3 marks for Filed [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 10, display_order: 18 },
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Research Grants & External Sponsored Projects', rubric_description: 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 marks for <=5 Lakhs, 5 per proposal [Max 15 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 15, display_order: 19 },
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Seed Money & Consultancy Services', rubric_description: 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, display_order: 20 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar under supervisorship [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 2.5, max_marks: 5, display_order: 21 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C9', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 5, display_order: 22 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C7', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar under supervisorship [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 2.5, max_marks: 5, display_order: 21 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 5, display_order: 22 },
 
     { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D1', criteria_title: 'Assigned Institutional & Departmental Responsibilities', rubric_description: 'Automatic mapping: 10 marks per Institutional role (Max 20), 10 marks per Departmental role (Max 10). Combined Max 20 pts.', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 20, display_order: 23 },
     { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D2', criteria_title: 'Student Mentoring, Counseling & Academic Guidance', rubric_description: '10 marks for effective mentee tracking, counseling logs, and academic progress monitoring.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, display_order: 24 },
@@ -3627,9 +3627,9 @@ export default function Appraisal({ auth }) {
                     </table>
                   </div>
 
-                  {/* c8 Table (Auto-Mapped Ph.D Research Scholars) */}
+                  {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c8. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3656,9 +3656,9 @@ export default function Appraisal({ auth }) {
                     </table>
                   </div>
 
-                  {/* c9 Table (Auto-Mapped Awards & Recognitions) */}
+                  {/* c8 Table (Auto-Mapped Awards & Recognitions) */}
                   <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c9. Awards and Recognitions (Max: 5 Marks)</h5>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c8. Awards and Recognitions (Max: 5 Marks)</h5>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
