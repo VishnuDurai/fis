@@ -1615,26 +1615,48 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     // Part C Calculation (Max 80)
     let scoreC = 0;
 
-    // c1. Publications
+    // c1. Publications (Journal = 10 marks, Conference = 5 marks)
     const ruleC1 = getCriteriaRule('C1', 10, 20);
-    const rawC1 = publications.length * ruleC1.fixedMark;
+    let rawC1 = 0;
+    publications.forEach(p => {
+      const pubCat = (p.type_pub || p.type1 || p.type || '').trim().toLowerCase();
+      if (pubCat.includes('conf')) {
+        rawC1 += 5; // 5 marks for Conference
+      } else {
+        rawC1 += 10; // 10 marks for Journal
+      }
+    });
     const scoreC1 = Math.min(ruleC1.maxMark, rawC1);
     scoreC += scoreC1;
 
-    // c2. Books/Chapters/Conferences
+    // c2. Books/Chapters
     const ruleC2 = getCriteriaRule('C2', 5, 10);
     const rawC2 = books.length * ruleC2.fixedMark;
     const scoreC2 = Math.min(ruleC2.maxMark, rawC2);
     scoreC += scoreC2;
 
-    // c4. IPR / Patents
+    // c4. IPR / Patents / Copyrights
     const ruleC4 = getCriteriaRule('C4', 10, 10);
     let rawC4 = 0;
     ipr.forEach(p => {
-      const st = (p.patent_status || p.generation || '').toLowerCase();
-      if (st.includes('grant')) rawC4 += ruleC4.fixedMark;
-      else if (st.includes('publ')) rawC4 += (ruleC4.fixedMark * 0.7);
-      else rawC4 += (ruleC4.fixedMark * 0.3);
+      const ipCategory = (p.ip_type || 'Patent').trim().toLowerCase();
+      const st = (p.patent_status || p.generation || '').trim().toLowerCase();
+      if (ipCategory.includes('copyright')) {
+        if (st.includes('reg')) {
+          rawC4 += 10; // Copyright Registered = 10 marks
+        } else {
+          rawC4 += 3; // Copyright Filed = 3 marks
+        }
+      } else {
+        // Patent
+        if (st.includes('grant')) {
+          rawC4 += 10; // Patent Granted = 10 marks
+        } else if (st.includes('publ')) {
+          rawC4 += 7; // Patent Published = 7 marks
+        } else {
+          rawC4 += 3; // Patent Filed = 3 marks
+        }
+      }
     });
     const scoreC4 = Math.min(ruleC4.maxMark, rawC4);
     scoreC += scoreC4;
