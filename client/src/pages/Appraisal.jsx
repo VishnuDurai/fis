@@ -130,6 +130,50 @@ export default function Appraisal({ auth }) {
     }, 100);
   };
 
+  // Automatically sync academic_year in b4Rows whenever top-level academicYear changes
+  useEffect(() => {
+    if (academicYear) {
+      setB4Rows(prev => prev.map(r => ({ ...r, academic_year: academicYear })));
+    }
+  }, [academicYear]);
+
+  const handlePreviewCurrentForm = () => {
+    const liveDraftAppraisal = {
+      id: editingAppraisalId || 'draft',
+      isDraft: true,
+      staff_id: auth.staffId,
+      staff_name: auth.name,
+      Department: auth.department || auth.dept,
+      Designation: auth.designation,
+      academic_year: academicYear,
+      a1_ict_tools: JSON.stringify(a1Rows),
+      a2_econtent: JSON.stringify(a2Rows),
+      a3_lab_experiments: JSON.stringify(a3Rows),
+      a4_feedback_scores: JSON.stringify(a4Rows),
+      a5_pass_percentage: JSON.stringify(a5Rows),
+      a6_industry_partnerships: JSON.stringify(a6Rows),
+      a7_hackathons: JSON.stringify(a7Rows),
+      b4_curriculum_dev: JSON.stringify(b4Rows.map(r => ({ ...r, academic_year: academicYear }))),
+      b7_industry_training: JSON.stringify(b7Rows),
+      c3_community_service: JSON.stringify(c3Rows),
+      publications_count: publicationsCount,
+      books_count: booksCount,
+      patents_count: patentsCount,
+      grants_amount: grantsAmount,
+      goals_next_year: goalsNextYear,
+      self_appraisal_score: `${manualScores.grandTotal} / ${totalMax}`,
+      part_a_score: manualScores.partA,
+      part_b_score: manualScores.partB,
+      part_c_score: manualScores.partC,
+      part_d_score: manualScores.partD,
+      total_fpi_score: manualScores.grandTotal,
+      status: editingAppraisalId ? 'Form Edit Preview' : 'Draft Form Preview',
+      submitted_at: new Date().toISOString()
+    };
+
+    setViewingAppraisal(liveDraftAppraisal);
+  };
+
   // Automated FPI Summary State
   const [fpiSummary, setFpiSummary] = useState({
     part_a_score: 0,
@@ -1535,14 +1579,25 @@ export default function Appraisal({ auth }) {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowAddForm(false)}
-              className="btn btn-secondary"
-              style={{ fontWeight: 700 }}
-            >
-              Cancel
-            </button>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handlePreviewCurrentForm}
+                className="btn btn-secondary"
+                style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Eye size={16} /> View Full FPI Form (Preview)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setShowAddForm(false); setEditingAppraisalId(null); }}
+                className="btn btn-secondary"
+                style={{ fontWeight: 700, fontSize: '0.85rem' }}
+              >
+                Close Form
+              </button>
+            </div>
           </div>
 
           {/* GENERAL INFORMATION SECTION (AUTO-MAPPED FROM PORTAL MATCHING FPI.DOCX) */}
@@ -1950,7 +2005,7 @@ export default function Appraisal({ auth }) {
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</span>
                   <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.b4} / 5 Pts</span>
                 </div>
-                <button type="button" onClick={() => addRow(setB4Rows, { course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                <button type="button" onClick={() => addRow(setB4Rows, { course_name: '', academic_year: academicYear, details: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
               </div>
@@ -1969,7 +2024,7 @@ export default function Appraisal({ auth }) {
                     {b4Rows.map((r, i) => (
                       <tr key={i}>
                         <td><input type="text" className="form-control" placeholder="Course Name" value={r.course_name || r.title || ''} onChange={(e) => updateRow(setB4Rows, i, 'course_name', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" placeholder="2025-2026" value={r.academic_year} onChange={(e) => updateRow(setB4Rows, i, 'academic_year', e.target.value)} /></td>
+                        <td><input type="text" className="form-control" value={academicYear} readOnly style={{ background: '#f1f5f9', color: '#334155', fontWeight: 700, cursor: 'not-allowed' }} title="Fetched from Academic Year selected at top of FPI form (Non-Editable)" /></td>
                         <td><input type="text" className="form-control" placeholder="Details / BoS Role" value={r.details || r.activity || ''} onChange={(e) => updateRow(setB4Rows, i, 'details', e.target.value)} /></td>
                         <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="5 marks per curriculum contribution" /></td>
                         <td><button type="button" onClick={() => removeRow(setB4Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
@@ -2102,13 +2157,32 @@ export default function Appraisal({ auth }) {
             <textarea className="form-control" rows="3" placeholder="Specify targets for publication, consultancy, grants, and teaching innovations..." value={goalsNextYear} onChange={(e) => setGoalsNextYear(e.target.value)} />
           </div>
 
-          {/* SUBMIT BUTTONS */}
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={() => setShowAddForm(false)} className="btn btn-secondary" style={{ fontWeight: 700 }}>
+          {/* SUBMIT & PREVIEW ACTION BUTTONS */}
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
+            <button
+              type="button"
+              onClick={handlePreviewCurrentForm}
+              className="btn btn-secondary"
+              style={{ padding: '10px 20px', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Eye size={18} /> View Full FPI Form (Preview Before Submit)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setShowAddForm(false); setEditingAppraisalId(null); }}
+              className="btn btn-secondary"
+              style={{ padding: '10px 20px', fontWeight: 700 }}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" style={{ padding: '10px 24px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <FileCheck size={18} /> Submit FPI Form
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ padding: '10px 26px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}
+            >
+              <FileCheck size={18} /> {editingAppraisalId ? 'Update & Re-Submit FPI Form' : 'Submit FPI Form'}
             </button>
           </div>
         </form>
@@ -3042,23 +3116,47 @@ export default function Appraisal({ auth }) {
               </div>
 
               {/* MODAL ACTION FOOTER */}
-              <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                {canEdit && (
-                  <button
-                    onClick={() => handleStartEdit(viewingAppraisal)}
-                    className="btn btn-primary"
-                    style={{ padding: '9px 20px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Edit size={16} /> Edit Appraisal Form
-                  </button>
+              <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+                {viewingAppraisal.isDraft ? (
+                  <>
+                    <button
+                      onClick={() => setViewingAppraisal(null)}
+                      className="btn btn-secondary"
+                      style={{ padding: '9px 20px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Edit size={16} /> Continue Editing Form
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        setViewingAppraisal(null);
+                        handleSubmit(e);
+                      }}
+                      className="btn btn-primary"
+                      style={{ padding: '9px 22px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#16a34a', borderColor: '#16a34a' }}
+                    >
+                      <FileCheck size={16} /> Submit FPI Form Now
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {canEdit && (
+                      <button
+                        onClick={() => handleStartEdit(viewingAppraisal)}
+                        className="btn btn-primary"
+                        style={{ padding: '9px 20px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Edit size={16} /> Edit Appraisal Form
+                      </button>
+                    )}
+                    <button
+                      onClick={() => window.print()}
+                      className="btn btn-secondary"
+                      style={{ padding: '9px 20px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Printer size={16} /> Print FPI Form
+                    </button>
+                  </>
                 )}
-                <button
-                  onClick={() => window.print()}
-                  className="btn btn-secondary"
-                  style={{ padding: '9px 20px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Printer size={16} /> Print FPI Form
-                </button>
                 <button
                   onClick={() => setViewingAppraisal(null)}
                   className="btn btn-secondary"
