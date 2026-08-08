@@ -1701,7 +1701,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     let collegeCount = 0;
     let deptCount = 0;
     responsibilities.forEach(r => {
-      if ((r.level || '').toLowerCase().includes('college') || (r.level || '').toLowerCase().includes('institute')) {
+      const lvl = (r.level || '').toLowerCase();
+      if (lvl.includes('college') || lvl.includes('inst')) {
         collegeCount++;
       } else {
         deptCount++;
