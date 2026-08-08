@@ -1477,6 +1477,235 @@ router.put('/appraisal/:id/final-approve', authenticateToken, (req, res) => {
   });
 });
 
+// Helper to send FPI Appraisal Form Confirmation Email with complete scores & details
+const sendAppraisalConfirmationEmail = (staffId, appraisalData) => {
+  db.get('SELECT staff_name, email FROM staff_personal WHERE staff_id = ?', [staffId], (err, row) => {
+    const facultyEmail = row && row.email ? row.email.trim() : null;
+    const facultyName = (row && row.staff_name) || appraisalData.staff_name || staffId;
+
+    if (!facultyEmail || !facultyEmail.includes('@')) {
+      console.log(`[Appraisal Email Notice]: No registered email address found for ${staffId}. Email notification skipped.`);
+      return;
+    }
+
+    const transporter = createMailTransporter();
+    if (!transporter) {
+      console.log('[Appraisal Email Notice]: Mail transporter not configured (SMTP_USER/SMTP_PASS missing). Email notification skipped.');
+      return;
+    }
+
+    const parse = (str) => {
+      if (!str) return [];
+      if (Array.isArray(str)) return str;
+      try {
+        const p = JSON.parse(str);
+        return Array.isArray(p) ? p : [];
+      } catch (e) {
+        return [];
+      }
+    };
+
+    const a1 = parse(appraisalData.a1_ict_tools);
+    const a2 = parse(appraisalData.a2_econtent);
+    const a3 = parse(appraisalData.a3_lab_experiments);
+    const a4 = parse(appraisalData.a4_feedback_scores);
+    const a5 = parse(appraisalData.a5_pass_percentage);
+    const a6 = parse(appraisalData.a6_industry_partnerships);
+    const a7 = parse(appraisalData.a7_hackathons);
+    const b4 = parse(appraisalData.b4_curriculum_dev);
+    const b7 = parse(appraisalData.b7_industry_training);
+    const c3 = parse(appraisalData.c3_community_service);
+
+    const partA = appraisalData.part_a_score || 0;
+    const partB = appraisalData.part_b_score || 0;
+    const partC = appraisalData.part_c_score || 0;
+    const partD = appraisalData.part_d_score || 0;
+    const totalScore = appraisalData.self_appraisal_score || appraisalData.total_fpi_score || 0;
+
+    const buildRowsHtml = (rows, cols) => {
+      if (!rows || rows.length === 0) return '<tr><td colSpan="' + cols.length + '" style="text-align: center; color: #94a3b8; font-style: italic;">No records logged</td></tr>';
+      return rows.map(r => '<tr>' + cols.map(c => `<td>${r[c] || 'N/A'}</td>`).join('') + '</tr>').join('');
+    };
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
+          .card { max-width: 820px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1.5px solid #cbd5e1; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+          .header { background: #0f172a; color: #ffffff; padding: 24px; text-align: center; }
+          .header h2 { margin: 0; font-size: 1.4rem; font-weight: 800; }
+          .header p { margin: 6px 0 0; font-size: 0.9rem; color: #94a3b8; }
+          .content { padding: 24px; }
+          .section { border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 18px; margin-bottom: 20px; background: #fafafa; }
+          .section-title { font-size: 1.05rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 6px; margin-bottom: 12px; }
+          .badge { background: #0284c7; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; float: right; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
+          th { background: #f1f5f9; color: #334155; padding: 8px; text-align: left; border: 1px solid #cbd5e1; font-weight: 700; }
+          td { padding: 8px; border: 1px solid #e2e8f0; }
+          .summary-table th { background: #0284c7; color: #ffffff; text-align: center; }
+          .summary-table td { text-align: center; }
+          .grand-total { background: #e0f2fe; font-weight: 800; font-size: 1rem; color: #0369a1; }
+          .footer { background: #f1f5f9; padding: 16px; text-align: center; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <h2>Sri Ramakrishna Engineering College</h2>
+            <p>Annual Faculty Performance Indicator (FPI) Appraisal Submission Confirmation</p>
+          </div>
+
+          <div class="content">
+            <p>Dear <strong>${facultyName}</strong>,</p>
+            <p>Your Annual Faculty Performance Indicator (FPI) Appraisal Form for Academic Year <strong>${appraisalData.academic_year}</strong> has been successfully submitted/updated in the SREC FIS Portal.</p>
+
+            <div class="section" style="background: #f0f9ff; border-color: #7dd3fc;">
+              <h3 style="margin-top: 0; color: #0369a1; font-size: 1.05rem;">Submission Overview</h3>
+              <p style="margin: 4px 0; font-size: 0.88rem;"><strong>Faculty Name:</strong> ${facultyName} (${staffId})</p>
+              <p style="margin: 4px 0; font-size: 0.88rem;"><strong>Academic Year:</strong> ${appraisalData.academic_year}</p>
+              <p style="margin: 4px 0; font-size: 0.88rem;"><strong>Submitted On:</strong> ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString()}</p>
+              <p style="margin: 4px 0; font-size: 0.88rem;"><strong>Status:</strong> Submitted (Pending HOD Review)</p>
+            </div>
+
+            <!-- COMPREHENSIVE FPI PERFORMANCE SCORE EVALUATION TABLE -->
+            <div class="section" style="border: 2px solid #0284c7; background: #ffffff;">
+              <div class="section-title" style="color: #0369a1; border-bottom-color: #0284c7;">
+                <span>FPI Performance Appraisal Evaluation Summary</span>
+              </div>
+              <table class="summary-table">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Evaluation Criteria Section</th>
+                    <th>Max Marks</th>
+                    <th>Calculated Self Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="text-align: left; font-weight: 700;">PART A: Teaching Learning Process</td>
+                    <td>60</td>
+                    <td style="font-weight: 800; color: #0284c7;">${partA} / 60</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left; font-weight: 700;">PART B: Professional Development Activities</td>
+                    <td>40</td>
+                    <td style="font-weight: 800; color: #0284c7;">${partB} / 40</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left; font-weight: 700;">PART C: Research & Development Activities</td>
+                    <td>80</td>
+                    <td style="font-weight: 800; color: #0284c7;">${partC} / 80</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left; font-weight: 700;">PART D: Institutional Development & Contribution</td>
+                    <td>20</td>
+                    <td style="font-weight: 800; color: #0284c7;">${partD} / 20</td>
+                  </tr>
+                  <tr class="grand-total">
+                    <td style="text-align: left; color: #0369a1;">TOTAL APPRAISAL SCORE</td>
+                    <td>200</td>
+                    <td style="color: #15803d; font-size: 1.1rem;">${totalScore} / 200</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- PART A BREAKDOWN -->
+            <div class="section">
+              <div class="section-title">
+                <span class="badge">Part A: ${partA} / 60</span>
+                PART A: Teaching Learning Process
+              </div>
+              <h4 style="margin: 10px 0 4px; font-size: 0.85rem; color: #334155;">a1. Innovative Teaching Methods & ICT Tools (${a1.length} entries)</h4>
+              <table><thead><tr><th>Class</th><th>Course</th><th>ICT Tool / Methodology</th></tr></thead><tbody>${buildRowsHtml(a1, ['class_name', 'course', 'ict_tool'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">a2. Development of SWAYAM MOOCs & E-Content (${a2.length} entries)</h4>
+              <table><thead><tr><th>Class</th><th>Course</th><th>Module Title</th><th>Platform</th></tr></thead><tbody>${buildRowsHtml(a2, ['class_name', 'course', 'title', 'platform'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">a3. New Lab Experiments Developed (${a3.length} entries)</h4>
+              <table><thead><tr><th>Class</th><th>Course</th><th>Experiment</th></tr></thead><tbody>${buildRowsHtml(a3, ['class_name', 'course', 'experiment'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">a4. Student Feedback Ratings (${a4.length} entries)</h4>
+              <table><thead><tr><th>Class</th><th>Course</th><th>Mid-Sem</th><th>End-Sem</th><th>Avg Rating</th></tr></thead><tbody>${buildRowsHtml(a4, ['class_name', 'course', 'mid_score', 'end_score', 'avg_score'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">a5. Theory Pass % (${a5.length} entries)</h4>
+              <table><thead><tr><th>Class</th><th>Course</th><th>Odd Sem %</th><th>Even Sem %</th><th>Avg Pass %</th></thead><tbody>${buildRowsHtml(a5, ['class_name', 'course', 'odd_pass', 'even_pass', 'avg_pass'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">a6. Industry Institute Partnerships (${a6.length} entries)</h4>
+              <table><thead><tr><th>Program Name</th><th>Partner Industry</th><th>Duration</th></tr></thead><tbody>${buildRowsHtml(a6, ['name', 'industry', 'duration'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">a7. Student Hackathons Guidance (${a7.length} entries)</h4>
+              <table><thead><tr><th>Competition</th><th>Team Members</th><th>Project Title</th><th>Result</th></tr></thead><tbody>${buildRowsHtml(a7, ['competition', 'team_members', 'project_title', 'position'])}</tbody></table>
+            </div>
+
+            <!-- PART B BREAKDOWN -->
+            <div class="section">
+              <div class="section-title">
+                <span class="badge">Part B: ${partB} / 40</span>
+                PART B: Professional Development Activities
+              </div>
+              <h4 style="margin: 10px 0 4px; font-size: 0.85rem; color: #334155;">b4. Curriculum Development & BoS (${b4.length} entries)</h4>
+              <table><thead><tr><th>Course Name</th><th>Academic Year</th><th>Details / Role</th></tr></thead><tbody>${buildRowsHtml(b4, ['course_name', 'academic_year', 'details'])}</tbody></table>
+
+              <h4 style="margin: 12px 0 4px; font-size: 0.85rem; color: #334155;">b7. Faculty Internships & MoUs (${b7.length} entries)</h4>
+              <table><thead><tr><th>Internship Title</th><th>Company Name</th><th>Duration</th></tr></thead><tbody>${buildRowsHtml(b7, ['name', 'company', 'duration'])}</tbody></table>
+            </div>
+
+            <!-- PART C BREAKDOWN -->
+            <div class="section">
+              <div class="section-title">
+                <span class="badge">Part C: ${partC} / 80</span>
+                PART C: Research & Development Activities
+              </div>
+              <h4 style="margin: 10px 0 4px; font-size: 0.85rem; color: #334155;">c3. Community Service & Outreach Activities (${c3.length} entries)</h4>
+              <table><thead><tr><th>Activity Name</th><th>Type</th><th>Location</th><th>Date</th></tr></thead><tbody>${buildRowsHtml(c3, ['activity_name', 'event_type', 'location', 'date'])}</tbody></table>
+
+              <div style="margin-top: 12px; background: #f0f9ff; padding: 10px; border-radius: 6px; font-size: 0.82rem;">
+                <strong>Auto-Mapped R&D Metrics:</strong> Publications: ${appraisalData.publications_count || 0} | Books: ${appraisalData.books_count || 0} | Patents: ${appraisalData.patents_count || 0} | Grants: ${appraisalData.grants_amount || 'N/A'}
+              </div>
+            </div>
+
+            <!-- GOALS NEXT YEAR -->
+            ${appraisalData.goals_next_year ? `
+              <div class="section">
+                <div class="section-title">Goals & Commitments for Next Academic Year</div>
+                <p style="font-size: 0.88rem; color: #334155; margin: 0; white-space: pre-wrap;">${appraisalData.goals_next_year}</p>
+              </div>
+            ` : ''}
+
+            <p style="font-size: 0.88rem; color: #475569; margin-top: 24px;">
+              You can log into your SREC FIS Portal account at any time to view or edit your filled appraisal form prior to HOD and Executive approvals.
+            </p>
+          </div>
+
+          <div class="footer">
+            &copy; ${new Date().getFullYear()} Sri Ramakrishna Engineering College (SREC FIS Portal). All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: `"SREC FIS Portal" <${process.env.SMTP_USER || process.env.MAIL_USER}>`,
+      to: facultyEmail,
+      subject: `Annual FPI Appraisal Submission Confirmation - ${appraisalData.academic_year} | ${facultyName}`,
+      html: htmlContent
+    };
+
+    transporter.sendMail(mailOptions, (mailErr, info) => {
+      if (mailErr) {
+        console.error('[Nodemailer Error - Appraisal Email]:', mailErr.message);
+      } else {
+        console.log(`[Nodemailer Success]: Appraisal confirmation email sent to ${facultyEmail} (${staffId})`, info.response);
+      }
+    });
+  });
+};
+
 // 12. POST New Appraisal Form
 router.post('/appraisal', authenticateToken, (req, res) => {
   const staffId = req.user.staffId;
@@ -1514,6 +1743,10 @@ router.post('/appraisal', authenticateToken, (req, res) => {
     part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0
   ], function(err) {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    
+    // Trigger appraisal confirmation email to faculty
+    sendAppraisalConfirmationEmail(staffId, req.body);
+
     res.json({ success: true, id: this.lastID, message: 'Annual Appraisal Form submitted successfully!' });
   });
 });
@@ -1588,6 +1821,10 @@ router.put('/appraisal/:id', authenticateToken, (req, res) => {
       appId
     ], function(uErr) {
       if (uErr) return res.status(500).json({ error: 'Database update error: ' + uErr.message });
+      
+      // Trigger appraisal confirmation email to faculty
+      sendAppraisalConfirmationEmail(staffId, req.body);
+
       res.json({ success: true, id: appId, message: 'Annual Appraisal Form updated and submitted successfully!' });
     });
   });
