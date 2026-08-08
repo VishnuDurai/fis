@@ -2651,7 +2651,7 @@ export default function Appraisal({ auth }) {
         </div>
       )}
 
-      {/* VIEW FULL FPI FORM MODAL (MATCHING OFFICIAL FPI.DOCX FORMAT) */}
+      {/* VIEW FULL FPI FORM MODAL (MATCHING OFFICIAL FPI.DOCX FORMAT & REPORTS HEADER) */}
       {viewingAppraisal && (() => {
         const vA1 = parseRows(viewingAppraisal.a1_ict_tools);
         const vA2 = parseRows(viewingAppraisal.a2_econtent);
@@ -2665,13 +2665,14 @@ export default function Appraisal({ auth }) {
         const vC3 = parseRows(viewingAppraisal.c3_community_service);
 
         const canEdit = !isAdminOrHR || viewingAppraisal.staff_id === auth.staffId;
+        const deptTitle = (viewingAppraisal.Department || auth.department || auth.dept || 'ACADEMICS').toUpperCase();
 
         return (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-            <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1050px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '32px', border: '1.5px solid #cbd5e1', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+          <div className="fpi-print-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div className="fpi-print-document" style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1050px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '32px', border: '1.5px solid #cbd5e1', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
               
-              {/* MODAL HEADER BAR */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '24px' }}>
+              {/* MODAL CONTROL HEADER (HIDDEN IN PRINT) */}
+              <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '24px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
@@ -2689,6 +2690,7 @@ export default function Appraisal({ auth }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {canEdit && (
                     <button
+                      type="button"
                       onClick={() => handleStartEdit(viewingAppraisal)}
                       className="btn btn-primary"
                       style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -2697,6 +2699,7 @@ export default function Appraisal({ auth }) {
                     </button>
                   )}
                   <button
+                    type="button"
                     onClick={() => window.print()}
                     className="btn btn-secondary"
                     style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -2704,12 +2707,32 @@ export default function Appraisal({ auth }) {
                     <Printer size={16} /> Print FPI Form
                   </button>
                   <button
+                    type="button"
                     onClick={() => setViewingAppraisal(null)}
                     style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
                   >
                     <X size={26} />
                   </button>
                 </div>
+              </div>
+
+              {/* OFFICIAL SREC REPORT HEADER BANNER (MATCHING FIS REPORTS HEADER) */}
+              <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '2px solid #0f172a', paddingBottom: '16px' }}>
+                <img
+                  src="/srec-header-banner.png"
+                  alt="Sri Ramakrishna Engineering College Header Banner"
+                  style={{ maxWidth: '650px', width: '100%', height: 'auto', marginBottom: '12px', display: 'block', margin: '0 auto 12px auto' }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '4px 0 0 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  DEPARTMENT OF {deptTitle}
+                </h2>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0284c7', margin: '6px 0 0 0', textTransform: 'uppercase' }}>
+                  ANNUAL FACULTY PERFORMANCE INDICATOR (FPI) APPRAISAL FORM
+                </h3>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#334155', display: 'block', marginTop: '4px' }}>
+                  ACADEMIC YEAR: {viewingAppraisal.academic_year}
+                </span>
               </div>
 
               {/* DOCUMENT CONTENT BODY */}
