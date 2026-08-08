@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
@@ -484,6 +484,65 @@ export default function Appraisal({ auth }) {
     setSelfAppraisalScore(`${grandTotal} / 200`);
   }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown]);
 
+  // Live Category-Wise and Section-Wise Manual Scores Calculation
+  const manualScores = useMemo(() => {
+    const a1 = Math.min(10, a1Rows.filter(r => (r.ict_tool || r.course || r.class_name || '').trim().length > 0).length * 2);
+    const a2 = Math.min(10, a2Rows.filter(r => (r.title || r.platform || r.course || '').trim().length > 0).length * 5);
+    const a3 = Math.min(10, a3Rows.filter(r => (r.experiment || r.lab_name || r.course || r.class_name || '').trim().length > 0).length * 2.5);
+
+    let a4 = 0;
+    a4Rows.forEach(r => {
+      const avg = parseFloat(r.avg_score);
+      if (!isNaN(avg)) {
+        if (avg >= 4.0) a4 += 5;
+        else if (avg >= 2.5) a4 += 3;
+      }
+    });
+    a4 = Math.min(5, a4);
+
+    let a5 = 0;
+    a5Rows.forEach(r => {
+      const pass = parseFloat(r.avg_pass);
+      if (!isNaN(pass)) {
+        if (pass >= 80) a5 += 10;
+        else if (pass >= 60) a5 += 5;
+      }
+    });
+    a5 = Math.min(10, a5);
+
+    const a6 = Math.min(5, a6Rows.filter(r => (r.name || r.industry || r.course_name || '').trim().length > 0).length * 5);
+
+    let a7 = 0;
+    a7Rows.forEach(r => {
+      if ((r.competition || r.project_title || r.team_members || '').trim().length > 0) {
+        if (r.position === 'Prize Won') a7 += 10;
+        else a7 += 5;
+      }
+    });
+    a7 = Math.min(10, a7);
+
+    const partA = Math.min(60, a1 + a2 + a3 + a4 + a5 + a6 + a7);
+
+    const b4 = Math.min(5, b4Rows.filter(r => (r.course_name || r.details || r.title || r.activity || '').trim().length > 0).length * 5);
+    const b7 = Math.min(5, b7Rows.filter(r => (r.name || r.company || r.duration || r.title || '').trim().length > 0).length * 5);
+    const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
+    const partB = Math.min(40, autoPartB + b4 + b7);
+
+    const c3 = Math.min(5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * 5);
+    const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0);
+    const partC = Math.min(80, autoPartC + c3);
+
+    const partD = Math.min(20, fpiBreakdown.d_responsibilities || 0);
+
+    return {
+      a1, a2, a3, a4, a5, a6, a7, partA,
+      b4, b7, autoPartB, partB,
+      c3, autoPartC, partC,
+      partD,
+      grandTotal: Math.min(200, partA + partB + partC + partD)
+    };
+  }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
@@ -946,9 +1005,14 @@ export default function Appraisal({ auth }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
           {groupedCategories.map((group) => (
             <div key={group.sectionCode} style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1px solid #bae6fd' }}>
-              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
-                {group.sectionTitle}
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
+                  {group.sectionTitle}
+                </div>
+                <span style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0284c7', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                  Section Total: {group.items.reduce((sum, item) => sum + (item.score || 0), 0)} Pts
+                </span>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {group.items.map((cat) => {
@@ -1386,16 +1450,51 @@ export default function Appraisal({ auth }) {
             </div>
           </div>
 
+          {/* LIVE SECTION-WISE & CATEGORY-WISE TOTALS OVERVIEW CARD */}
+          <div style={{ background: '#f0f9ff', padding: '16px 20px', borderRadius: '10px', border: '1.5px solid #0284c7', marginBottom: '24px' }}>
+            <h5 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0369a1', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Layers size={18} /> Section-Wise Live Appraisal Score Summary & Breakdown
+            </h5>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+              <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7' }}>PART A (Teaching Process)</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{manualScores.partA} <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>/ {partAMax} Pts</span></div>
+              </div>
+              <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7' }}>PART B (Prof. Dev)</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{manualScores.partB} <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>/ {partBMax} Pts</span></div>
+              </div>
+              <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7' }}>PART C (Research & Dev)</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{manualScores.partC} <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>/ {partCMax} Pts</span></div>
+              </div>
+              <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7' }}>PART D (Inst. Contribution)</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{manualScores.partD} <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>/ {partDMax} Pts</span></div>
+              </div>
+              <div style={{ background: '#0284c7', color: '#ffffff', padding: '10px 14px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9 }}>TOTAL SELF SCORE</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{manualScores.grandTotal} <span style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 600 }}>/ {totalMax} Pts</span></div>
+              </div>
+            </div>
+          </div>
+
           {/* PART A: TEACHING LEARNING PROCESS (MANUAL ENTRY TABLES) */}
           <div style={{ marginBottom: '28px', background: '#fafafa', padding: '20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              PART A: Teaching Learning Process (Max Score: {partAMax})
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <span>PART A: Teaching Learning Process (Max Score: {partAMax})</span>
+              <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                Part A Section Total: {manualScores.partA} / {partAMax} Pts
+              </span>
             </h4>
 
             {/* A1: ICT Tools */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery (Max: 10 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery (Max: 10 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a1} / 10 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA1Rows, { class_name: '', course: '', ict_tool: '', score: '2' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1422,14 +1521,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={3} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a1 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a1} / 10 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* A2: E-Content Development */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS) (Max: 10 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS) (Max: 10 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a2} / 10 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA2Rows, { class_name: '', course: '', title: '', platform: '', launch_date: '', link: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1460,14 +1569,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={5} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a2 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a2} / 10 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* A3: New Laboratory Experiments */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a3. New Laboratory Experiments Developed (Max: 10 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a3. New Laboratory Experiments Developed (Max: 10 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a3} / 10 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA3Rows, { class_name: '', course: '', experiment: '', score: '2.5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1494,14 +1613,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={3} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a3 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a3} / 10 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* A4: Student Feedback Rating */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a4. Student Mid Sem & End Sem Feedback Rating (Max: 5 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a4. Student Mid Sem & End Sem Feedback Rating (Max: 5 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a4} / 5 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA4Rows, { class_name: '', course: '', mid_score: '', end_score: '', avg_score: '' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1530,14 +1659,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={4} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a4 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a4} / 5 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* A5: Course Pass Percentage */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a5. Success Rate in Theory Courses (End Semester Pass %) (Max: 10 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a5. Success Rate in Theory Courses (End Semester Pass %) (Max: 10 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a5} / 10 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA5Rows, { class_name: '', course: '', odd_pass: '', even_pass: '', avg_pass: '' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1566,14 +1705,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={4} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a5 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a5} / 10 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* A6: Industry Institute Partnerships */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships (Max: 5 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships (Max: 5 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a6} / 5 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA6Rows, { name: '', industry: '', duration: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1600,14 +1749,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={3} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a6 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a6} / 5 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* A7: Hackathons Guidance */}
             <div style={{ marginBottom: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests (Max: 10 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests (Max: 10 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.a7} / 10 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setA7Rows, { competition: '', team_members: '', project_title: '', position: 'Prize Won', score: '10' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1641,6 +1800,13 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={4} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>a7 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.a7} / 10 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -1648,14 +1814,25 @@ export default function Appraisal({ auth }) {
 
           {/* PART B: PROFESSIONAL DEVELOPMENT ACTIVITIES (MANUAL ENTRY TABLES) */}
           <div style={{ marginBottom: '28px', background: '#fafafa', padding: '20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              PART B: Professional Development Activities (Manual Entry Tables)
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <span>PART B: Professional Development Activities (Manual Entry Tables)</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', background: '#f1f5f9', color: '#334155', padding: '3px 10px', borderRadius: '14px', fontWeight: 700 }}>
+                  Manual Subtotal: {(manualScores.b4 + manualScores.b7)} / 10 Pts
+                </span>
+                <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                  Part B Section Total: {manualScores.partB} / {partBMax} Pts
+                </span>
+              </div>
             </h4>
 
             {/* B4: Contribution to Curriculum Development */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.b4} / 5 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setB4Rows, { course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1682,14 +1859,24 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={3} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>b4 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.b4} / 5 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
 
             {/* B7: Faculty Internship / Training / Industry Collaboration */}
             <div style={{ marginBottom: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b7. Faculty Internship / Training / Collaboration with Industry / MoUs (Max: 5 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>b7. Faculty Internship / Training / Collaboration with Industry / MoUs (Max: 5 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.b7} / 5 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setB7Rows, { name: '', company: '', duration: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1716,6 +1903,13 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={3} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>b7 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.b7} / 5 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -1723,14 +1917,25 @@ export default function Appraisal({ auth }) {
 
           {/* PART C: RESEARCH & DEVELOPMENT ACTIVITIES (MANUAL ENTRY TABLES) */}
           <div style={{ marginBottom: '28px', background: '#fafafa', padding: '20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              PART C: Research & Development Activities (Manual Entry Tables)
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <span>PART C: Research & Development Activities (Manual Entry Tables)</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', background: '#f1f5f9', color: '#334155', padding: '3px 10px', borderRadius: '14px', fontWeight: 700 }}>
+                  Manual Subtotal: {manualScores.c3} / 5 Pts
+                </span>
+                <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                  Part C Section Total: {manualScores.partC} / {partCMax} Pts
+                </span>
+              </div>
             </h4>
 
             {/* C3: Community Service & Outreach Activities */}
             <div style={{ marginBottom: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>c3. Organizing Community Service / Outreach Activities (Yoga / NSS / NCC / Rural Development / Awareness) (Max: 5 Marks)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>c3. Organizing Community Service / Outreach Activities (Yoga / NSS / NCC / Rural Development / Awareness) (Max: 5 Marks)</span>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.c3} / 5 Pts</span>
+                </div>
                 <button type="button" onClick={() => addRow(setC3Rows, { activity_name: '', event_type: '', location: '', date: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
                   <Plus size={12} /> Add Row
                 </button>
@@ -1759,6 +1964,13 @@ export default function Appraisal({ auth }) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td colSpan={4} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>c3 Category Subtotal:</td>
+                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.c3} / 5 Pts</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
