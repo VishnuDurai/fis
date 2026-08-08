@@ -2203,18 +2203,30 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
           const totalExpText = `${exp.total_exp_years || 0} Y, ${exp.total_exp_months || 0} M`;
           const industryExpText = `${row.prev_exp_industry_years || 0} Y, ${row.prev_exp_industry_months || 0} M`;
 
-          res.json({
-            departmentName: deptName,
-            facultyName: facultyName,
-            designation: designation,
-            qualification: highestQual || row.Qualification || 'M.E. / M.Tech.',
-            doj: doj,
-            promotionDetails: promoText,
-            prevExp: prevExpText,
-            srecExp: srecExpText,
-            totalTeachingExp: totalExpText,
-            industryExp: industryExpText,
-            phdStatus: phdStatus
+          // Dynamically look up HOD for the faculty's department
+          db.get(`
+            SELECT staff_name, Designation FROM staff_academics
+            WHERE LOWER(TRIM(Department)) = LOWER(TRIM(?))
+              AND (Designation LIKE '%HOD%' OR Designation LIKE '%Head%')
+            ORDER BY CASE WHEN Designation LIKE '%Prof%HOD%' OR Designation LIKE '%Professor%HOD%' THEN 0 ELSE 1 END, staff_id
+            LIMIT 1
+          `, [deptName], (hodErr, hodRow) => {
+            const hodName = (hodRow && hodRow.staff_name) ? hodRow.staff_name : null;
+
+            res.json({
+              departmentName: deptName,
+              facultyName: facultyName,
+              designation: designation,
+              qualification: highestQual || row.Qualification || 'M.E. / M.Tech.',
+              doj: doj,
+              promotionDetails: promoText,
+              prevExp: prevExpText,
+              srecExp: srecExpText,
+              totalTeachingExp: totalExpText,
+              industryExp: industryExpText,
+              phdStatus: phdStatus,
+              hodName: hodName
+            });
           });
         });
       });

@@ -2741,7 +2741,7 @@ export default function Appraisal({ auth }) {
         };
         const deptTitle = deptFullNameMap[deptAcronym] || deptAcronym || 'ACADEMICS';
         const facultyDisplayName = (viewingGeneralInfo && viewingGeneralInfo.facultyName) || viewingAppraisal.staff_name || auth.name || '';
-        const hodDisplayName = (viewingAppraisal.hod_name) || `Head of Department – ${deptFullNameMap[deptAcronym] || deptAcronym}` || 'Head of Department';
+        const hodDisplayName = (viewingGeneralInfo && viewingGeneralInfo.hodName) || (viewingAppraisal.hod_name) || '';
 
         return (
           <div className="fpi-print-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
