@@ -78,6 +78,57 @@ export default function Appraisal({ auth }) {
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [editingAppraisalId, setEditingAppraisalId] = useState(null);
+  const [lastSubmittedAppraisal, setLastSubmittedAppraisal] = useState(null);
+
+  const parseRows = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try {
+      const p = JSON.parse(val);
+      return Array.isArray(p) ? p : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const handleStartEdit = (appRecord) => {
+    const myApp = appraisals.find(a => a.staff_id === auth.staffId);
+    const app = appRecord || lastSubmittedAppraisal || myApp;
+    if (!app) return;
+
+    setEditingAppraisalId(app.id);
+    setAcademicYear(app.academic_year || getCurrentAcademicYear());
+
+    const safeParse = (val, fallback) => {
+      if (!val) return fallback;
+      if (Array.isArray(val)) return val;
+      try {
+        const p = JSON.parse(val);
+        return Array.isArray(p) && p.length > 0 ? p : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    };
+
+    setA1Rows(safeParse(app.a1_ict_tools, [{ class_name: '', course: '', ict_tool: '', score: '' }]));
+    setA2Rows(safeParse(app.a2_econtent, [{ class_name: '', course: '', title: '', platform: '', launch_date: '', link: '', score: '' }]));
+    setA3Rows(safeParse(app.a3_lab_experiments, [{ class_name: '', course: '', experiment: '', score: '' }]));
+    setA4Rows(safeParse(app.a4_feedback_scores, [{ class_name: '', course: '', mid_score: '', end_score: '', avg_score: '' }]));
+    setA5Rows(safeParse(app.a5_pass_percentage, [{ class_name: '', course: '', odd_pass: '', even_pass: '', avg_pass: '' }]));
+    setA6Rows(safeParse(app.a6_industry_partnerships, [{ course_name: '', industry: '', duration: '', score: '' }]));
+    setA7Rows(safeParse(app.a7_hackathons, [{ competition: '', team_members: '', project_title: '', position: '', score: '' }]));
+    setB4Rows(safeParse(app.b4_curriculum_dev, [{ course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '' }]));
+    setB7Rows(safeParse(app.b7_industry_training, [{ name: '', company: '', duration: '', score: '' }]));
+    setC3Rows(safeParse(app.c3_community_service, [{ activity_name: '', event_type: '', location: '', date: '', score: '' }]));
+
+    setGoalsNextYear(app.goals_next_year || '');
+    setViewingAppraisal(null);
+    setShowAddForm(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    }, 100);
+  };
 
   // Automated FPI Summary State
   const [fpiSummary, setFpiSummary] = useState({
@@ -552,8 +603,14 @@ export default function Appraisal({ auth }) {
     if (!selfAppraisalScore || !selfAppraisalScore.trim()) { setError('Self Appraisal Score is mandatory.'); return; }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal`, {
-        method: 'POST',
+      const isEditing = Boolean(editingAppraisalId);
+      const url = isEditing
+        ? `${API_BASE_URL}/api/faculty/appraisal/${editingAppraisalId}`
+        : `${API_BASE_URL}/api/faculty/appraisal`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${auth.token}`
@@ -582,18 +639,52 @@ export default function Appraisal({ auth }) {
           events_organized: eventsOrganized || '1',
           self_appraisal_score: selfAppraisalScore,
           goals_next_year: goalsNextYear,
-          part_a_score: fpiSummary.part_a_score,
-          part_b_score: fpiSummary.part_b_score,
-          part_c_score: fpiSummary.part_c_score,
-          part_d_score: fpiSummary.part_d_score,
-          total_fpi_score: fpiSummary.total_fpi_score
+          part_a_score: manualScores.partA,
+          part_b_score: manualScores.partB,
+          part_c_score: manualScores.partC,
+          part_d_score: manualScores.partD,
+          total_fpi_score: manualScores.grandTotal
         })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to submit appraisal form');
 
-      setMessage('Annual FPI Appraisal Form submitted successfully!');
+      const savedRecord = {
+        id: isEditing ? editingAppraisalId : data.id,
+        staff_id: auth.staffId,
+        staff_name: auth.name,
+        Department: auth.department || auth.dept,
+        Designation: auth.designation,
+        academic_year: academicYear,
+        a1_ict_tools: JSON.stringify(a1Rows),
+        a2_econtent: JSON.stringify(a2Rows),
+        a3_lab_experiments: JSON.stringify(a3Rows),
+        a4_feedback_scores: JSON.stringify(a4Rows),
+        a5_pass_percentage: JSON.stringify(a5Rows),
+        a6_industry_partnerships: JSON.stringify(a6Rows),
+        a7_hackathons: JSON.stringify(a7Rows),
+        b4_curriculum_dev: JSON.stringify(b4Rows),
+        b7_industry_training: JSON.stringify(b7Rows),
+        c3_community_service: JSON.stringify(c3Rows),
+        publications_count: publicationsCount,
+        books_count: booksCount,
+        patents_count: patentsCount,
+        grants_amount: grantsAmount,
+        goals_next_year: goalsNextYear,
+        self_appraisal_score: selfAppraisalScore,
+        part_a_score: manualScores.partA,
+        part_b_score: manualScores.partB,
+        part_c_score: manualScores.partC,
+        part_d_score: manualScores.partD,
+        total_fpi_score: manualScores.grandTotal,
+        status: 'Submitted',
+        submitted_at: new Date().toISOString()
+      };
+
+      setLastSubmittedAppraisal(savedRecord);
+      setMessage(isEditing ? 'Annual FPI Appraisal Form updated and re-submitted successfully!' : 'Annual FPI Appraisal Form submitted successfully! Click "View Filled Appraisal Form" to check your details.');
+      setEditingAppraisalId(null);
       setShowAddForm(false);
       fetchAppraisals();
     } catch (err) {
@@ -1389,16 +1480,42 @@ export default function Appraisal({ auth }) {
                 auth={auth}
               />
 
-              {!isAdminOrHR && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Plus size={16} />
-                  {showAddForm ? 'Close Form' : 'Fill FPI Form'}
-                </button>
-              )}
+              {!isAdminOrHR && (() => {
+                const myAppraisal = appraisals.find(a => a.staff_id === auth.staffId) || lastSubmittedAppraisal;
+                return (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {myAppraisal && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => handleOpenViewModal(myAppraisal)}
+                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Eye size={16} /> View Filled Appraisal Form (FPI.docx)
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (showAddForm) {
+                          setShowAddForm(false);
+                          setEditingAppraisalId(null);
+                        } else if (myAppraisal) {
+                          handleStartEdit(myAppraisal);
+                        } else {
+                          setShowAddForm(true);
+                        }
+                      }}
+                      style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      {showAddForm ? <X size={16} /> : myAppraisal ? <Edit size={16} /> : <Plus size={16} />}
+                      {showAddForm ? 'Close Form' : myAppraisal ? 'Edit FPI Form' : 'Fill FPI Form'}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -2460,75 +2577,500 @@ export default function Appraisal({ auth }) {
         </div>
       )}
 
-      {/* VIEW FULL FPI FORM MODAL */}
-      {viewingAppraisal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '950px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '28px', border: '1.5px solid #cbd5e1', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '16px', marginBottom: '20px' }}>
-              <div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Submitted FPI Appraisal Details
-                </h3>
-                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  {viewingAppraisal.staff_name} ({viewingAppraisal.staff_id}) | Academic Year: {viewingAppraisal.academic_year}
-                </span>
-              </div>
-              <button
-                onClick={() => setViewingAppraisal(null)}
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
-              >
-                <X size={24} />
-              </button>
-            </div>
+      {/* VIEW FULL FPI FORM MODAL (MATCHING OFFICIAL FPI.DOCX FORMAT) */}
+      {viewingAppraisal && (() => {
+        const vA1 = parseRows(viewingAppraisal.a1_ict_tools);
+        const vA2 = parseRows(viewingAppraisal.a2_econtent);
+        const vA3 = parseRows(viewingAppraisal.a3_lab_experiments);
+        const vA4 = parseRows(viewingAppraisal.a4_feedback_scores);
+        const vA5 = parseRows(viewingAppraisal.a5_pass_percentage);
+        const vA6 = parseRows(viewingAppraisal.a6_industry_partnerships);
+        const vA7 = parseRows(viewingAppraisal.a7_hackathons);
+        const vB4 = parseRows(viewingAppraisal.b4_curriculum_dev);
+        const vB7 = parseRows(viewingAppraisal.b7_industry_training);
+        const vC3 = parseRows(viewingAppraisal.c3_community_service);
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* GENERAL INFORMATION SECTION MATCHING FPI.DOCX */}
-              <GeneralInfoTable data={viewingGeneralInfo || {
-                departmentName: viewingAppraisal.Department,
-                facultyName: viewingAppraisal.staff_name,
-                designation: viewingAppraisal.Designation,
-                qualification: 'Auto-mapped',
-                doj: 'N/A',
-                promotionDetails: 'N/A',
-                prevExp: 'N/A',
-                srecExp: 'N/A',
-                totalTeachingExp: 'N/A',
-                industryExp: 'N/A',
-                phdStatus: 'N/A'
-              }} />
+        const canEdit = !isAdminOrHR || viewingAppraisal.staff_id === auth.staffId;
 
-              {/* Automatic Portal Data Verification Breakdown */}
-              <div style={{ background: '#f0f9ff', padding: '16px', borderRadius: '8px', border: '1px solid #7dd3fc' }}>
-                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', marginBottom: '10px' }}>
-                  Automatic Portal Data Mappings
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.88rem' }}>
-                  <div><strong>Publications Count:</strong> {viewingAppraisal.publications_count}</div>
-                  <div><strong>Books / Chapters:</strong> {viewingAppraisal.books_count}</div>
-                  <div><strong>Patents Count:</strong> {viewingAppraisal.patents_count}</div>
-                  <div><strong>Grants Sanctioned:</strong> {viewingAppraisal.grants_amount || 'N/A'}</div>
-                  <div><strong>FDPs Attended:</strong> {viewingAppraisal.fdp_attended || 'N/A'}</div>
-                  <div><strong>Events Organized:</strong> {viewingAppraisal.events_organized || 'N/A'}</div>
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1050px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '32px', border: '1.5px solid #cbd5e1', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+              
+              {/* MODAL HEADER BAR */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '24px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      Annual Faculty Performance Indicator (FPI) Appraisal Form
+                    </h3>
+                    <span className="badge badge-success" style={{ fontSize: '0.85rem', padding: '5px 12px' }}>
+                      Status: {viewingAppraisal.status || 'Submitted'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.88rem', color: '#475569', display: 'block', marginTop: '4px', fontWeight: 600 }}>
+                    Faculty: {viewingAppraisal.staff_name || auth.name} ({viewingAppraisal.staff_id}) | Dept: {viewingAppraisal.Department || 'N/A'} | Academic Year: {viewingAppraisal.academic_year}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleStartEdit(viewingAppraisal)}
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Edit size={16} /> Edit Form
+                    </button>
+                  )}
+                  <button
+                    onClick={() => window.print()}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Printer size={16} /> Print FPI Form
+                  </button>
+                  <button
+                    onClick={() => setViewingAppraisal(null)}
+                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+                  >
+                    <X size={26} />
+                  </button>
                 </div>
               </div>
 
-              {/* Goals Next Year */}
-              {viewingAppraisal.goals_next_year && (
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Goals & Commitments for Next Academic Year</h4>
-                  <p style={{ fontSize: '0.88rem', color: '#334155', margin: 0 }}>{viewingAppraisal.goals_next_year}</p>
-                </div>
-              )}
-            </div>
+              {/* DOCUMENT CONTENT BODY */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* 1. GENERAL INFORMATION SECTION */}
+                <GeneralInfoTable data={viewingGeneralInfo || {
+                  departmentName: viewingAppraisal.Department,
+                  facultyName: viewingAppraisal.staff_name,
+                  designation: viewingAppraisal.Designation,
+                  qualification: 'Auto-mapped',
+                  doj: 'N/A',
+                  promotionDetails: 'N/A',
+                  prevExp: 'N/A',
+                  srecExp: 'N/A',
+                  totalTeachingExp: 'N/A',
+                  industryExp: 'N/A',
+                  phdStatus: 'N/A'
+                }} />
 
-            <div style={{ marginTop: '24px', textAlign: 'right' }}>
-              <button onClick={() => setViewingAppraisal(null)} className="btn btn-secondary" style={{ fontWeight: 700 }}>
-                Close FPI View
-              </button>
+                {/* 2. PART A: TEACHING LEARNING PROCESS */}
+                <div style={{ border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '20px', background: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      PART A: Teaching Learning Process (Max Score: 60 Marks)
+                    </h4>
+                    <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                      Part A Score: {viewingAppraisal.part_a_score || 0} / 60 Pts
+                    </span>
+                  </div>
+
+                  {/* a1 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class & Year</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Title / Code</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Innovative ICT Tool / Methodology Used</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA1.length === 0 ? (
+                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No ICT tools logged</td></tr>
+                        ) : vA1.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.ict_tool || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* a2 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Module Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Platform</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Link</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA2.length === 0 ? (
+                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No e-content logged</td></tr>
+                        ) : vA2.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.platform || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.link ? <a href={r.link} target="_blank" rel="noreferrer" style={{ color: '#0284c7' }}>View Link</a> : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* a3 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a3. New Laboratory Experiments Developed</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class & Year</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Experiment / Virtual Lab Manual</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA3.length === 0 ? (
+                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No lab experiments logged</td></tr>
+                        ) : vA3.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.experiment || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2.5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* a4 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a4. Student Mid Sem & End Sem Feedback Rating</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Mid-Sem (/5)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>End-Sem (/5)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Average Rating</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA4.length === 0 ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No feedback ratings logged</td></tr>
+                        ) : vA4.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.mid_score || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.end_score || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0369a1' }}>{r.avg_score || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* a5 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a5. Success Rate in Theory Courses (End Semester Pass %)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Class & Semester</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Odd Sem %</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Even Sem %</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Avg Pass %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA5.length === 0 ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No pass percentage logged</td></tr>
+                        ) : vA5.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.class_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.odd_pass ? `${r.odd_pass}%` : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{r.even_pass ? `${r.even_pass}%` : 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0369a1' }}>{r.avg_pass ? `${r.avg_pass}%` : 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* a6 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Program Name</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Partner Industry</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA6.length === 0 ? (
+                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No industry partnerships logged</td></tr>
+                        ) : vA6.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.name || r.course_name || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.industry || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.duration || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* a7 Table */}
+                  <div>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Competition Name</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Student Team</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Project Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Result / Position</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vA7.length === 0 ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No hackathon guidance logged</td></tr>
+                        ) : vA7.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.competition || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.team_members || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.project_title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.position || 'Prize Won'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{r.position === 'Participation' ? '5 Pts' : '10 Pts'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 3. PART B: PROFESSIONAL DEVELOPMENT ACTIVITIES */}
+                <div style={{ border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '20px', background: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      PART B: Professional Development Activities (Max Score: 40 Marks)
+                    </h4>
+                    <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                      Part B Score: {viewingAppraisal.part_b_score || 0} / 40 Pts
+                    </span>
+                  </div>
+
+                  {/* b4 Table */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Course Name / Syllabus Revised</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Academic Year</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Details of Contribution / BoS Role</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vB4.length === 0 ? (
+                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No curriculum contributions logged</td></tr>
+                        ) : vB4.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.course_name || r.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.academic_year || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.details || r.activity || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* b7 Table */}
+                  <div>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b7. Faculty Internship / Training / Industry Collaboration / MoUs</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Internship / Training Name</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Company Name & Place</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vB7.length === 0 ? (
+                          <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No faculty internships logged</td></tr>
+                        ) : vB7.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.name || r.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.company || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.duration || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 4. PART C: RESEARCH & DEVELOPMENT ACTIVITIES */}
+                <div style={{ border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '20px', background: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      PART C: Research & Development Activities (Max Score: 80 Marks)
+                    </h4>
+                    <span style={{ fontSize: '0.88rem', background: '#0284c7', color: '#ffffff', padding: '4px 14px', borderRadius: '20px', fontWeight: 800 }}>
+                      Part C Score: {viewingAppraisal.part_c_score || 0} / 80 Pts
+                    </span>
+                  </div>
+
+                  {/* c3 Table */}
+                  <div>
+                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c3. Community Service & Outreach Activities (Yoga / NSS / NCC / Rural Dev)</h5>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Activity Name</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Type of Event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Location</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vC3.length === 0 ? (
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No outreach activities logged</td></tr>
+                        ) : vC3.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.activity_name || r.title || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.event_type || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.location || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.date || 'N/A'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 5. AUTO-MAPPED PORTAL ACTIVITIES VERIFICATION PANEL */}
+                <AutoMappedVerificationPanel details={fpiDetails} breakdown={fpiBreakdown} />
+
+                {/* 6. GOALS NEXT YEAR */}
+                {viewingAppraisal.goals_next_year && (
+                  <div style={{ background: '#f8fafc', padding: '18px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>Goals & Commitments for Next Academic Year</h4>
+                    <p style={{ fontSize: '0.9rem', color: '#334155', margin: 0, whiteSpace: 'pre-wrap' }}>{viewingAppraisal.goals_next_year}</p>
+                  </div>
+                )}
+
+                {/* 7. COMPREHENSIVE FPI SCORE EVALUATION & SUMMARY TABLE */}
+                <div style={{ border: '1.5px solid #0284c7', borderRadius: '10px', overflow: 'hidden', background: '#ffffff' }}>
+                  <div style={{ background: '#0284c7', color: '#ffffff', padding: '12px 18px', fontWeight: 800, fontSize: '1.05rem' }}>
+                    FPI APPRAISAL PERFORMANCE EVALUATION SUMMARY (TOTAL SCORE: 200 MARKS)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f0f9ff', color: '#0369a1', borderBottom: '1.5px solid #bae6fd' }}>
+                        <th style={{ padding: '10px 14px', textAlign: 'left' }}>Evaluation Criteria Section</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center', width: '110px' }}>Max Marks</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center', width: '130px' }}>Faculty Self Score</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center', width: '140px' }}>HOD Score</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center', width: '140px' }}>Final Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700 }}>PART A: Teaching Learning Process</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>60</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{viewingAppraisal.part_a_score || 0}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.hod_part_a_score ?? '-'}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.final_part_a_score ?? '-'}</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700 }}>PART B: Professional Development Activities</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>40</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{viewingAppraisal.part_b_score || 0}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.hod_part_b_score ?? '-'}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.final_part_b_score ?? '-'}</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700 }}>PART C: Research & Development Activities</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>80</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{viewingAppraisal.part_c_score || 0}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.hod_part_c_score ?? '-'}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.final_part_c_score ?? '-'}</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700 }}>PART D: Institutional Development & Contribution</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>20</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{viewingAppraisal.part_d_score || 0}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.hod_part_d_score ?? '-'}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{viewingAppraisal.final_part_d_score ?? '-'}</td>
+                      </tr>
+                      <tr style={{ background: '#e0f2fe', fontWeight: 800, fontSize: '1rem' }}>
+                        <td style={{ padding: '12px 14px', color: '#0369a1' }}>GRAND TOTAL APPRAISAL SCORE</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: '#0369a1' }}>200</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{viewingAppraisal.self_appraisal_score || viewingAppraisal.total_fpi_score || 0}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{viewingAppraisal.hod_total_score ? `${viewingAppraisal.hod_total_score}` : '-'}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{viewingAppraisal.final_total_score ? `${viewingAppraisal.final_total_score}` : '-'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* MODAL ACTION FOOTER */}
+              <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                {canEdit && (
+                  <button
+                    onClick={() => handleStartEdit(viewingAppraisal)}
+                    className="btn btn-primary"
+                    style={{ padding: '9px 20px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Edit size={16} /> Edit Appraisal Form
+                  </button>
+                )}
+                <button
+                  onClick={() => window.print()}
+                  className="btn btn-secondary"
+                  style={{ padding: '9px 20px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={16} /> Print FPI Form
+                </button>
+                <button
+                  onClick={() => setViewingAppraisal(null)}
+                  className="btn btn-secondary"
+                  style={{ padding: '9px 20px', fontWeight: 700 }}
+                >
+                  Close FPI View
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -1518,6 +1518,81 @@ router.post('/appraisal', authenticateToken, (req, res) => {
   });
 });
 
+// 12a. PUT Update Existing Appraisal Form (Faculty Edit Before Final Submit)
+router.put('/appraisal/:id', authenticateToken, (req, res) => {
+  const appId = req.params.id;
+  const staffId = req.user.staffId || req.user.staff_id;
+  const {
+    academic_year, courses_taught, pass_percentage, student_feedback,
+    innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+    a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+    a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+    publications_count, books_count, patents_count,
+    grants_amount, fdp_attended, events_organized, self_appraisal_score, goals_next_year,
+    part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+  } = req.body;
+
+  if (!academic_year || !academic_year.trim()) {
+    return res.status(400).json({ error: 'Academic Year is required.' });
+  }
+
+  db.get('SELECT * FROM staff_appraisal WHERE id = ?', [appId], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    if (!row) return res.status(404).json({ error: 'Appraisal record not found.' });
+
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'principal' || req.user.role === 'hr';
+    if (!isAdmin && row.staff_id !== staffId) {
+      return res.status(403).json({ error: 'Unauthorized: You can only edit your own appraisal form.' });
+    }
+
+    db.run(`
+      UPDATE staff_appraisal SET
+        academic_year = ?,
+        courses_taught = ?,
+        pass_percentage = ?,
+        student_feedback = ?,
+        innovative_methods = ?,
+        a1_ict_tools = ?,
+        a2_econtent = ?,
+        a3_lab_experiments = ?,
+        a4_feedback_scores = ?,
+        a5_pass_percentage = ?,
+        a6_industry_partnerships = ?,
+        a7_hackathons = ?,
+        b4_curriculum_dev = ?,
+        b7_industry_training = ?,
+        c3_community_service = ?,
+        publications_count = ?,
+        books_count = ?,
+        patents_count = ?,
+        grants_amount = ?,
+        fdp_attended = ?,
+        events_organized = ?,
+        self_appraisal_score = ?,
+        goals_next_year = ?,
+        status = 'Submitted',
+        part_a_score = ?,
+        part_b_score = ?,
+        part_c_score = ?,
+        part_d_score = ?,
+        total_fpi_score = ?
+      WHERE id = ?
+    `, [
+      academic_year, courses_taught, pass_percentage, student_feedback,
+      innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+      a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+      a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+      publications_count || 0, books_count || 0, patents_count || 0,
+      grants_amount, fdp_attended, events_organized, self_appraisal_score || total_fpi_score, goals_next_year,
+      part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0,
+      appId
+    ], function(uErr) {
+      if (uErr) return res.status(500).json({ error: 'Database update error: ' + uErr.message });
+      res.json({ success: true, id: appId, message: 'Annual Appraisal Form updated and submitted successfully!' });
+    });
+  });
+});
+
 // 12b. GET Automated FPI Score Summary calculation
 router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res) => {
   const staffId = req.params.staffId;
