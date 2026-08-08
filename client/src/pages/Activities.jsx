@@ -314,18 +314,16 @@ const activityConfigs = {
   },
   ipr: {
     title: 'Intellectual Property Rights',
-    headers: ['Patent / Design Name', 'Status', 'Institution / Office', 'Filing Date', 'Summary', 'Attachment'],
+    headers: ['Patent / Design Name', 'Status', 'Filing Date', 'Summary', 'Attachment'],
     fields: [
       { name: 'patent', label: 'Patent / Design Title', type: 'text', required: true },
       { name: 'patent_status', label: 'Patent Status', type: 'select', options: ['Filed', 'Published', 'Granted'], required: true },
-      { name: 'institution', label: 'IP Office / Institution', type: 'text', required: true },
       { name: 'generation', label: 'Date of Filing/Publication', type: 'date', required: true },
       { name: 'propose', label: 'Purpose / Brief Summary', type: 'textarea', required: true }
     ],
     renderRow: (row) => [
       row.patent,
       row.patent_status || 'Filed',
-      row.institution,
       row.generation,
       row.propose || 'N/A'
     ]
