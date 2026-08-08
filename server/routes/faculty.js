@@ -1855,6 +1855,15 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const seedMoney = await getRows('SELECT * FROM staff_seed_money WHERE staff_id = ?');
     const responsibilities = await getRows('SELECT * FROM staff_responsibilities WHERE staff_id = ?');
 
+    const supervisorRows = await getRows('SELECT * FROM staff_supervisor WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const academicRows = await getRows('SELECT Qualification, Designation FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const personalRows = await getRows('SELECT staff_name FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const staffName = personalRows[0]?.staff_name || '';
+    const qual = academicRows[0]?.Qualification || '';
+    const isDr = staffName.toLowerCase().includes('dr.') || staffName.toLowerCase().includes('dr ');
+    const isPhd = qual.toUpperCase().includes('PH.D') || qual.toUpperCase().includes('PHD');
+    const isRecognizedSupervisor = supervisorRows.length > 0 || isDr || isPhd || scholars.length > 0;
+
     const templateRows = await getRows('SELECT * FROM appraisal_template', []);
     const templateMap = {};
     templateRows.forEach(row => {
@@ -1898,9 +1907,11 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         const d2 = new Date(item.to_date);
         const diffTime = Math.abs(d2 - d1);
         days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      } else if (item.duration) {
+        const dur = item.duration.toLowerCase();
+        if (dur.includes('5') || dur.includes('week') || dur.includes('6') || dur.includes('7')) days = 5;
       }
-      if (days >= 5) rawB3 += ruleB3.fixedMark;
-      else rawB3 += Math.min(ruleB3.fixedMark, 2);
+      rawB3 += days >= 5 ? ruleB3.fixedMark : (ruleB3.fixedMark * 0.8);
     });
     const scoreB3 = Math.min(ruleB3.maxMark, rawB3);
     scoreB += scoreB3;
@@ -1913,12 +1924,7 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
 
     // b6. Online Certifications (SWAYAM/NPTEL)
     const ruleB6 = getCriteriaRule('B6', 5, 10);
-    let rawB6 = 0;
-    certs.forEach(c => {
-      const dur = (c.duration_weeks || '').toLowerCase();
-      if (dur.includes('4')) rawB6 += (ruleB6.fixedMark / 2);
-      else rawB6 += ruleB6.fixedMark;
-    });
+    const rawB6 = certs.length * ruleB6.fixedMark;
     const scoreB6 = Math.min(ruleB6.maxMark, rawB6);
     scoreB += scoreB6;
 
@@ -1929,15 +1935,7 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
 
     // c1. Publications (Journal = 10 marks, Conference = 5 marks)
     const ruleC1 = getCriteriaRule('C1', 10, 20);
-    let rawC1 = 0;
-    publications.forEach(p => {
-      const pubCat = (p.type_pub || p.type1 || p.type || '').trim().toLowerCase();
-      if (pubCat.includes('conf')) {
-        rawC1 += 5; // 5 marks for Conference
-      } else {
-        rawC1 += 10; // 10 marks for Journal
-      }
-    });
+    const rawC1 = publications.length * ruleC1.fixedMark;
     const scoreC1 = Math.min(ruleC1.maxMark, rawC1);
     scoreC += scoreC1;
 
@@ -1951,24 +1949,10 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const ruleC4 = getCriteriaRule('C4', 10, 10);
     let rawC4 = 0;
     ipr.forEach(p => {
-      const ipCategory = (p.ip_type || 'Patent').trim().toLowerCase();
-      const st = (p.patent_status || p.generation || '').trim().toLowerCase();
-      if (ipCategory.includes('copyright')) {
-        if (st.includes('reg')) {
-          rawC4 += 10; // Copyright Registered = 10 marks
-        } else {
-          rawC4 += 3; // Copyright Filed = 3 marks
-        }
-      } else {
-        // Patent
-        if (st.includes('grant')) {
-          rawC4 += 10; // Patent Granted = 10 marks
-        } else if (st.includes('publ')) {
-          rawC4 += 7; // Patent Published = 7 marks
-        } else {
-          rawC4 += 3; // Patent Filed = 3 marks
-        }
-      }
+      const st = (p.status || '').toLowerCase();
+      if (st.includes('grant')) rawC4 += ruleC4.fixedMark;
+      else if (st.includes('pub')) rawC4 += (ruleC4.fixedMark * 0.7);
+      else rawC4 += (ruleC4.fixedMark * 0.3);
     });
     const scoreC4 = Math.min(ruleC4.maxMark, rawC4);
     scoreC += scoreC4;
@@ -1996,9 +1980,13 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
 
     // c8. Research Scholars
     const ruleC8 = getCriteriaRule('C8', 2.5, 5);
-    const rawC8 = scholars.length * ruleC8.fixedMark;
-    const scoreC8 = Math.min(ruleC8.maxMark, rawC8);
-    scoreC += scoreC8;
+    let rawC8 = 0;
+    let scoreC8 = 0;
+    if (isRecognizedSupervisor) {
+      rawC8 = scholars.length * ruleC8.fixedMark;
+      scoreC8 = Math.min(ruleC8.maxMark, rawC8);
+      scoreC += scoreC8;
+    }
 
     // c9. Awards
     const ruleC9 = getCriteriaRule('C9', 5, 5);
@@ -2029,6 +2017,7 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
       part_b_score: finalPartB,
       part_c_score: finalPartC,
       part_d_score: finalPartD,
+      is_recognized_supervisor: isRecognizedSupervisor,
       counts: {
         publications: publications.length,
         books: books.length,
@@ -2054,7 +2043,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         responsibilities,
         interactions,
         resource,
-        scholars
+        scholars,
+        is_recognized_supervisor: isRecognizedSupervisor
       },
       breakdown: {
         b1_memberships: scoreB1,
@@ -2067,7 +2057,7 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         c4_ipr: scoreC4,
         c5_funding: scoreC5,
         c6_seed_money: scoreC6,
-        c8_scholars: scoreC8,
+        c8_scholars: isRecognizedSupervisor ? scoreC8 : 'N/A',
         c9_awards: scoreC9,
         d_responsibilities: finalPartD
       },

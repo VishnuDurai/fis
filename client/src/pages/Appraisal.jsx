@@ -2633,7 +2633,16 @@ export default function Appraisal({ auth }) {
 
             {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)</h5>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>
+                  c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)
+                </h5>
+                {fpiDetails?.is_recognized_supervisor === false && (
+                  <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                    N/A (Not a Recognized Research Supervisor)
+                  </span>
+                )}
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2645,7 +2654,13 @@ export default function Appraisal({ auth }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(!fpiDetails?.scholars || fpiDetails.scholars.length === 0) ? (
+                  {fpiDetails?.is_recognized_supervisor === false ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontWeight: 600, background: '#f8fafc' }}>
+                        N/A - Not a Recognized Research Supervisor (No score calculated)
+                      </td>
+                    </tr>
+                  ) : (!fpiDetails?.scholars || fpiDetails.scholars.length === 0) ? (
                     <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No research scholars logged in portal</td></tr>
                   ) : fpiDetails.scholars.map((sc, i) => (
                     <tr key={i}>
@@ -4110,7 +4125,16 @@ export default function Appraisal({ auth }) {
 
                   {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>
+                        c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)
+                      </h5>
+                      {fpiDetails?.is_recognized_supervisor === false && (
+                        <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                          N/A (Not a Recognized Research Supervisor)
+                        </span>
+                      )}
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4122,7 +4146,13 @@ export default function Appraisal({ auth }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {(!fpiDetails?.scholars || fpiDetails.scholars.length === 0) ? (
+                        {fpiDetails?.is_recognized_supervisor === false ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontWeight: 600, background: '#f8fafc' }}>
+                              N/A - Not a Recognized Research Supervisor (No score calculated)
+                            </td>
+                          </tr>
+                        ) : (!fpiDetails?.scholars || fpiDetails.scholars.length === 0) ? (
                           <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No research scholars logged in portal</td></tr>
                         ) : fpiDetails.scholars.map((sc, i) => (
                           <tr key={i}>
