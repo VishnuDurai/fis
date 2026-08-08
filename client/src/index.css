@@ -339,25 +339,39 @@ tr:hover td {
   border-top: 1px solid hsl(var(--border));
 }
 
-/* Print Specific Style Sheet for Reports & FPI Appraisal Form */
+/* Print Specific Style Sheet for Reports & FPI Appraisal Form (Matching FPI.docx Document Layout) */
 @media print {
-  html, body {
-    background: #ffffff !important;
-    color: #0f172a !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    font-size: 10.5pt !important;
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm;
   }
 
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.3 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app navigation bar, sidebars, buttons, control bars, footers, badges */
+  header,
+  nav,
+  aside,
   .sidebar,
   .navbar,
   .btn,
   button,
-  .no-print {
+  .no-print,
+  .badge {
     display: none !important;
   }
 
-  /* When printing from modal overlay, reset fixed backdrop positioning */
+  /* Reset fixed modal overlay positioning for print */
   .fpi-print-backdrop {
     position: static !important;
     background: none !important;
@@ -377,13 +391,10 @@ tr:hover td {
     padding: 0 !important;
     margin: 0 !important;
     border-radius: 0 !important;
+    background: #ffffff !important;
   }
 
-  /* Hide background elements when printing FPI form */
-  .fpi-print-backdrop ~ * {
-    display: none !important;
-  }
-
+  /* Hide root layout containers outside the print document */
   .main-content {
     margin-left: 0 !important;
     padding: 0 !important;
@@ -396,9 +407,11 @@ tr:hover td {
     padding: 0 !important;
   }
 
+  /* Tables formatting matching FPI.docx */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
+    margin-bottom: 12px !important;
     page-break-inside: auto;
   }
 
@@ -411,15 +424,28 @@ tr:hover td {
     display: table-header-group !important;
   }
 
-  th, td {
-    border: 1px solid #475569 !important;
+  th {
+    background-color: #f1f5f9 !important;
     color: #0f172a !important;
-    padding: 5px 8px !important;
+    border: 1px solid #1e293b !important;
+    padding: 6px 8px !important;
+    font-weight: 700 !important;
+    font-size: 9.5pt !important;
+    text-align: left !important;
   }
 
-  @page {
-    margin: 12mm 10mm 12mm 10mm;
-    size: portrait;
+  td {
+    border: 1px solid #334155 !important;
+    color: #0f172a !important;
+    padding: 6px 8px !important;
+    font-size: 9.5pt !important;
+    vertical-align: top !important;
+  }
+
+  .signature-block {
+    margin-top: 40px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 

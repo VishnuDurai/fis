@@ -3126,8 +3126,30 @@ export default function Appraisal({ auth }) {
                 </div>
               </div>
 
+              {/* OFFICIAL SIGNATURE BLOCK FOR FPI.DOCX PRINTING */}
+              <div className="signature-block" style={{ marginTop: '48px', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div style={{ textAlign: 'center', width: '30%' }}>
+                  <div style={{ height: '45px' }}></div>
+                  <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                    Signature of Faculty Member
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center', width: '30%' }}>
+                  <div style={{ height: '45px' }}></div>
+                  <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                    Signature of Head of Department
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center', width: '30%' }}>
+                  <div style={{ height: '45px' }}></div>
+                  <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                    Signature of Principal / Executive
+                  </div>
+                </div>
+              </div>
+
               {/* MODAL ACTION FOOTER */}
-              <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+              <div className="no-print" style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
                 {viewingAppraisal.isDraft ? (
                   <>
                     <button
