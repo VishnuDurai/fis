@@ -3250,7 +3250,7 @@ export default function Appraisal({ auth }) {
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{fmtDate(signedAt)}</div>
                       </div>
                     ) : (
-                      canSign && !viewingAppraisal.isDraft ? (
+                      canSign && viewingAppraisal.id && viewingAppraisal.id !== 'draft' ? (
                         <button
                           className="no-print"
                           onClick={() => onSign()}
