@@ -171,6 +171,9 @@ export default function Appraisal({ auth }) {
       submitted_at: new Date().toISOString()
     };
 
+    if (generalInfo) {
+      setViewingGeneralInfo(generalInfo);
+    }
     setViewingAppraisal(liveDraftAppraisal);
   };
 
@@ -182,6 +185,31 @@ export default function Appraisal({ auth }) {
     part_d_score: 0,
     total_fpi_score: 0
   });
+
+  useEffect(() => {
+    fetchTemplate();
+    fetchAppraisals();
+    fetchFpiSummary();
+    fetchGeneralInfo();
+    if (isAdminOrHR) {
+      fetchDepartments();
+    }
+  }, [auth]);
+
+  useEffect(() => {
+    if (viewingAppraisal && viewingAppraisal.staff_id) {
+      fetch(`${API_BASE_URL}/api/faculty/appraisal/general-info/${viewingAppraisal.staff_id}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) setViewingGeneralInfo(data);
+      })
+      .catch(() => {});
+    } else {
+      setViewingGeneralInfo(null);
+    }
+  }, [viewingAppraisal, auth.token]);
 
   const [interactionsList, setInteractionsList] = useState([]);
   const [responsibilitiesList, setResponsibilitiesList] = useState([]);
@@ -871,7 +899,19 @@ export default function Appraisal({ auth }) {
 
   // General Information Table Component matching FPI.docx
   const GeneralInfoTable = ({ data }) => {
-    const info = data || generalInfo;
+    const info = data || viewingGeneralInfo || generalInfo || {};
+    const dept = info.departmentName || (viewingAppraisal && viewingAppraisal.Department) || auth.department || auth.dept || 'N/A';
+    const name = info.facultyName || (viewingAppraisal && viewingAppraisal.staff_name) || auth.name || 'N/A';
+    const desig = info.designation || (viewingAppraisal && viewingAppraisal.Designation) || auth.designation || 'N/A';
+    const qual = (info.qualification && info.qualification !== 'N/A') ? info.qualification : (generalInfo && generalInfo.qualification ? generalInfo.qualification : 'M.E. / M.Tech.');
+    const doj = (info.doj && info.doj !== 'N/A') ? info.doj : (generalInfo && generalInfo.doj && generalInfo.doj !== 'N/A' ? generalInfo.doj : 'N/A');
+    const promo = (info.promotionDetails && info.promotionDetails !== 'N/A') ? info.promotionDetails : (generalInfo && generalInfo.promotionDetails ? generalInfo.promotionDetails : 'N/A');
+    const prevExp = (info.prevExp && info.prevExp !== 'N/A') ? info.prevExp : (generalInfo && generalInfo.prevExp ? generalInfo.prevExp : '0 Y, 0 M');
+    const srecExp = (info.srecExp && info.srecExp !== 'N/A') ? info.srecExp : (generalInfo && generalInfo.srecExp ? generalInfo.srecExp : '0 Y, 0 M');
+    const totalExp = (info.totalTeachingExp && info.totalTeachingExp !== 'N/A') ? info.totalTeachingExp : (generalInfo && generalInfo.totalTeachingExp ? generalInfo.totalTeachingExp : '0 Y, 0 M');
+    const indExp = (info.industryExp && info.industryExp !== 'N/A') ? info.industryExp : (generalInfo && generalInfo.industryExp ? generalInfo.industryExp : '0 Y, 0 M');
+    const phd = (info.phdStatus && info.phdStatus !== 'N/A') ? info.phdStatus : (generalInfo && generalInfo.phdStatus ? generalInfo.phdStatus : 'Yet to Register');
+
     return (
       <div style={{ marginBottom: '24px', border: '1.5px solid #0f172a', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         <div style={{ background: '#0f172a', color: '#ffffff', padding: '12px 18px', fontWeight: 800, fontSize: '1.05rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -882,19 +922,19 @@ export default function Appraisal({ auth }) {
           <tbody>
             <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
               <td style={{ padding: '10px 14px', fontWeight: 700, width: '35%', background: '#f8fafc', borderRight: '1px solid #cbd5e1', color: '#1e293b' }}>Name of the Department</td>
-              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{info.departmentName || 'N/A'}</td>
+              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{dept}</td>
             </tr>
             <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
               <td style={{ padding: '10px 14px', fontWeight: 700, background: '#f8fafc', borderRight: '1px solid #cbd5e1', color: '#1e293b' }}>Name of the Faculty</td>
-              <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>{info.facultyName || 'N/A'}</td>
+              <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>{name}</td>
             </tr>
             <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
               <td style={{ padding: '10px 14px', fontWeight: 700, background: '#f8fafc', borderRight: '1px solid #cbd5e1', color: '#1e293b' }}>Designation</td>
-              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{info.designation || 'N/A'}</td>
+              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{desig}</td>
             </tr>
             <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
               <td style={{ padding: '10px 14px', fontWeight: 700, background: '#f8fafc', borderRight: '1px solid #cbd5e1', color: '#1e293b' }}>Qualification</td>
-              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{info.qualification || 'N/A'}</td>
+              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{qual}</td>
             </tr>
 
             {/* Date of Appointment @ SREC */}
@@ -907,13 +947,13 @@ export default function Appraisal({ auth }) {
                   <tbody>
                     <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
                       <td style={{ padding: '8px 12px', fontWeight: 700, width: '35%', background: '#f1f5f9', borderRight: '1px solid #cbd5e1' }}>DOJ</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{info.doj || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{doj}</td>
                     </tr>
                     <tr>
                       <td style={{ padding: '8px 12px', fontWeight: 700, background: '#f1f5f9', borderRight: '1px solid #cbd5e1' }}>
                         Promotion if any<br/><span style={{ fontSize: '0.75rem', fontWeight: 500, fontStyle: 'italic', color: '#64748b' }}>(Designation with year)</span>
                       </td>
-                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{info.promotionDetails || 'N/A'}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{promo}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -936,9 +976,9 @@ export default function Appraisal({ auth }) {
                   </thead>
                   <tbody>
                     <tr>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1', fontWeight: 600 }}>{info.prevExp || '0 Y'}</td>
-                      <td style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1', fontWeight: 600 }}>{info.srecExp || '0 Y'}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: 800, color: '#0284c7' }}>{info.totalTeachingExp || '0 Y'}</td>
+                      <td style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1', fontWeight: 600 }}>{prevExp}</td>
+                      <td style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1', fontWeight: 600 }}>{srecExp}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 800, color: '#0284c7' }}>{totalExp}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -950,7 +990,7 @@ export default function Appraisal({ auth }) {
               <td style={{ padding: '10px 14px', fontWeight: 700, background: '#f8fafc', borderRight: '1px solid #cbd5e1', color: '#1e293b' }}>
                 Industry Experience<br/><span style={{ fontSize: '0.75rem', fontWeight: 500, fontStyle: 'italic', color: '#64748b' }}>(In Years)</span>
               </td>
-              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{info.industryExp || '0 Y'}</td>
+              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{indExp}</td>
             </tr>
 
             {/* Ph.D Status */}
@@ -965,11 +1005,11 @@ export default function Appraisal({ auth }) {
                   fontWeight: 800,
                   fontSize: '0.88rem',
                   display: 'inline-block',
-                  background: info.phdStatus === 'Completed' ? '#dcfce7' : info.phdStatus === 'Pursuing' ? '#e0f2fe' : '#f1f5f9',
-                  color: info.phdStatus === 'Completed' ? '#15803d' : info.phdStatus === 'Pursuing' ? '#0369a1' : '#475569',
-                  border: `1px solid ${info.phdStatus === 'Completed' ? '#86efac' : info.phdStatus === 'Pursuing' ? '#7dd3fc' : '#cbd5e1'}`
+                  background: phd === 'Completed' ? '#dcfce7' : phd === 'Pursuing' ? '#e0f2fe' : '#f1f5f9',
+                  color: phd === 'Completed' ? '#15803d' : phd === 'Pursuing' ? '#0369a1' : '#475569',
+                  border: `1px solid ${phd === 'Completed' ? '#86efac' : phd === 'Pursuing' ? '#7dd3fc' : '#cbd5e1'}`
                 }}>
-                  {info.phdStatus || 'Yet to Register'}
+                  {phd}
                 </span>
               </td>
             </tr>
@@ -977,12 +1017,6 @@ export default function Appraisal({ auth }) {
         </table>
       </div>
     );
-  };
-
-  // Detailed Activity Verification Component for Auto-Mapped Portal Data
-  const AutoMappedVerificationPanel = ({ details, breakdown }) => {
-    const d = details || fpiDetails || {};
-    const b = breakdown || fpiBreakdown || {};
 
     const groupedCategories = [
       {

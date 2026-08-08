@@ -2097,11 +2097,28 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
   const staffId = req.params.staffId || req.user.staffId;
 
   db.get(`
-    SELECT p.staff_name, a.* 
+    SELECT 
+      COALESCE(NULLIF(TRIM(p.staff_name), ''), TRIM(a.staff_name), TRIM(u.name)) as staff_name,
+      COALESCE(NULLIF(TRIM(a.Department), ''), TRIM(u.department), TRIM(u.dept)) as Department,
+      COALESCE(NULLIF(TRIM(a.Designation), ''), TRIM(u.designation)) as Designation,
+      a.Date_of_joining,
+      a.Qualification,
+      a.prev_exp_academic_years,
+      a.prev_exp_academic_months,
+      a.prev_exp_industry_years,
+      a.prev_exp_industry_months,
+      a.total_prev_exp_years,
+      a.total_prev_exp_months,
+      a.has_no_prev_exp,
+      a.exp_srec_years,
+      a.exp_srec_months,
+      a.total_exp_years,
+      a.total_exp_months
     FROM staff_personal p
     LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
-    WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
-  `, [staffId], (err, acadRow) => {
+    LEFT JOIN staff_user u ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(u.staff_id))
+    WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?)) OR LOWER(TRIM(a.staff_id)) = LOWER(TRIM(?))
+  `, [staffId, staffId], (err, acadRow) => {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
     const row = acadRow || {};
 
@@ -2165,28 +2182,36 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
           }
         }
 
-        const deptName = row.Department || '';
-        const facultyName = row.staff_name || '';
-        const designation = row.Designation || '';
-        const doj = row.Date_of_joining || '';
+        db.all('SELECT * FROM staff_department_history WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [staffId], (hErr, histRows) => {
+          let promoText = 'N/A';
+          if (histRows && histRows.length > 0) {
+            const latest = histRows[0];
+            promoText = `Transfer to ${latest.to_dept} (${latest.transfer_date || 'N/A'})`;
+          }
 
-        const prevExpText = `${row.prev_exp_academic_years || 0} Y, ${row.prev_exp_academic_months || 0} M`;
-        const srecExpText = `${exp.exp_srec_years || 0} Y, ${exp.exp_srec_months || 0} M`;
-        const totalExpText = `${exp.total_exp_years || 0} Y, ${exp.total_exp_months || 0} M`;
-        const industryExpText = `${row.prev_exp_industry_years || 0} Y, ${row.prev_exp_industry_months || 0} M`;
+          const deptName = row.Department || '';
+          const facultyName = row.staff_name || '';
+          const designation = row.Designation || '';
+          const doj = row.Date_of_joining || 'N/A';
 
-        res.json({
-          departmentName: deptName,
-          facultyName: facultyName,
-          designation: designation,
-          qualification: highestQual,
-          doj: doj,
-          promotionDetails: 'N/A',
-          prevExp: prevExpText,
-          srecExp: srecExpText,
-          totalTeachingExp: totalExpText,
-          industryExp: industryExpText,
-          phdStatus: phdStatus
+          const prevExpText = `${row.prev_exp_academic_years || 0} Y, ${row.prev_exp_academic_months || 0} M`;
+          const srecExpText = `${exp.exp_srec_years || 0} Y, ${exp.exp_srec_months || 0} M`;
+          const totalExpText = `${exp.total_exp_years || 0} Y, ${exp.total_exp_months || 0} M`;
+          const industryExpText = `${row.prev_exp_industry_years || 0} Y, ${row.prev_exp_industry_months || 0} M`;
+
+          res.json({
+            departmentName: deptName,
+            facultyName: facultyName,
+            designation: designation,
+            qualification: highestQual || 'M.E. / M.Tech.',
+            doj: doj,
+            promotionDetails: promoText,
+            prevExp: prevExpText,
+            srecExp: srecExpText,
+            totalTeachingExp: totalExpText,
+            industryExp: industryExpText,
+            phdStatus: phdStatus
+          });
         });
       });
     });
