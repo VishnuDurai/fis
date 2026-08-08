@@ -704,6 +704,11 @@ const createTables = async () => {
     await pool.query("ALTER TABLE staff_ipr ADD COLUMN ip_type VARCHAR(100) DEFAULT 'Patent'");
   } catch (e) {}
 
+  // Clean up any MIME type values stored in staff_event_organized type column
+  try {
+    await pool.query("UPDATE staff_event_organized SET type = 'Workshop' WHERE type LIKE 'application/%' OR type LIKE 'image/%' OR type IS NULL OR type = ''");
+  } catch (e) {}
+
   // Seed default Faculty Member (TE2273) if empty
   try {
     const [rows] = await pool.query('SELECT COUNT(*) as count FROM staff_user');

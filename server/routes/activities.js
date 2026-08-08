@@ -254,8 +254,12 @@ router.post('/:type', authenticateToken, validateType, upload.single('file'), (r
 
     if (req.file) {
       data.file = req.file.filename;
-      data.type = req.file.mimetype; // Matches 'type' or 'type1' columns in PHP
-      data.type1 = req.file.mimetype;
+      if (!req.body.type && config.cols.includes('type') && !['events', 'interactions', 'resource', 'publications', 'clubs', 'development', 'ipr'].includes(type)) {
+        data.type = req.file.mimetype;
+      }
+      if (config.cols.includes('type1')) {
+        data.type1 = req.file.mimetype;
+      }
       data.size = (req.file.size / 1000).toFixed(2); // KB
     }
 
