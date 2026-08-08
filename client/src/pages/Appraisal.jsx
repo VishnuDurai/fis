@@ -238,7 +238,11 @@ export default function Appraisal({ auth }) {
 
   const fetchGeneralInfo = async (targetStaffId = auth.staffId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/general-info/${targetStaffId}`, {
+      const staffIdToUse = (targetStaffId && targetStaffId !== 'undefined' && targetStaffId !== 'null') 
+        ? targetStaffId 
+        : (auth.staffId || auth.username || auth.id || 'me');
+
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/general-info/${staffIdToUse}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {

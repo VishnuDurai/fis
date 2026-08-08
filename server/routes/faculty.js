@@ -2094,13 +2094,16 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
 
 // 12c. GET General Information for FPI Appraisal Form
 router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => {
-  const staffId = req.params.staffId || req.user.staffId;
+  let staffId = req.params.staffId;
+  if (!staffId || staffId === 'undefined' || staffId === 'null') {
+    staffId = req.user.staffId || req.user.username || req.user.id;
+  }
 
   db.get(`
     SELECT 
-      COALESCE(NULLIF(TRIM(p.staff_name), ''), TRIM(a.staff_name), TRIM(u.name)) as staff_name,
-      COALESCE(NULLIF(TRIM(a.Department), ''), TRIM(u.department), TRIM(u.dept)) as Department,
-      COALESCE(NULLIF(TRIM(a.Designation), ''), TRIM(u.designation)) as Designation,
+      COALESCE(NULLIF(TRIM(a.staff_name), ''), NULLIF(TRIM(p.staff_name), ''), TRIM(?)) as staff_name,
+      COALESCE(NULLIF(TRIM(a.Department), ''), '') as Department,
+      COALESCE(NULLIF(TRIM(a.Designation), ''), '') as Designation,
       a.Date_of_joining,
       a.Qualification,
       a.prev_exp_academic_years,
@@ -2114,11 +2117,12 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
       a.exp_srec_months,
       a.total_exp_years,
       a.total_exp_months
-    FROM staff_personal p
-    LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
-    LEFT JOIN staff_user u ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(u.staff_id))
-    WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?)) OR LOWER(TRIM(a.staff_id)) = LOWER(TRIM(?))
-  `, [staffId, staffId], (err, acadRow) => {
+    FROM staff_academics a
+    LEFT JOIN staff_personal p ON LOWER(TRIM(a.staff_id)) = LOWER(TRIM(p.staff_id))
+    WHERE LOWER(TRIM(a.staff_id)) = LOWER(TRIM(?))
+       OR LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
+       OR LOWER(TRIM(p.email)) = LOWER(TRIM(?))
+  `, [req.user.name || '', staffId, staffId, staffId], (err, acadRow) => {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
     const row = acadRow || {};
 
@@ -2167,7 +2171,7 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
           });
 
           const qualLower = (row.Qualification || '').toLowerCase();
-          const nameLower = (row.staff_name || '').toLowerCase();
+          const nameLower = (row.staff_name || req.user.name || '').toLowerCase();
           if (nameLower.includes('dr.') || nameLower.includes('dr ') || qualLower.includes('ph.d') || qualLower.includes('phd')) {
             hasPhdEdu = true;
             isCompletedPhd = true;
@@ -2189,9 +2193,9 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
             promoText = `Transfer to ${latest.to_dept} (${latest.transfer_date || 'N/A'})`;
           }
 
-          const deptName = row.Department || '';
-          const facultyName = row.staff_name || '';
-          const designation = row.Designation || '';
+          const deptName = row.Department || req.user.department || req.user.dept || '';
+          const facultyName = row.staff_name || req.user.name || '';
+          const designation = row.Designation || req.user.designation || '';
           const doj = row.Date_of_joining || 'N/A';
 
           const prevExpText = `${row.prev_exp_academic_years || 0} Y, ${row.prev_exp_academic_months || 0} M`;
@@ -2203,7 +2207,7 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
             departmentName: deptName,
             facultyName: facultyName,
             designation: designation,
-            qualification: highestQual || 'M.E. / M.Tech.',
+            qualification: highestQual || row.Qualification || 'M.E. / M.Tech.',
             doj: doj,
             promotionDetails: promoText,
             prevExp: prevExpText,
