@@ -2213,19 +2213,32 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
           `, [deptName], (hodErr, hodRow) => {
             const hodName = (hodRow && hodRow.staff_name) ? hodRow.staff_name : null;
 
-            res.json({
-              departmentName: deptName,
-              facultyName: facultyName,
-              designation: designation,
-              qualification: highestQual || row.Qualification || 'M.E. / M.Tech.',
-              doj: doj,
-              promotionDetails: promoText,
-              prevExp: prevExpText,
-              srecExp: srecExpText,
-              totalTeachingExp: totalExpText,
-              industryExp: industryExpText,
-              phdStatus: phdStatus,
-              hodName: hodName
+            // Dynamically look up Principal from staff_academics
+            db.get(`
+              SELECT staff_name FROM staff_academics
+              WHERE Designation LIKE '%Principal%'
+                AND Designation NOT LIKE '%Vice%'
+                AND Designation NOT LIKE '%Physical%'
+              ORDER BY staff_id
+              LIMIT 1
+            `, [], (pErr, principalRow) => {
+              const principalName = (principalRow && principalRow.staff_name) ? principalRow.staff_name : null;
+
+              res.json({
+                departmentName: deptName,
+                facultyName: facultyName,
+                designation: designation,
+                qualification: highestQual || row.Qualification || 'M.E. / M.Tech.',
+                doj: doj,
+                promotionDetails: promoText,
+                prevExp: prevExpText,
+                srecExp: srecExpText,
+                totalTeachingExp: totalExpText,
+                industryExp: industryExpText,
+                phdStatus: phdStatus,
+                hodName: hodName,
+                principalName: principalName
+              });
             });
           });
         });

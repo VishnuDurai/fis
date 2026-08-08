@@ -2742,6 +2742,7 @@ export default function Appraisal({ auth }) {
         const deptTitle = deptFullNameMap[deptAcronym] || deptAcronym || 'ACADEMICS';
         const facultyDisplayName = (viewingGeneralInfo && viewingGeneralInfo.facultyName) || viewingAppraisal.staff_name || auth.name || '';
         const hodDisplayName = (viewingGeneralInfo && viewingGeneralInfo.hodName) || (viewingAppraisal.hod_name) || '';
+        const principalDisplayName = (viewingGeneralInfo && viewingGeneralInfo.principalName) || '';
 
         return (
           <div className="fpi-print-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
@@ -3228,7 +3229,7 @@ export default function Appraisal({ auth }) {
                     Signature of Principal
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
-                    Dr. K. Ramesh Babu, Principal
+                    {principalDisplayName || 'Principal'}
                   </div>
                 </div>
               </div>
