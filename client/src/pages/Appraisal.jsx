@@ -1246,7 +1246,9 @@ export default function Appraisal({ auth }) {
 
   return (
     <div>
-      <Navbar title="Faculty Appraisals" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
+      {/* WRAP BACKGROUND PAGE CONTENT IN NO-PRINT SO ONLY FPI MODAL PRINTS */}
+      <div className="no-print">
+        <Navbar title="Faculty Appraisals" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
 
       {message && (
         <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
@@ -2650,6 +2652,7 @@ export default function Appraisal({ auth }) {
           )}
         </div>
       )}
+      </div>
 
       {/* VIEW FULL FPI FORM MODAL (MATCHING OFFICIAL FPI.DOCX FORMAT & REPORTS HEADER) */}
       {viewingAppraisal && (() => {
