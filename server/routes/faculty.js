@@ -1860,9 +1860,7 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const personalRows = await getRows('SELECT staff_name FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const staffName = personalRows[0]?.staff_name || '';
     const qual = academicRows[0]?.Qualification || '';
-    const isDr = staffName.toLowerCase().includes('dr.') || staffName.toLowerCase().includes('dr ');
-    const isPhd = qual.toUpperCase().includes('PH.D') || qual.toUpperCase().includes('PHD');
-    const isRecognizedSupervisor = supervisorRows.length > 0 || isDr || isPhd || scholars.length > 0;
+    const isRecognizedSupervisor = supervisorRows.length > 0;
 
     const templateRows = await getRows('SELECT * FROM appraisal_template', []);
     const templateMap = {};

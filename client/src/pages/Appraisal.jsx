@@ -2153,7 +2153,12 @@ export default function Appraisal({ auth }) {
 
             {/* b1 Table (Auto-Mapped Professional Societies) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b1. Membership in Professional Societies at National/ International levels (Max: 3 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b1. Membership in Professional Societies at National/ International levels (Max: 3 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(3, (fpiDetails?.members?.length || 0) * 3)} / 3 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2178,11 +2183,19 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                b1 Category Total Score: {Math.min(3, (fpiDetails?.members?.length || 0) * 3)} / 3 Pts
+              </div>
             </div>
 
             {/* b2 Table (Auto-Mapped Resource Person) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b2. Faculty as Resource person in External STTPs/ FDPs/ Workshops/ Conferences/ Guest Speaker/ BOS/ Reviewer (Max: 4 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b2. Faculty as Resource person in External STTPs/ FDPs/ Workshops/ Conferences/ Guest Speaker/ BOS/ Reviewer (Max: 4 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(4, (fpiDetails?.resource?.length || 0) * 2)} / 4 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2209,11 +2222,22 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                b2 Category Total Score: {Math.min(4, (fpiDetails?.resource?.length || 0) * 2)} / 4 Pts
+              </div>
             </div>
 
             {/* b3 Table (Auto-Mapped FDP/STTP Participation) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b3. Faculty member's Participation in STTPs/ FDPs/ Workshops/ Seminars/ Conferences (Max: 5 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b3. Faculty member's Participation in STTPs/ FDPs/ Workshops/ Seminars/ Conferences (Max: 5 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(5, (fpiDetails?.interactions || []).reduce((acc, it) => {
+                    const duration = (it.duration || '').toLowerCase();
+                    return acc + ((duration.includes('5') || duration.includes('week') || duration.includes('6') || duration.includes('7') || duration.includes('10')) ? 2.5 : 2);
+                  }, 0))} / 5 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2242,6 +2266,12 @@ export default function Appraisal({ auth }) {
                   })}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                b3 Category Total Score: {Math.min(5, (fpiDetails?.interactions || []).reduce((acc, it) => {
+                  const duration = (it.duration || '').toLowerCase();
+                  return acc + ((duration.includes('5') || duration.includes('week') || duration.includes('6') || duration.includes('7') || duration.includes('10')) ? 2.5 : 2);
+                }, 0))} / 5 Pts
+              </div>
             </div>
 
             {/* B4: Contribution to Curriculum Development (Editable) */}
@@ -2290,7 +2320,12 @@ export default function Appraisal({ auth }) {
 
             {/* b5 Table (Auto-Mapped Organized Events) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b5. Organized- FDP/ STTP/ Conferences/ Seminars/ Skill development Programmes/ Guest Lectures (Max: 8 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b5. Organized- FDP/ STTP/ Conferences/ Seminars/ Skill development Programmes/ Guest Lectures (Max: 8 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(8, (fpiDetails?.events?.length || 0) * 4)} / 8 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2317,11 +2352,19 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                b5 Category Total Score: {Math.min(8, (fpiDetails?.events?.length || 0) * 4)} / 8 Pts
+              </div>
             </div>
 
             {/* b6 Table (Auto-Mapped Online Certifications) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b6. Faculty certification through SWAYAM/ NPTEL/ COURSERA and other approved courses (Max: 10 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b6. Faculty certification through SWAYAM/ NPTEL/ COURSERA and other approved courses (Max: 10 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(10, (fpiDetails?.certs?.length || 0) * 5)} / 10 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2346,6 +2389,9 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                b6 Category Total Score: {Math.min(10, (fpiDetails?.certs?.length || 0) * 5)} / 10 Pts
+              </div>
             </div>
 
             {/* B7: Faculty Internship / Training / Industry Collaboration (Editable) */}
@@ -2406,7 +2452,12 @@ export default function Appraisal({ auth }) {
 
             {/* c1 Table (Auto-Mapped Journal Publications) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c1. Publication of Research Article in Journals (Scopus / WoS / SCI) (Max: 20 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c1. Publication of Research Article in Journals (Scopus / WoS / SCI) (Max: 20 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(20, (fpiDetails?.publications || []).filter(p => !((p.type_pub || p.type1 || '').toLowerCase().includes('conf'))).length * 10)} / 20 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2441,11 +2492,19 @@ export default function Appraisal({ auth }) {
                   })()}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                c1 Category Total Score: {Math.min(20, (fpiDetails?.publications || []).filter(p => !((p.type_pub || p.type1 || '').toLowerCase().includes('conf'))).length * 10)} / 20 Pts
+              </div>
             </div>
 
             {/* c2 Table (Auto-Mapped Conferences & Books) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c2. Publication in Conference Proceedings / Book / Book Chapters (Max: 10 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c2. Publication in Conference Proceedings / Book / Book Chapters (Max: 10 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(10, ((fpiDetails?.publications || []).filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf'))).length + (fpiDetails?.books?.length || 0)) * 5)} / 10 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2482,6 +2541,9 @@ export default function Appraisal({ auth }) {
                   })()}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                c2 Category Total Score: {Math.min(10, ((fpiDetails?.publications || []).filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf'))).length + (fpiDetails?.books?.length || 0)) * 5)} / 10 Pts
+              </div>
             </div>
 
             {/* C3: Community Service & Outreach Activities (Editable) */}
@@ -2532,7 +2594,12 @@ export default function Appraisal({ auth }) {
 
             {/* c4 Table (Auto-Mapped IPR / Patents) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c4. Intellectual Property- Published and Granted: Patents / Copy Rights (Max: 10 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c4. Intellectual Property- Published and Granted: Patents / Copy Rights (Max: 10 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(10, (fpiDetails?.ipr?.length || 0) * 10)} / 10 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2561,11 +2628,19 @@ export default function Appraisal({ auth }) {
                   })}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                c4 Category Total Score: {Math.min(10, (fpiDetails?.ipr?.length || 0) * 10)} / 10 Pts
+              </div>
             </div>
 
             {/* c5 Table (Auto-Mapped Grants) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(15, (fpiDetails?.funding?.length || 0) * 10)} / 15 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2596,11 +2671,19 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                c5 Category Total Score: {Math.min(15, (fpiDetails?.funding?.length || 0) * 10)} / 15 Pts
+              </div>
             </div>
 
             {/* c6 Table (Auto-Mapped Seed Money & Consultancy) */}
             <div style={{ marginBottom: '16px' }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(10, (fpiDetails?.seedMoney?.length || 0) * 5)} / 10 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2629,17 +2712,24 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                c6 Category Total Score: {Math.min(10, (fpiDetails?.seedMoney?.length || 0) * 5)} / 10 Pts
+              </div>
             </div>
 
             {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                 <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>
                   c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)
                 </h5>
-                {fpiDetails?.is_recognized_supervisor === false && (
-                  <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                    N/A (Not a Recognized Research Supervisor)
+                {fpiDetails?.is_recognized_supervisor === false ? (
+                  <span className="badge" style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', fontWeight: 800 }}>
+                    Category Total: N/A (Not a Recognized Research Supervisor)
+                  </span>
+                ) : (
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                    Category Total: {Math.min(5, (fpiDetails?.scholars?.length || 0) * 2.5)} / 5 Pts
                   </span>
                 )}
               </div>
@@ -2673,11 +2763,19 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: fpiDetails?.is_recognized_supervisor === false ? '#64748b' : '#0369a1' }}>
+                c7 Category Total Score: {fpiDetails?.is_recognized_supervisor === false ? 'N/A' : `${Math.min(5, (fpiDetails?.scholars?.length || 0) * 2.5)} / 5 Pts`}
+              </div>
             </div>
 
             {/* c8 Table (Auto-Mapped Awards & Recognitions) */}
-            <div>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c8. Awards and Recognitions (Max: 5 Marks)</h5>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c8. Awards and Recognitions (Max: 5 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(5, (fpiDetails?.awards?.length || 0) * 5)} / 5 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2702,6 +2800,9 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                c8 Category Total Score: {Math.min(5, (fpiDetails?.awards?.length || 0) * 5)} / 5 Pts
+              </div>
             </div>
           </div>
 
@@ -2718,7 +2819,12 @@ export default function Appraisal({ auth }) {
 
             {/* d1 Table (Auto-Mapped Additional Responsibilities) */}
             <div>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>d1. Additional Responsibilities (College Level & Department Level) (Max: 20 Marks)</h5>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>d1. Additional Responsibilities (College Level & Department Level) (Max: 20 Marks)</h5>
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                  Category Total: {Math.min(20, (fpiDetails?.responsibilities?.length || 0) * 10)} / 20 Pts
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                 <thead>
                   <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -2743,6 +2849,9 @@ export default function Appraisal({ auth }) {
                   ))}
                 </tbody>
               </table>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                d1 Category Total Score: {Math.min(20, (fpiDetails?.responsibilities?.length || 0) * 10)} / 20 Pts
+              </div>
             </div>
           </div>
 
@@ -3701,7 +3810,12 @@ export default function Appraisal({ auth }) {
 
                   {/* b1 Table (Auto-Mapped) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b1. Membership in Professional Societies at National/ International levels (Max: 3 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b1. Membership in Professional Societies at National/ International levels (Max: 3 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b1} / 3 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3726,11 +3840,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b1 Category Total Score: {score_b1} / 3 Pts
+                    </div>
                   </div>
 
                   {/* b2 Table (Auto-Mapped) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b2. Faculty as Resource person in External STTPs/ FDPs/ Workshops/ Conferences/ Guest Speaker/ BOS/ Reviewer (Max: 4 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b2. Faculty as Resource person in External STTPs/ FDPs/ Workshops/ Conferences/ Guest Speaker/ BOS/ Reviewer (Max: 4 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b2} / 4 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3757,11 +3879,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b2 Category Total Score: {score_b2} / 4 Pts
+                    </div>
                   </div>
 
                   {/* b3 Table (Auto-Mapped) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b3. Faculty member’s Participation in STTPs/ FDPs/ Malaviya Mission / Workshop / Seminar / Conferences (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b3. Faculty member’s Participation in STTPs/ FDPs/ Malaviya Mission / Workshop / Seminar / Conferences (Max: 5 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b3} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3798,11 +3928,19 @@ export default function Appraisal({ auth }) {
                         })}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b3 Category Total Score: {score_b3} / 5 Pts
+                    </div>
                   </div>
 
                   {/* b4 Table (Manual) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b4. Contribution to Curriculum Development & Board of Studies (BoS) (Max: 5 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b4} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3827,11 +3965,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b4 Category Total Score: {score_b4} / 5 Pts
+                    </div>
                   </div>
 
                   {/* b5 Table (Auto-Mapped) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b5. Organized - FDP/ STTP/Conferences/Seminars/Skill development Programmes/Internship/Guest Lecture (Max: 8 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b5. Organized - FDP/ STTP/Conferences/Seminars/Skill development Programmes/Internship/Guest Lecture (Max: 8 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b5} / 8 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3868,11 +4014,19 @@ export default function Appraisal({ auth }) {
                         })}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b5 Category Total Score: {score_b5} / 8 Pts
+                    </div>
                   </div>
 
                   {/* b6 Table (Auto-Mapped) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b6. Faculty certification through SWAYAM/ SWAYAM PLUS/ NPTEL/ COURSERA (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b6. Faculty certification through SWAYAM/ SWAYAM PLUS/ NPTEL/ COURSERA (Max: 10 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b6} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3897,11 +4051,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b6 Category Total Score: {score_b6} / 10 Pts
+                    </div>
                   </div>
 
                   {/* b7 Table (Manual) */}
                   <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>b7. Faculty Internship/ Training/ Collaboration with Industry/ MoUs (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>b7. Faculty Internship/ Training/ Collaboration with Industry/ MoUs (Max: 5 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_b7} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3926,6 +4088,9 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      b7 Category Total Score: {score_b7} / 5 Pts
+                    </div>
                   </div>
                 </div>
 
@@ -3942,7 +4107,12 @@ export default function Appraisal({ auth }) {
 
                   {/* c1 Table (Auto-Mapped Journal Publications) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c1. Publication of Research Article in Journals (Scopus / WoS / SCI) (Max: 20 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c1. Publication of Research Article in Journals (Scopus / WoS / SCI) (Max: 20 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c1} / 20 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3983,11 +4153,19 @@ export default function Appraisal({ auth }) {
                         })()}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c1 Category Total Score: {score_c1} / 20 Pts
+                    </div>
                   </div>
 
                   {/* c2 Table (Auto-Mapped Conference Papers & Books) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c2. Publication in Conference Proceedings / Book / Book Chapters (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c2. Publication in Conference Proceedings / Book / Book Chapters (Max: 10 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c2} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4022,11 +4200,19 @@ export default function Appraisal({ auth }) {
                         })()}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c2 Category Total Score: {score_c2} / 10 Pts
+                    </div>
                   </div>
 
                   {/* c3 Table (Manual) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c3. Organizing Community service / Outreach activities (Yoga / NSS / NCC / Rural Dev) (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c3. Organizing Community service / Outreach activities (Yoga / NSS / NCC / Rural Dev) (Max: 5 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c3} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4053,11 +4239,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c3 Category Total Score: {score_c3} / 5 Pts
+                    </div>
                   </div>
 
                   {/* c4 Table (Auto-Mapped IPR / Patents) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c4. Intellectual Property- Published and Granted: Patents / Copy Rights (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c4. Intellectual Property- Published and Granted: Patents / Copy Rights (Max: 10 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c4} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4086,11 +4280,19 @@ export default function Appraisal({ auth }) {
                         })}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c4 Category Total Score: {score_c4} / 10 Pts
+                    </div>
                   </div>
 
                   {/* c5 Table (Auto-Mapped Research & Event Grants) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c5} / 15 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4121,11 +4323,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c5 Category Total Score: {score_c5} / 15 Pts
+                    </div>
                   </div>
 
                   {/* c6 Table (Auto-Mapped Seed Money & Consultancy) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c6} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4154,17 +4364,24 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c6 Category Total Score: {score_c6} / 10 Pts
+                    </div>
                   </div>
 
                   {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
                   <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                       <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>
                         c7. Guidance of Research Scholars (Ph.D Completed / Ongoing) (Max: 5 Marks)
                       </h5>
-                      {fpiDetails?.is_recognized_supervisor === false && (
-                        <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                          N/A (Not a Recognized Research Supervisor)
+                      {fpiDetails?.is_recognized_supervisor === false ? (
+                        <span className="badge" style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', fontWeight: 800 }}>
+                          Category Total: N/A (Not a Recognized Research Supervisor)
+                        </span>
+                      ) : (
+                        <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                          Category Total: {score_c7} / 5 Pts
                         </span>
                       )}
                     </div>
@@ -4198,11 +4415,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: fpiDetails?.is_recognized_supervisor === false ? '#64748b' : '#0369a1' }}>
+                      c7 Category Total Score: {fpiDetails?.is_recognized_supervisor === false ? 'N/A' : `${score_c7} / 5 Pts`}
+                    </div>
                   </div>
 
                   {/* c8 Table (Auto-Mapped Awards & Recognitions) */}
-                  <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>c8. Awards and Recognitions (Max: 5 Marks)</h5>
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c8. Awards and Recognitions (Max: 5 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_c8} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4227,6 +4452,9 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c8 Category Total Score: {score_c8} / 5 Pts
+                    </div>
                   </div>
                 </div>
 
@@ -4243,7 +4471,12 @@ export default function Appraisal({ auth }) {
 
                   {/* d1 Table (Auto-Mapped Additional Responsibilities) */}
                   <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>d1. Additional Responsibilities (Institute & Department Level)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>d1. Additional Responsibilities (Institute & Department Level) (Max: 20 Marks)</h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {score_d1} / 20 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -4268,6 +4501,9 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      d1 Category Total Score: {score_d1} / 20 Pts
+                    </div>
                   </div>
                 </div>
 
