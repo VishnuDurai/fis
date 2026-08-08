@@ -2255,17 +2255,20 @@ router.post('/appraisal/:id/sign/faculty', authenticateToken, (req, res) => {
   const signedName = req.user.name || staffId;
   const signedIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
 
-  db.run(
-    `UPDATE staff_appraisal
-     SET faculty_signed_at = ?, faculty_signed_name = ?, faculty_signed_ip = ?
-     WHERE id = ? AND (staff_id = ? OR ? IN (SELECT staff_id FROM staff_appraisal WHERE id = ?))`,
-    [signedAt, signedName, signedIp, id, staffId, staffId, id],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      if (this.changes === 0) return res.status(404).json({ error: 'Appraisal not found or unauthorized' });
-      res.json({ success: true, signedAt, signedName });
-    }
-  );
+  // First verify this appraisal belongs to the requesting faculty
+  db.get('SELECT id FROM staff_appraisal WHERE id = ? AND LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [id, staffId], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Appraisal not found or unauthorized' });
+
+    db.run(
+      `UPDATE staff_appraisal SET faculty_signed_at = ?, faculty_signed_name = ?, faculty_signed_ip = ? WHERE id = ?`,
+      [signedAt, signedName, signedIp, id],
+      function(err2) {
+        if (err2) return res.status(500).json({ error: err2.message });
+        res.json({ success: true, signedAt, signedName });
+      }
+    );
+  });
 });
 
 // 12e. POST — HOD digitally signs an appraisal after review
