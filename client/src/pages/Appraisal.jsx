@@ -3317,6 +3317,39 @@ export default function Appraisal({ auth }) {
         const vB7 = parseRows(viewingAppraisal.b7_industry_training);
         const vC3 = parseRows(viewingAppraisal.c3_community_service);
 
+        // Categorywise Score Calculations for Part A, B, C, D
+        const score_a1 = Math.min(10, vA1.length * 2);
+        const score_a2 = Math.min(10, vA2.length * 5);
+        const score_a3 = Math.min(10, vA3.length * 2.5);
+        const score_a4 = Math.min(5, vA4.length * 2.5);
+        const score_a5 = Math.min(10, vA5.length * 5);
+        const score_a6 = Math.min(5, vA6.length * 5);
+        const score_a7 = Math.min(10, vA7.reduce((acc, r) => acc + (r.position === 'Participation' ? 5 : 10), 0));
+        const subtotal_A = viewingAppraisal.part_a_score || Math.min(60, score_a1 + score_a2 + score_a3 + score_a4 + score_a5 + score_a6 + score_a7);
+
+        const score_b1 = Math.min(3, fpiDetails?.breakdown?.b1_memberships ?? ((fpiDetails?.members?.length || 0) * 3));
+        const score_b2 = Math.min(4, fpiDetails?.breakdown?.b2_resource ?? ((fpiDetails?.resource?.length || 0) * 2));
+        const score_b3 = Math.min(5, fpiDetails?.breakdown?.b3_interactions ?? ((fpiDetails?.interactions?.length || 0) * 2.5));
+        const score_b4 = Math.min(5, vB4.length * 5);
+        const score_b5 = Math.min(8, fpiDetails?.breakdown?.b5_events ?? ((fpiDetails?.events?.length || 0) * 4));
+        const score_b6 = Math.min(10, fpiDetails?.breakdown?.b6_certs ?? ((fpiDetails?.certs?.length || 0) * 5));
+        const score_b7 = Math.min(5, vB7.length * 5);
+        const subtotal_B = viewingAppraisal.part_b_score || Math.min(40, score_b1 + score_b2 + score_b3 + score_b4 + score_b5 + score_b6 + score_b7);
+
+        const score_c1 = Math.min(20, fpiDetails?.breakdown?.c1_publications ?? ((fpiDetails?.publications?.length || 0) * 10));
+        const score_c2 = Math.min(10, fpiDetails?.breakdown?.c2_books ?? ((fpiDetails?.books?.length || 0) * 5));
+        const score_c3 = Math.min(10, vC3.length * 5);
+        const score_c4 = Math.min(10, fpiDetails?.breakdown?.c4_ipr ?? ((fpiDetails?.ipr?.length || 0) * 10));
+        const score_c5 = Math.min(15, fpiDetails?.breakdown?.c5_funding ?? ((fpiDetails?.funding?.length || 0) * 10));
+        const score_c6 = Math.min(10, fpiDetails?.breakdown?.c6_seed_money ?? ((fpiDetails?.seedMoney?.length || 0) * 5));
+        const isSupervisor = fpiDetails?.is_recognized_supervisor !== false;
+        const score_c7 = !isSupervisor ? 'N/A' : Math.min(5, fpiDetails?.breakdown?.c8_scholars ?? ((fpiDetails?.scholars?.length || 0) * 2.5));
+        const score_c8 = Math.min(5, fpiDetails?.breakdown?.c9_awards ?? ((fpiDetails?.awards?.length || 0) * 5));
+        const subtotal_C = viewingAppraisal.part_c_score || Math.min(80, (score_c1 + score_c2 + score_c3 + score_c4 + score_c5 + score_c6 + (isSupervisor ? (typeof score_c7 === 'number' ? score_c7 : 0) : 0) + score_c8));
+
+        const score_d1 = viewingAppraisal.part_d_score || Math.min(20, fpiDetails?.breakdown?.d_responsibilities ?? ((fpiDetails?.responsibilities?.length || 0) * 10));
+        const subtotal_D = score_d1;
+
         const canEdit = !isAdminOrHR || viewingAppraisal.staff_id === auth.staffId;
         const deptAcronym = (viewingAppraisal.Department || auth.department || auth.dept || '').toUpperCase();
         const deptFullNameMap = {
@@ -4245,6 +4278,78 @@ export default function Appraisal({ auth }) {
                     <p style={{ fontSize: '0.9rem', color: '#334155', margin: 0, whiteSpace: 'pre-wrap' }}>{viewingAppraisal.goals_next_year}</p>
                   </div>
                 )}
+
+                {/* 6b. CATEGORY-WISE SUB-TOTAL BREAKDOWN TABLE */}
+                <div style={{ border: '1.5px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden', background: '#ffffff' }}>
+                  <div style={{ background: '#f1f5f9', color: '#0f172a', padding: '12px 18px', fontWeight: 800, fontSize: '1rem', borderBottom: '1.5px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>CATEGORYWISE SUB-TOTAL SCORE BREAKDOWN (CRITERIA-WISE)</span>
+                    <span style={{ fontSize: '0.85rem', color: '#0284c7', background: '#e0f2fe', padding: '3px 10px', borderRadius: '12px', fontWeight: 800 }}>
+                      Categorywise Sum: {subtotal_A + subtotal_B + subtotal_C + subtotal_D} / 200 Pts
+                    </span>
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                    <thead>
+                      <tr style={{ background: '#f8fafc', color: '#334155', borderBottom: '1.5px solid #cbd5e1' }}>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', width: '70px' }}>Code</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Evaluation Criteria Description</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', width: '100px' }}>Max Marks</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', width: '130px' }}>Category Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Part A Breakdown */}
+                      <tr style={{ background: '#f0f9ff', fontWeight: 800, borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                        <td colSpan={2} style={{ padding: '8px 12px', color: '#0369a1' }}>PART A: Teaching Learning Process</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>60</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>{subtotal_A} / 60 Pts</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a1</td><td style={{ padding: '6px 12px' }}>Innovative Teaching Methods & ICT Tools</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a1} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a2</td><td style={{ padding: '6px 12px' }}>Development of SWAYAM MOOCs & E-Content</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a2} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a3</td><td style={{ padding: '6px 12px' }}>New Laboratory Experiments Developed</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a3} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a4</td><td style={{ padding: '6px 12px' }}>Student Mid & End Sem Feedback Rating</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a4} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a5</td><td style={{ padding: '6px 12px' }}>End Sem Theory Courses Pass Percentage</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a5} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a6</td><td style={{ padding: '6px 12px' }}>Industry Institute Partnerships Steps</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a6} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>a7</td><td style={{ padding: '6px 12px' }}>Hackathons / Contests Support & Guidance</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_a7} Pts</td></tr>
+
+                      {/* Part B Breakdown */}
+                      <tr style={{ background: '#f0f9ff', fontWeight: 800, borderTop: '1.5px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                        <td colSpan={2} style={{ padding: '8px 12px', color: '#0369a1' }}>PART B: Professional Development Activities</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>40</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>{subtotal_B} / 40 Pts</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b1</td><td style={{ padding: '6px 12px' }}>Professional Society Memberships</td><td style={{ textAlign: 'center' }}>3</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b1} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b2</td><td style={{ padding: '6px 12px' }}>Resource Person / Invited Guest Speaker</td><td style={{ textAlign: 'center' }}>4</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b2} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b3</td><td style={{ padding: '6px 12px' }}>FDP / STTP / Workshop Participation</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b3} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b4</td><td style={{ padding: '6px 12px' }}>Curriculum Development & Board of Studies (BOS)</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b4} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b5</td><td style={{ padding: '6px 12px' }}>Organizing FDPs / Conferences / Symposia</td><td style={{ textAlign: 'center' }}>8</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b5} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b6</td><td style={{ padding: '6px 12px' }}>Online Certifications (SWAYAM / NPTEL)</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b6} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>b7</td><td style={{ padding: '6px 12px' }}>Industrial Training / Corporate Internship Completed</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_b7} Pts</td></tr>
+
+                      {/* Part C Breakdown */}
+                      <tr style={{ background: '#f0f9ff', fontWeight: 800, borderTop: '1.5px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                        <td colSpan={2} style={{ padding: '8px 12px', color: '#0369a1' }}>PART C: Research & Consultancy Output</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>80</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>{subtotal_C} / 80 Pts</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c1</td><td style={{ padding: '6px 12px' }}>Journal & Conference Publications</td><td style={{ textAlign: 'center' }}>20</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c1} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c2</td><td style={{ padding: '6px 12px' }}>Books & Book Chapters Published</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c2} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c3</td><td style={{ padding: '6px 12px' }}>Consultancy & Product Development</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c3} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c4</td><td style={{ padding: '6px 12px' }}>IPR / Patents Granted / Published</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c4} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c5</td><td style={{ padding: '6px 12px' }}>Research Grants Received / Applied</td><td style={{ textAlign: 'center' }}>15</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c5} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c6</td><td style={{ padding: '6px 12px' }}>Seed Money & Consultancy Output</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c6} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c7</td><td style={{ padding: '6px 12px' }}>Ph.D Research Scholars Guidance</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: score_c7 === 'N/A' ? '#64748b' : '#0284c7' }}>{score_c7 === 'N/A' ? 'N/A' : `${score_c7} Pts`}</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c8</td><td style={{ padding: '6px 12px' }}>Awards & Recognitions</td><td style={{ textAlign: 'center' }}>5</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c8} Pts</td></tr>
+
+                      {/* Part D Breakdown */}
+                      <tr style={{ background: '#f0f9ff', fontWeight: 800, borderTop: '1.5px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                        <td colSpan={2} style={{ padding: '8px 12px', color: '#0369a1' }}>PART D: Institutional Development & Contribution</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>20</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>{subtotal_D} / 20 Pts</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #cbd5e1' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>d1</td><td style={{ padding: '6px 12px' }}>Dept & Institutional Responsibilities</td><td style={{ textAlign: 'center' }}>20</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_d1} Pts</td></tr>
+                    </tbody>
+                  </table>
+                </div>
 
                 {/* 7. COMPREHENSIVE FPI SCORE EVALUATION & SUMMARY TABLE */}
                 <div style={{ border: '1.5px solid #0284c7', borderRadius: '10px', overflow: 'hidden', background: '#ffffff' }}>
