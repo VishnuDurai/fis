@@ -2672,48 +2672,36 @@ export default function Appraisal({ auth }) {
             <div className="fpi-print-document" style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1050px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '32px', border: '1.5px solid #cbd5e1', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
               
               {/* MODAL CONTROL HEADER (HIDDEN IN PRINT) */}
-              <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '24px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      Annual Faculty Performance Indicator (FPI) Appraisal Form
-                    </h3>
-                    <span className="badge badge-success" style={{ fontSize: '0.85rem', padding: '5px 12px' }}>
-                      Status: {viewingAppraisal.status || 'Submitted'}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.88rem', color: '#475569', display: 'block', marginTop: '4px', fontWeight: 600 }}>
-                    Faculty: {viewingAppraisal.staff_name || auth.name} ({viewingAppraisal.staff_id}) | Dept: {viewingAppraisal.Department || 'N/A'} | Academic Year: {viewingAppraisal.academic_year}
-                  </span>
-                </div>
+              <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '12px', marginBottom: '20px', gap: '10px' }}>
+                <span className="badge badge-success" style={{ fontSize: '0.82rem', padding: '5px 12px', marginRight: 'auto' }}>
+                  Status: {viewingAppraisal.status || 'Submitted'}
+                </span>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => handleStartEdit(viewingAppraisal)}
-                      className="btn btn-primary"
-                      style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <Edit size={16} /> Edit Form
-                    </button>
-                  )}
+                {canEdit && (
                   <button
                     type="button"
-                    onClick={() => window.print()}
-                    className="btn btn-secondary"
-                    style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => handleStartEdit(viewingAppraisal)}
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <Printer size={16} /> Print FPI Form
+                    <Edit size={16} /> Edit Form
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewingAppraisal(null)}
-                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
-                  >
-                    <X size={26} />
-                  </button>
-                </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.85rem', padding: '7px 16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={16} /> Print FPI Form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingAppraisal(null)}
+                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+                >
+                  <X size={26} />
+                </button>
               </div>
 
               {/* OFFICIAL SREC REPORT HEADER BANNER (MATCHING FIS REPORTS HEADER) */}
