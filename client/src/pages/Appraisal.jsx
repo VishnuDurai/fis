@@ -768,6 +768,28 @@ export default function Appraisal({ auth }) {
     }
   };
 
+  // Digital Signature Handler
+  const handleSign = async (appraisalId, role) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${appraisalId}/sign/${role}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to sign');
+      // Update viewingAppraisal with new signature data so UI refreshes immediately
+      setViewingAppraisal(prev => ({
+        ...prev,
+        [`${role}_signed_at`]: data.signedAt,
+        [`${role}_signed_name`]: data.signedName
+      }));
+      fetchAppraisals();
+      setMessage(`Digitally signed successfully as ${data.signedName}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleHodApproveSubmit = async (appId, action) => {
     setMessage('');
     setError('');
@@ -3204,35 +3226,80 @@ export default function Appraisal({ auth }) {
               </div>
 
               {/* OFFICIAL SIGNATURE BLOCK FOR FPI.DOCX PRINTING */}
-              <div className="signature-block" style={{ marginTop: '48px', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div style={{ textAlign: 'center', width: '30%' }}>
-                  <div style={{ height: '45px' }}></div>
-                  <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Signature of Faculty Member
+              {(() => {
+                const fSigned = viewingAppraisal.faculty_signed_at;
+                const hSigned = viewingAppraisal.hod_signed_at;
+                const pSigned = viewingAppraisal.principal_signed_at;
+                const isFaculty = auth.staffId === viewingAppraisal.staff_id;
+                const isHodOrAdmin = isAdminOrHR || auth.role === 'hod';
+                const isPrincipal = auth.role === 'principal' || auth.designation?.toLowerCase().includes('principal');
+                const fmtDate = (iso) => {
+                  if (!iso) return '';
+                  try { return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; }
+                };
+
+                const SigBlock = ({ label, name, signedAt, signedName, canSign, onSign }) => (
+                  <div style={{ textAlign: 'center', width: '30%' }}>
+                    <div style={{ height: signedAt ? '0' : '45px' }}></div>
+                    {signedAt ? (
+                      <div style={{ background: '#f0fdf4', border: '1.5px solid #16a34a', borderRadius: '10px', padding: '10px 8px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#15803d', fontWeight: 800, fontSize: '0.82rem' }}>
+                          <span style={{ fontSize: '1rem' }}>✓</span> Digitally Signed
+                        </div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>{signedName}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{fmtDate(signedAt)}</div>
+                      </div>
+                    ) : (
+                      canSign && !viewingAppraisal.isDraft ? (
+                        <button
+                          className="no-print"
+                          onClick={() => onSign()}
+                          style={{ background: '#0284c7', color: '#fff', border: 'none', borderRadius: '7px', padding: '7px 16px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', marginBottom: '6px', display: 'block', width: '100%' }}
+                        >
+                          ✍ Click to Sign
+                        </button>
+                      ) : (
+                        <div style={{ height: '36px' }}></div>
+                      )
+                    )}
+                    <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                      {label}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
+                      {name}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
-                    {facultyDisplayName}
+                );
+
+                return (
+                  <div className="signature-block" style={{ marginTop: '48px', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
+                    <SigBlock
+                      label="Signature of Faculty Member"
+                      name={facultyDisplayName}
+                      signedAt={fSigned}
+                      signedName={viewingAppraisal.faculty_signed_name}
+                      canSign={isFaculty}
+                      onSign={() => handleSign(viewingAppraisal.id, 'faculty')}
+                    />
+                    <SigBlock
+                      label="Signature of Head of Department"
+                      name={hodDisplayName}
+                      signedAt={hSigned}
+                      signedName={viewingAppraisal.hod_signed_name}
+                      canSign={isHodOrAdmin}
+                      onSign={() => handleSign(viewingAppraisal.id, 'hod')}
+                    />
+                    <SigBlock
+                      label="Signature of Principal"
+                      name={principalDisplayName || 'Principal'}
+                      signedAt={pSigned}
+                      signedName={viewingAppraisal.principal_signed_name}
+                      canSign={isPrincipal || (isAdminOrHR && auth.role === 'admin')}
+                      onSign={() => handleSign(viewingAppraisal.id, 'principal')}
+                    />
                   </div>
-                </div>
-                <div style={{ textAlign: 'center', width: '30%' }}>
-                  <div style={{ height: '45px' }}></div>
-                  <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Signature of Head of Department
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
-                    {hodDisplayName}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center', width: '30%' }}>
-                  <div style={{ height: '45px' }}></div>
-                  <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Signature of Principal
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
-                    {principalDisplayName || 'Principal'}
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* MODAL ACTION FOOTER */}
               <div className="no-print" style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>

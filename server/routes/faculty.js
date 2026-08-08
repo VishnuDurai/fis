@@ -2247,6 +2247,63 @@ router.get('/appraisal/general-info/:staffId', authenticateToken, (req, res) => 
   });
 });
 
+// 12d. POST — Faculty digitally signs their submitted appraisal
+router.post('/appraisal/:id/sign/faculty', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const id = req.params.id;
+  const signedAt = new Date().toISOString();
+  const signedName = req.user.name || staffId;
+  const signedIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  db.run(
+    `UPDATE staff_appraisal
+     SET faculty_signed_at = ?, faculty_signed_name = ?, faculty_signed_ip = ?
+     WHERE id = ? AND (staff_id = ? OR ? IN (SELECT staff_id FROM staff_appraisal WHERE id = ?))`,
+    [signedAt, signedName, signedIp, id, staffId, staffId, id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Appraisal not found or unauthorized' });
+      res.json({ success: true, signedAt, signedName });
+    }
+  );
+});
+
+// 12e. POST — HOD digitally signs an appraisal after review
+router.post('/appraisal/:id/sign/hod', authenticateToken, (req, res) => {
+  const id = req.params.id;
+  const signedAt = new Date().toISOString();
+  const signedName = req.user.name || req.user.staffId;
+  const signedIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  db.run(
+    `UPDATE staff_appraisal SET hod_signed_at = ?, hod_signed_name = ?, hod_signed_ip = ? WHERE id = ?`,
+    [signedAt, signedName, signedIp, id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Appraisal not found' });
+      res.json({ success: true, signedAt, signedName });
+    }
+  );
+});
+
+// 12f. POST — Principal digitally signs an appraisal (final sign-off)
+router.post('/appraisal/:id/sign/principal', authenticateToken, (req, res) => {
+  const id = req.params.id;
+  const signedAt = new Date().toISOString();
+  const signedName = req.user.name || req.user.staffId;
+  const signedIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  db.run(
+    `UPDATE staff_appraisal SET principal_signed_at = ?, principal_signed_name = ?, principal_signed_ip = ? WHERE id = ?`,
+    [signedAt, signedName, signedIp, id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Appraisal not found' });
+      res.json({ success: true, signedAt, signedName });
+    }
+  );
+});
+
 // 13. DELETE Appraisal
 router.delete('/appraisal/:id', authenticateToken, (req, res) => {
   const staffId = req.user.staffId;
