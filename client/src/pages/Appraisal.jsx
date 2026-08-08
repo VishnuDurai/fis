@@ -790,6 +790,82 @@ export default function Appraisal({ auth }) {
     }
   };
 
+  // Save form + Sign in one step (when faculty signs from draft preview before submitting)
+  const handleSaveAndSign = async () => {
+    setMessage('');
+    setError('');
+    try {
+      const isEditing = Boolean(editingAppraisalId);
+      const url = isEditing
+        ? `${API_BASE_URL}/api/faculty/appraisal/${editingAppraisalId}`
+        : `${API_BASE_URL}/api/faculty/appraisal`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const saveRes = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.token}` },
+        body: JSON.stringify({
+          academic_year: academicYear,
+          courses_taught: coursesTaught || 'N/A',
+          pass_percentage: 'See Grid a5',
+          student_feedback: 'See Grid a4',
+          innovative_methods: 'See Grid a1',
+          a1_ict_tools: JSON.stringify(a1Rows),
+          a2_econtent: JSON.stringify(a2Rows),
+          a3_lab_experiments: JSON.stringify(a3Rows),
+          a4_feedback_scores: JSON.stringify(a4Rows),
+          a5_pass_percentage: JSON.stringify(a5Rows),
+          a6_industry_partnerships: JSON.stringify(a6Rows),
+          a7_hackathons: JSON.stringify(a7Rows),
+          b4_curriculum_dev: JSON.stringify(b4Rows),
+          b7_industry_training: JSON.stringify(b7Rows),
+          c3_community_service: JSON.stringify(c3Rows),
+          publications_count: publicationsCount,
+          books_count: booksCount,
+          patents_count: patentsCount,
+          grants_amount: grantsAmount,
+          fdp_attended: fdpAttended || '2',
+          events_organized: eventsOrganized || '1',
+          self_appraisal_score: selfAppraisalScore,
+          goals_next_year: goalsNextYear,
+          part_a_score: manualScores.partA,
+          part_b_score: manualScores.partB,
+          part_c_score: manualScores.partC,
+          part_d_score: manualScores.partD,
+          total_fpi_score: manualScores.grandTotal
+        })
+      });
+      if (!saveRes.ok) {
+        const saveErr = await saveRes.json();
+        throw new Error(saveErr.error || 'Failed to save form');
+      }
+      const saveData = await saveRes.json();
+      const appraisalId = isEditing ? editingAppraisalId : saveData.id;
+
+      // Now digitally sign as faculty
+      const signRes = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${appraisalId}/sign/faculty`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok) throw new Error(signData.error || 'Failed to sign');
+
+      // Update viewingAppraisal to reflect saved + signed state
+      setViewingAppraisal(prev => ({
+        ...prev,
+        id: appraisalId,
+        isDraft: false,
+        faculty_signed_at: signData.signedAt,
+        faculty_signed_name: signData.signedName
+      }));
+      setEditingAppraisalId(appraisalId);
+      fetchAppraisals();
+      setMessage(`Form submitted and digitally signed as ${signData.signedName}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleHodApproveSubmit = async (appId, action) => {
     setMessage('');
     setError('');
@@ -3250,7 +3326,7 @@ export default function Appraisal({ auth }) {
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{fmtDate(signedAt)}</div>
                       </div>
                     ) : (
-                      canSign && viewingAppraisal.id && viewingAppraisal.id !== 'draft' ? (
+                      canSign ? (
                         <button
                           className="no-print"
                           onClick={() => onSign()}
@@ -3279,7 +3355,7 @@ export default function Appraisal({ auth }) {
                       signedAt={fSigned}
                       signedName={viewingAppraisal.faculty_signed_name}
                       canSign={isFaculty}
-                      onSign={() => handleSign(viewingAppraisal.id, 'faculty')}
+                      onSign={() => viewingAppraisal.isDraft ? handleSaveAndSign() : handleSign(viewingAppraisal.id, 'faculty')}
                     />
                     <SigBlock
                       label="Signature of Head of Department"
