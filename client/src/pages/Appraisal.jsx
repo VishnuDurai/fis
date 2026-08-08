@@ -2712,7 +2712,36 @@ export default function Appraisal({ auth }) {
         const vC3 = parseRows(viewingAppraisal.c3_community_service);
 
         const canEdit = !isAdminOrHR || viewingAppraisal.staff_id === auth.staffId;
-        const deptTitle = (viewingAppraisal.Department || auth.department || auth.dept || 'ACADEMICS').toUpperCase();
+        const deptAcronym = (viewingAppraisal.Department || auth.department || auth.dept || '').toUpperCase();
+        const deptFullNameMap = {
+          'AI & DS': 'ARTIFICIAL INTELLIGENCE AND DATA SCIENCE',
+          'AI&DS': 'ARTIFICIAL INTELLIGENCE AND DATA SCIENCE',
+          'CSE': 'COMPUTER SCIENCE AND ENGINEERING',
+          'ECE': 'ELECTRONICS AND COMMUNICATION ENGINEERING',
+          'EEE': 'ELECTRICAL AND ELECTRONICS ENGINEERING',
+          'MECH': 'MECHANICAL ENGINEERING',
+          'CIVIL': 'CIVIL ENGINEERING',
+          'IT': 'INFORMATION TECHNOLOGY',
+          'AERO': 'AERONAUTICAL ENGINEERING',
+          'EIE': 'ELECTRONICS AND INSTRUMENTATION ENGINEERING',
+          'BME': 'BIOMEDICAL ENGINEERING',
+          'MBA': 'MASTER OF BUSINESS ADMINISTRATION',
+          'MATHS': 'MATHEMATICS',
+          'PHY': 'PHYSICS',
+          'CHEM': 'CHEMISTRY',
+          'ENG': 'ENGLISH',
+          'R & A': 'ROBOTICS AND AUTOMATION ENGINEERING',
+          'R&A': 'ROBOTICS AND AUTOMATION ENGINEERING',
+          'M.TECH CSE': 'M.TECH COMPUTER SCIENCE AND ENGINEERING',
+          'S&H': 'SCIENCE AND HUMANITIES',
+          'G.E - S&H': 'SCIENCE AND HUMANITIES',
+          'PHY EDU': 'PHYSICAL EDUCATION',
+          'ADMIN': 'ADMINISTRATION',
+          'PLACEMENT CELL': 'PLACEMENT CELL'
+        };
+        const deptTitle = deptFullNameMap[deptAcronym] || deptAcronym || 'ACADEMICS';
+        const facultyDisplayName = (viewingGeneralInfo && viewingGeneralInfo.facultyName) || viewingAppraisal.staff_name || auth.name || '';
+        const hodDisplayName = (viewingAppraisal.hod_name) || `Head of Department – ${deptFullNameMap[deptAcronym] || deptAcronym}` || 'Head of Department';
 
         return (
           <div className="fpi-print-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
@@ -3180,17 +3209,26 @@ export default function Appraisal({ auth }) {
                   <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
                     Signature of Faculty Member
                   </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
+                    {facultyDisplayName}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'center', width: '30%' }}>
                   <div style={{ height: '45px' }}></div>
                   <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
                     Signature of Head of Department
                   </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
+                    {hodDisplayName}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'center', width: '30%' }}>
                   <div style={{ height: '45px' }}></div>
                   <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '6px', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Signature of Principal / Executive
+                    Signature of Principal
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
+                    Dr. K. Ramesh Babu, Principal
                   </div>
                 </div>
               </div>
