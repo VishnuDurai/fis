@@ -298,7 +298,7 @@ export default function Reports({ auth }) {
                   style={{ width: '16px', height: '16px' }}
                 />
                 <span style={{ textTransform: 'capitalize', fontSize: '0.95rem' }}>
-                  {section === 'ipr' ? 'IPR / Patents' : section}
+                  {section === 'ipr' ? 'IPR / Copyrights' : section}
                 </span>
               </label>
             ))}

@@ -62,7 +62,7 @@ const tableMap = {
   },
   ipr: {
     table: 'staff_ipr',
-    cols: ['staff_id', 'staff_name', 'patent', 'institution', 'generation', 'propose', 'patent_status', 'file', 'type', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'ip_type', 'patent', 'institution', 'generation', 'propose', 'patent_status', 'file', 'type', 'size', 'date']
   },
   certifications: {
     table: 'staff_certificate',

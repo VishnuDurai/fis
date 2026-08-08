@@ -114,7 +114,7 @@ export default function Sidebar({ role, logout, auth }) {
             { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> },
             { to: '/activities/funding', label: 'Research Funding', icon: <FileText size={16} /> },
             { to: '/activities/seed_money', label: 'Seed Money for Research', icon: <FileText size={16} /> },
-            { to: '/activities/ipr', label: 'IPR / Patents', icon: <ShieldAlert size={16} /> },
+            { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
             { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
             { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
           ]
@@ -192,7 +192,7 @@ export default function Sidebar({ role, logout, auth }) {
             { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> },
             { to: '/activities/funding', label: 'Research Funding', icon: <FileText size={16} /> },
             { to: '/activities/seed_money', label: 'Seed Money for Research', icon: <FileText size={16} /> },
-            { to: '/activities/ipr', label: 'IPR / Patents', icon: <ShieldAlert size={16} /> },
+            { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
             { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
             { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
           ]
@@ -242,7 +242,7 @@ export default function Sidebar({ role, logout, auth }) {
     rndSubItems.push(
       { to: '/activities/funding', label: 'Research Funding', icon: <FileText size={16} /> },
       { to: '/activities/seed_money', label: 'Seed Money for Research', icon: <FileText size={16} /> },
-      { to: '/activities/ipr', label: 'IPR / Patents', icon: <ShieldAlert size={16} /> },
+      { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
       { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
       { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
     );

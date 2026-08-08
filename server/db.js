@@ -254,6 +254,7 @@ const createTables = async () => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       staff_id VARCHAR(100),
       staff_name TEXT,
+      ip_type VARCHAR(100) DEFAULT 'Patent',
       patent TEXT,
       institution TEXT,
       generation TEXT,
@@ -695,6 +696,11 @@ const createTables = async () => {
       await pool.query('INSERT INTO admin (staff_id, password) VALUES (?, ?)', ['admin', hashedPass]);
       await pool.query('INSERT INTO admin (staff_id, password) VALUES (?, ?)', ['SREC1024', hashedPass]);
     }
+  } catch (e) {}
+
+  // Ensure ip_type column exists on staff_ipr
+  try {
+    await pool.query("ALTER TABLE staff_ipr ADD COLUMN ip_type VARCHAR(100) DEFAULT 'Patent'");
   } catch (e) {}
 
   // Seed default Faculty Member (TE2273) if empty

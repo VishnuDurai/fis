@@ -362,7 +362,7 @@ export default function Home({ auth }) {
                     <ShieldAlert size={24} />
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-muted))', display: 'block', fontWeight: 600 }}>IPR / Patents</span>
+                    <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-muted))', display: 'block', fontWeight: 600 }}>IPR / Copyrights</span>
                     <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a' }}>{facultyStats.ipr || 0}</span>
                   </div>
                 </div>

@@ -313,17 +313,21 @@ const activityConfigs = {
     ]
   },
   ipr: {
-    title: 'Intellectual Property Rights',
-    headers: ['Patent / Design Name', 'Status', 'Filing Date', 'Summary', 'Attachment'],
+    title: 'IPR / Copyrights',
+    headers: ['Category', 'Title', 'Status', 'File Number', 'Filing Date', 'Summary', 'Attachment'],
     fields: [
+      { name: 'ip_type', label: 'IPR Category', type: 'select', options: ['Patent', 'Copyright'], required: true },
       { name: 'patent', label: 'Patent / Design Title', type: 'text', required: true },
       { name: 'patent_status', label: 'Patent Status', type: 'select', options: ['Filed', 'Published', 'Granted'], required: true },
+      { name: 'institution', label: 'File Number', type: 'text', required: true },
       { name: 'generation', label: 'Date of Filing/Publication', type: 'date', required: true },
       { name: 'propose', label: 'Purpose / Brief Summary', type: 'textarea', required: true }
     ],
     renderRow: (row) => [
+      row.ip_type || 'Patent',
       row.patent,
       row.patent_status || 'Filed',
+      row.institution || 'N/A',
       row.generation,
       row.propose || 'N/A'
     ]
@@ -803,7 +807,16 @@ export default function Activities({ auth }) {
   };
 
   const handleInputChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (type === 'ipr' && name === 'ip_type') {
+        const isCopyright = value === 'Copyright';
+        if (isCopyright && (next.patent_status === 'Published' || next.patent_status === 'Granted')) {
+          next.patent_status = 'Filed';
+        }
+      }
+      return next;
+    });
   };
 
   const handleDelete = async (id) => {
@@ -845,8 +858,15 @@ export default function Activities({ auth }) {
     for (const f of activeFields) {
       if (f.readOnly || !f.required) continue; // Skip read-only & optional fields
       const val = formData[f.name];
+      let fieldLabel = f.label;
+      if (type === 'ipr') {
+        const isCopyright = (formData.ip_type || 'Patent') === 'Copyright';
+        if (f.name === 'patent') fieldLabel = isCopyright ? 'Copyright Title' : 'Patent / Design Title';
+        else if (f.name === 'patent_status') fieldLabel = isCopyright ? 'Copyright Status' : 'Patent Status';
+        else if (f.name === 'institution') fieldLabel = 'File Number';
+      }
       if (val === undefined || val === null || String(val).trim() === '') {
-        setError(`Mandatory Field Missing: Please provide a valid entry for "${f.label}".`);
+        setError(`Mandatory Field Missing: Please provide a valid entry for "${fieldLabel}".`);
         return;
       }
     }
@@ -1048,79 +1068,99 @@ export default function Activities({ auth }) {
                   }
                   return true;
                 })
-                .map((f, idx) => (
-                <div className="form-group" key={idx} style={{ gridColumn: f.type === 'textarea' ? 'span 2' : 'span 1' }}>
-                  <label className="form-label">
-                    {f.label} {!f.readOnly && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
-                  </label>
-                  {f.name === 'club' && auth?.myClubs && auth.myClubs.length > 0 ? (
-                    <select 
-                      className="form-control" 
-                      value={formData[f.name]} 
-                      onChange={(e) => handleInputChange(f.name, e.target.value)}
-                      required={f.required}
-                    >
-                      {auth.myClubs.map((clubName, i) => (
-                        <option key={i} value={clubName}>{clubName}</option>
-                      ))}
-                    </select>
-                  ) : f.type === 'multiselect' ? (
-                    <SearchableMultiSelect 
-                      options={f.options}
-                      value={formData[f.name]}
-                      onChange={(val) => handleInputChange(f.name, val)}
-                      placeholder={`Select ${f.label}`}
-                    />
-                  ) : f.type === 'select' ? (
-                    <select 
-                      className="form-control" 
-                      value={formData[f.name]} 
-                      onChange={(e) => handleInputChange(f.name, e.target.value)}
-                      required={f.required}
-                    >
-                      {f.options.map((opt, i) => (
-                        <option key={i} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  ) : f.type === 'textarea' ? (
-                    <textarea 
-                      className="form-control" 
-                      placeholder={`Enter ${f.label.toLowerCase()}`}
-                      value={formData[f.name]} 
-                      onChange={(e) => handleInputChange(f.name, e.target.value)}
-                      required={f.required}
-                      style={{ minHeight: '80px' }}
-                    />
-                  ) : f.name === 'sup_name' && formData['supervisor_type'] === 'Internal' ? (
-                    <select
-                      className="form-control"
-                      value={formData[f.name]}
-                      onChange={(e) => handleInputChange(f.name, e.target.value)}
-                      required={f.required}
-                    >
-                      <option value="">-- Select Internal Supervisor --</option>
-                      {allFacultySupervisors.map((fac, idx) => (
-                        <option key={fac.id || fac.staff_id || idx} value={fac.staff_name}>
-                          {fac.staff_name} ({fac.Department || 'Faculty'}{fac.res_sup_id ? ` - Ref: ${fac.res_sup_id}` : ''})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input 
-                      type={f.type} 
-                      step={f.step}
-                      className="form-control" 
-                      placeholder={`Enter ${f.label.toLowerCase()}`}
-                      value={formData[f.name]} 
-                      onChange={(e) => handleInputChange(f.name, e.target.value)}
-                      list={f.list}
-                      required={f.required}
-                      readOnly={f.readOnly}
-                      style={f.readOnly ? { background: '#f1f5f9', cursor: 'not-allowed', fontWeight: 600, color: '#475569' } : {}}
-                    />
-                  )}
-                </div>
-              ))}
+                .map((f, idx) => {
+                  let fieldLabel = f.label;
+                  let selectOptions = f.options;
+                  let fieldPlaceholder = `Enter ${f.label.toLowerCase()}`;
+
+                  if (type === 'ipr') {
+                    const isCopyright = (formData.ip_type || 'Patent') === 'Copyright';
+                    if (f.name === 'patent') {
+                      fieldLabel = isCopyright ? 'Copyright Title' : 'Patent / Design Title';
+                      fieldPlaceholder = isCopyright ? 'Enter copyright title' : 'Enter patent / design title';
+                    } else if (f.name === 'patent_status') {
+                      fieldLabel = isCopyright ? 'Copyright Status' : 'Patent Status';
+                      selectOptions = isCopyright ? ['Filed', 'Registered'] : ['Filed', 'Published', 'Granted'];
+                    } else if (f.name === 'institution') {
+                      fieldLabel = 'File Number';
+                      fieldPlaceholder = 'Enter file number';
+                    }
+                  }
+
+                  return (
+                  <div className="form-group" key={idx} style={{ gridColumn: f.type === 'textarea' ? 'span 2' : 'span 1' }}>
+                    <label className="form-label">
+                      {fieldLabel} {!f.readOnly && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
+                    </label>
+                    {f.name === 'club' && auth?.myClubs && auth.myClubs.length > 0 ? (
+                      <select 
+                        className="form-control" 
+                        value={formData[f.name]} 
+                        onChange={(e) => handleInputChange(f.name, e.target.value)}
+                        required={f.required}
+                      >
+                        {auth.myClubs.map((clubName, i) => (
+                          <option key={i} value={clubName}>{clubName}</option>
+                        ))}
+                      </select>
+                    ) : f.type === 'multiselect' ? (
+                      <SearchableMultiSelect 
+                        options={selectOptions || f.options}
+                        value={formData[f.name]}
+                        onChange={(val) => handleInputChange(f.name, val)}
+                        placeholder={`Select ${fieldLabel}`}
+                      />
+                    ) : f.type === 'select' ? (
+                      <select 
+                        className="form-control" 
+                        value={formData[f.name]} 
+                        onChange={(e) => handleInputChange(f.name, e.target.value)}
+                        required={f.required}
+                      >
+                        {(selectOptions || f.options).map((opt, i) => (
+                          <option key={i} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : f.type === 'textarea' ? (
+                      <textarea 
+                        className="form-control" 
+                        placeholder={fieldPlaceholder}
+                        value={formData[f.name]} 
+                        onChange={(e) => handleInputChange(f.name, e.target.value)}
+                        required={f.required}
+                        style={{ minHeight: '80px' }}
+                      />
+                    ) : f.name === 'sup_name' && formData['supervisor_type'] === 'Internal' ? (
+                      <select
+                        className="form-control"
+                        value={formData[f.name]}
+                        onChange={(e) => handleInputChange(f.name, e.target.value)}
+                        required={f.required}
+                      >
+                        <option value="">-- Select Internal Supervisor --</option>
+                        {allFacultySupervisors.map((fac, idx) => (
+                          <option key={fac.id || fac.staff_id || idx} value={fac.staff_name}>
+                            {fac.staff_name} ({fac.Department || 'Faculty'}{fac.res_sup_id ? ` - Ref: ${fac.res_sup_id}` : ''})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input 
+                        type={f.type} 
+                        step={f.step}
+                        className="form-control" 
+                        placeholder={fieldPlaceholder}
+                        value={formData[f.name]} 
+                        onChange={(e) => handleInputChange(f.name, e.target.value)}
+                        list={f.list}
+                        required={f.required}
+                        readOnly={f.readOnly}
+                        style={f.readOnly ? { background: '#f1f5f9', cursor: 'not-allowed', fontWeight: 600, color: '#475569' } : {}}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {config.headers.includes('Attachment') && (
