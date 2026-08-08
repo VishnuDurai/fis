@@ -260,7 +260,13 @@ router.post('/:type', authenticateToken, validateType, upload.single('file'), (r
     }
 
     const cols = config.cols;
-    const values = cols.map(col => data[col] !== undefined ? data[col] : null);
+    const values = cols.map(col => {
+      let val = data[col];
+      if (val === undefined || val === null || val === '') {
+        return null;
+      }
+      return val;
+    });
     const placeholders = cols.map(() => '?').join(', ');
 
     const query = `INSERT INTO ${config.table} (${cols.join(', ')}) VALUES (${placeholders})`;
@@ -347,7 +353,11 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
   Object.keys(req.body).forEach(key => {
     if (config.cols.includes(key) && key !== 'staff_id' && key !== 'id') {
       updateCols.push(`${key} = ?`);
-      params.push(req.body[key]);
+      let val = req.body[key];
+      if (val === undefined || val === null || val === '') {
+        val = null;
+      }
+      params.push(val);
     }
   });
 
