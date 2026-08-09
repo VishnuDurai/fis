@@ -421,19 +421,16 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
             }}
           >
             <div style={{ textAlign: 'right' }}>
-              <span style={{ fontWeight: 700, display: 'block', fontSize: '0.92rem', color: '#0f172a' }}>{userName || 'User'}</span>
-              <span style={{
-                fontSize: '0.75rem',
-                color: isHodUser ? '#0369a1' : 'hsl(var(--primary))',
-                fontWeight: 800,
-                background: isHodUser ? '#e0f2fe' : 'transparent',
-                padding: isHodUser ? '1px 8px' : 0,
-                borderRadius: isHodUser ? '10px' : 0,
-                border: isHodUser ? '1px solid #7dd3fc' : 'none',
-                display: 'inline-block'
-              }}>
-                {roleLabel}
-              </span>
+              <span style={{ fontWeight: 800, display: 'block', fontSize: '0.92rem', color: 'hsl(var(--text-main))' }}>{userName || 'User'}</span>
+              <div style={{ marginTop: '2px' }}>
+                {auth?.role === 'admin' || isInstAdminUser ? (
+                  <span className="portal-badge portal-badge-admin" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>{roleLabel}</span>
+                ) : auth?.role === 'dept_admin' || isHodUser ? (
+                  <span className="portal-badge portal-badge-hod" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>{roleLabel}</span>
+                ) : (
+                  <span className="portal-badge portal-badge-faculty" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>{roleLabel}</span>
+                )}
+              </div>
             </div>
 
             {profilePicUrl ? (

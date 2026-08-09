@@ -359,15 +359,27 @@ export default function Sidebar({ role, logout, auth }) {
 
   return (
     <aside className="sidebar">
-      <div style={{ padding: '20px 24px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ padding: '20px 20px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'hsla(var(--bg-card), 0.95)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src="/logo.png" alt="SREC logo" style={{ height: '42px', width: 'auto', objectFit: 'contain' }} />
           <h3 style={{ fontSize: '1.1rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
             SREC FIS <span className="version-badge-anim">V3.0</span>
           </h3>
         </div>
-        <div style={{ marginTop: '8px', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'hsla(var(--primary), 0.15)', color: 'hsl(var(--primary))', textTransform: 'uppercase', fontWeight: 700 }}>
-          {role === 'dept_admin' ? 'Dept Admin' : role}
+        <div style={{ marginTop: '10px' }}>
+          {role === 'admin' || isInstAdminUser ? (
+            <span className="portal-badge portal-badge-admin">
+              <ShieldAlert size={13} /> Institutional Admin
+            </span>
+          ) : role === 'dept_admin' || isHod ? (
+            <span className="portal-badge portal-badge-hod">
+              <Award size={13} /> HOD / Dept Admin
+            </span>
+          ) : (
+            <span className="portal-badge portal-badge-faculty">
+              <GraduationCap size={13} /> Faculty Portal
+            </span>
+          )}
         </div>
       </div>
 
