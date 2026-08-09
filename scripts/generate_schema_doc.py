@@ -388,60 +388,20 @@ def generate_docx():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
         
-    # Dual Logo Header Table
-    left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
-    right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
-    
-    logo_table = doc.add_table(rows=1, cols=2)
-    logo_table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    logo_table.autofit = False
-    
-    cell_l = logo_table.rows[0].cells[0]
-    cell_r = logo_table.rows[0].cells[1]
-    cell_l.width = Inches(3.5)
-    cell_r.width = Inches(3.5)
-    
-    if os.path.exists(left_logo):
-        p_l = cell_l.paragraphs[0]
-        p_l.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p_l.paragraph_format.space_before = Pt(0)
-        p_l.paragraph_format.space_after = Pt(0)
-        r_l = p_l.add_run()
-        r_l.add_picture(left_logo, height=Inches(0.85))
-
-    if os.path.exists(right_logo):
-        p_r = cell_r.paragraphs[0]
-        p_r.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        p_r.paragraph_format.space_before = Pt(0)
-        p_r.paragraph_format.space_after = Pt(0)
-        r_r = p_r.add_run()
-        r_r.add_picture(right_logo, width=Inches(2.5))
-
-    # Standardized Institutional Report Header Text
-    p_inst = doc.add_paragraph()
-    p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_inst.paragraph_format.space_before = Pt(6)
-    p_inst.paragraph_format.space_after = Pt(2)
-    r_inst = p_inst.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
-    r_inst.font.name = 'Times New Roman'
-    r_inst.font.size = Pt(18)
-    r_inst.bold = True
-    r_inst.font.color.rgb = RGBColor(15, 51, 31)
-
-    p_subinst = doc.add_paragraph()
-    p_subinst.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_subinst.paragraph_format.space_before = Pt(0)
-    p_subinst.paragraph_format.space_after = Pt(4)
-    r_subinst = p_subinst.add_run("[An Autonomous Institution | Re-Accredited by NAAC with 'A+' Grade]")
-    r_subinst.font.name = 'Times New Roman'
-    r_subinst.font.size = Pt(12)
-    r_subinst.font.italic = True
-    r_subinst.font.color.rgb = RGBColor(71, 85, 105)
+    # Official SREC Header Banner (same as PDF Reports)
+    header_banner = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/srec-header-banner.png'))
+    if os.path.exists(header_banner):
+        p_banner = doc.add_paragraph()
+        p_banner.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_banner.paragraph_format.space_before = Pt(0)
+        p_banner.paragraph_format.space_after = Pt(6)
+        r_banner = p_banner.add_run()
+        r_banner.add_picture(header_banner, width=Inches(7.0))
 
     p_sys = doc.add_paragraph()
     p_sys.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_sys.paragraph_format.space_before = Pt(0)
-    p_sys.paragraph_format.space_after = Pt(14)
+    p_sys.paragraph_format.space_after = Pt(10)
     r_sys = p_sys.add_run("FACULTY INFORMATION SYSTEM (SREC FIS V3.0)")
     r_sys.font.name = 'Times New Roman'
     r_sys.font.size = Pt(14)
