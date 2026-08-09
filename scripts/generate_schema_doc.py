@@ -7,119 +7,12 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-def set_cell_background(cell, fill_hex):
-    tcPr = cell._tc.get_or_add_tcPr()
-    shd = OxmlElement('w:shd')
-    shd.set(qn('w:val'), 'clear')
-    shd.set(qn('w:color'), 'auto')
-    shd.set(qn('w:fill'), fill_hex)
-    tcPr.append(shd)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
-def set_cell_margins(cell, top=120, bottom=120, left=160, right=160):
-    tcPr = cell._tc.get_or_add_tcPr()
-    tcMar = OxmlElement('w:tcMar')
-    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
-        node = OxmlElement(f'w:{m}')
-        node.set(qn('w:w'), str(val))
-        node.set(qn('w:type'), 'dxa')
-        tcMar.append(node)
-    tcPr.append(tcMar)
-
-def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
-    tblPr = table._tbl.tblPr
-    tblBorders = OxmlElement('w:tblBorders')
-    for border_name in ['top', 'left', 'bottom', 'right', 'insideH']:
-        border = OxmlElement(f'w:{border_name}')
-        border.set(qn('w:val'), val)
-        border.set(qn('w:sz'), sz)
-        border.set(qn('w:space'), '0')
-        border.set(qn('w:color'), color)
-        tblBorders.append(border)
-    border = OxmlElement('w:insideV')
-    border.set(qn('w:val'), 'none')
-    tblBorders.append(border)
-    tblPr.append(tblBorders)
-
-def add_page_border(section, color="0F331F", sz="8"):
-    sectPr = section._sectPr
-    pgBorders = OxmlElement('w:pgBorders')
-    pgBorders.set(qn('w:offsetFrom'), 'page')
-    for b_name in ['top', 'left', 'bottom', 'right']:
-        b = OxmlElement(f'w:{b_name}')
-        b.set(qn('w:val'), 'single')
-        b.set(qn('w:sz'), sz)
-        b.set(qn('w:space'), '20')
-        b.set(qn('w:color'), color)
-        pgBorders.append(b)
-    sectPr.append(pgBorders)
-
-def add_heading_styled(doc, text, level=1):
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(16)
-    p.paragraph_format.space_after = Pt(6)
-    p.paragraph_format.keep_with_next = True
-    run = p.add_run(text)
-    run.font.name = 'Times New Roman'
-    run.bold = True
-    if level == 1:
-        run.font.size = Pt(16)
-        run.font.color.rgb = RGBColor(15, 23, 42)
-    elif level == 2:
-        run.font.size = Pt(14)
-        run.font.color.rgb = RGBColor(3, 105, 161)
-    return p
-
-def add_diagram_box(doc, title, flow_steps):
-    add_heading_styled(doc, f"❖ Database Architecture Diagram: {title}", level=2)
-    tbl = doc.add_table(rows=1, cols=1)
-    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tbl.autofit = False
-    
-    cell = tbl.rows[0].cells[0]
-    cell.width = Inches(7.0)
-    set_cell_background(cell, "F8FAFC")
-    set_cell_margins(cell, top=140, bottom=140, left=180, right=180)
-    
-    p = cell.paragraphs[0]
-    p.paragraph_format.space_before = Pt(4)
-    p.paragraph_format.space_after = Pt(6)
-    r_t = p.add_run(f"SCHEMA LAYER DIAGRAM: {title.upper()}\n")
-    r_t.font.name = 'Times New Roman'
-    r_t.font.size = Pt(14)
-    r_t.bold = True
-    r_t.font.color.rgb = RGBColor(15, 51, 31)
-    
-    for idx, step in enumerate(flow_steps):
-        p_step = cell.add_paragraph()
-        p_step.paragraph_format.space_before = Pt(2)
-        p_step.paragraph_format.space_after = Pt(4)
-        
-        step_prefix = f"► Schema Layer {idx+1}: "
-        r_sp = p_step.add_run(step_prefix)
-        r_sp.bold = True
-        r_sp.font.name = 'Times New Roman'
-        r_sp.font.size = Pt(14)
-        r_sp.font.color.rgb = RGBColor(3, 105, 161)
-        
-        r_sb = p_step.add_run(step)
-        r_sb.font.name = 'Times New Roman'
-        r_sb.font.size = Pt(14)
-        r_sb.font.color.rgb = RGBColor(30, 41, 59)
-        
-        if idx < len(flow_steps) - 1:
-            p_arrow = cell.add_paragraph()
-            p_arrow.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p_arrow.paragraph_format.space_before = Pt(0)
-            p_arrow.paragraph_format.space_after = Pt(0)
-            r_arr = p_arrow.add_run("│\n▼")
-            r_arr.bold = True
-            r_arr.font.name = 'Times New Roman'
-            r_arr.font.size = Pt(14)
-            r_arr.font.color.rgb = RGBColor(15, 118, 110)
-
-    set_table_borders(tbl, color="0F331F", sz="8")
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
+# Schema section mappings & table descriptions
 SECTION_MAPPINGS = [
     {
         "category": "1. Authentication & System Administration",
@@ -190,11 +83,240 @@ TABLE_DESCRIPTIONS = {
     "clubs": "Lookup table for campus student clubs and technical societies with Faculty Incharge & Co-Faculty Incharge assignments."
 }
 
+def set_cell_background(cell, fill_hex):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear')
+    shd.set(qn('w:color'), 'auto')
+    shd.set(qn('w:fill'), fill_hex)
+    tcPr.append(shd)
+
+def set_cell_margins(cell, top=120, bottom=120, left=160, right=160):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcMar = OxmlElement('w:tcMar')
+    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
+        node = OxmlElement(f'w:{m}')
+        node.set(qn('w:w'), str(val))
+        node.set(qn('w:type'), 'dxa')
+        tcMar.append(node)
+    tcPr.append(tcMar)
+
+def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
+    tblPr = table._tbl.tblPr
+    tblBorders = OxmlElement('w:tblBorders')
+    for border_name in ['top', 'left', 'bottom', 'right', 'insideH']:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), val)
+        border.set(qn('w:sz'), sz)
+        border.set(qn('w:space'), '0')
+        border.set(qn('w:color'), color)
+        tblBorders.append(border)
+    border = OxmlElement('w:insideV')
+    border.set(qn('w:val'), 'none')
+    tblBorders.append(border)
+    tblPr.append(tblBorders)
+
+def add_page_border(section, color="0F331F", sz="8"):
+    sectPr = section._sectPr
+    pgBorders = OxmlElement('w:pgBorders')
+    pgBorders.set(qn('w:offsetFrom'), 'page')
+    for b_name in ['top', 'left', 'bottom', 'right']:
+        b = OxmlElement(f'w:{b_name}')
+        b.set(qn('w:val'), 'single')
+        b.set(qn('w:sz'), sz)
+        b.set(qn('w:space'), '20')
+        b.set(qn('w:color'), color)
+        pgBorders.append(b)
+    sectPr.append(pgBorders)
+
+def add_heading_styled(doc, text, level=1):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(16)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = 'Times New Roman'
+    run.bold = True
+    if level == 1:
+        run.font.size = Pt(16)
+        run.font.color.rgb = RGBColor(15, 23, 42)
+    elif level == 2:
+        run.font.size = Pt(14)
+        run.font.color.rgb = RGBColor(3, 105, 161)
+    return p
+
+def generate_er_diagram_image(img_path):
+    """Dynamically renders a high-resolution Entity-Relationship (ER) Diagram image."""
+    fig, ax = plt.subplots(figsize=(16, 12), dpi=300)
+    ax.set_xlim(0, 160)
+    ax.set_ylim(0, 120)
+    ax.axis('off')
+    fig.patch.set_facecolor('#FFFFFF')
+
+    # Main Diagram Header Title
+    ax.text(80, 115, "SREC FIS V3.0 — ENTITY-RELATIONSHIP (ER) ARCHITECTURE DIAGRAM", 
+            fontsize=15, fontweight='bold', color='#0F331F', ha='center', fontfamily='DejaVu Sans')
+    ax.text(80, 111, "Relational Entity Mapping Across 35+ MySQL Database Tables & Key Foreign Keys", 
+            fontsize=11, fontstyle='italic', color='#475569', ha='center', fontfamily='DejaVu Sans')
+
+    # Helper box drawer
+    def draw_entity_box(x, y, w, h, title, fields, color_hdr='#0F331F', color_bg='#F8FAFC'):
+        # Outer box
+        rect = patches.FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.3,rounding_size=0.8", 
+                                      facecolor=color_bg, edgecolor='#CBD5E1', linewidth=1.2)
+        ax.add_patch(rect)
+        
+        # Header bar
+        hdr_rect = patches.FancyBboxPatch((x, y + h - 4.5), w, 4.5, boxstyle="round,pad=0.3,rounding_size=0.4", 
+                                          facecolor=color_hdr, edgecolor='none')
+        ax.add_patch(hdr_rect)
+        
+        # Header text
+        ax.text(x + w/2, y + h - 2.5, title, fontsize=9.5, fontweight='bold', color='#FFFFFF', 
+                ha='center', va='center', fontfamily='DejaVu Sans')
+        
+        # Fields list
+        curr_y = y + h - 7.5
+        for f in fields:
+            ax.text(x + 1.5, curr_y, f, fontsize=8, color='#1E293B', fontfamily='DejaVu Sans')
+            curr_y -= 3.0
+
+    # Cluster 1: Core Identity & Credentials (Top Left)
+    draw_entity_box(5, 75, 32, 30, "staff_personal [PK: staff_id]", [
+        "[PK] staff_id (VARCHAR)",
+        "• staff_name, gender, dob",
+        "• email, mobile, address",
+        "• pan_no, aadhar_no",
+        "• aicte_id, anna_univ_id",
+        "• is_relieved (TINYINT)"
+    ], color_hdr='#0F331F', color_bg='#F0FDF4')
+
+    draw_entity_box(42, 75, 30, 30, "staff_academics", [
+        "[FK] staff_id (-> staff_personal)",
+        "• Department, Designation",
+        "• Qualification, Specialization",
+        "• doj_srec, exp_srec_yrs",
+        "• past_exp_yrs, total_exp",
+        "• orcid_id, scholar_id, scopus"
+    ], color_hdr='#0F331F', color_bg='#F0FDF4')
+
+    draw_entity_box(5, 48, 32, 22, "staff_user", [
+        "[FK] staff_id (-> staff_personal)",
+        "• username, password (bcrypt)",
+        "• profile_pic, created_at"
+    ], color_hdr='#166534', color_bg='#F0FDF4')
+
+    draw_entity_box(42, 48, 30, 22, "admin & admin_dep", [
+        "[PK] id, [FK] staff_id",
+        "• username, password",
+        "• Department (admin_dep)",
+        "• role: admin / dept_admin"
+    ], color_hdr='#166534', color_bg='#F0FDF4')
+
+    # Cluster 2: Performance Appraisal & Governance (Top Right)
+    draw_entity_box(80, 75, 34, 30, "staff_appraisal [FPI Engine]", [
+        "[PK] id, [FK] staff_id",
+        "• academic_year (e.g. 2025-2026)",
+        "• part_a_score, part_b_score",
+        "• part_c_score, part_d_score",
+        "• total_fpi_score (Max 200)",
+        "• status: Submitted / Approved"
+    ], color_hdr='#991B1B', color_bg='#FEF2F2')
+
+    draw_entity_box(120, 75, 34, 30, "appraisal_template", [
+        "[PK] id, criteria_code",
+        "• section_code (PART_A..D)",
+        "• criteria_title, max_marks",
+        "• unit_mark, target_designation",
+        "• bracket_config (JSON)"
+    ], color_hdr='#991B1B', color_bg='#FEF2F2')
+
+    draw_entity_box(80, 48, 34, 22, "staff_responsibilities", [
+        "[PK] id, [FK] staff_id",
+        "• responsibility, level (Inst/Dept)",
+        "• assigned_by, department",
+        "• academic_year"
+    ], color_hdr='#B91C1C', color_bg='#FEF2F2')
+
+    draw_entity_box(120, 48, 34, 22, "staff_department_history", [
+        "[PK] id, [FK] staff_id",
+        "• from_dept, to_dept",
+        "• transfer_date, timestamp"
+    ], color_hdr='#B91C1C', color_bg='#FEF2F2')
+
+    # Cluster 3: Research & IP (Middle Row Left)
+    draw_entity_box(5, 12, 34, 30, "staff_publication & books", [
+        "[PK] id, [FK] staff_id",
+        "• title, journal_name, issn",
+        "• pub_type: Journal / Conf",
+        "• indexing: Scopus / WoS / SCI",
+        "• book_title, isbn, publisher"
+    ], color_hdr='#0369A1', color_bg='#F0F9FF')
+
+    draw_entity_box(43, 12, 34, 30, "staff_ipr & funding", [
+        "[PK] id, [FK] staff_id",
+        "• patent_title, status, date",
+        "• project_title, agency",
+        "• sanctioned_amount, granted",
+        "• staff_seed_money (title, amt)"
+    ], color_hdr='#0369A1', color_bg='#F0F9FF')
+
+    # Cluster 4: Activities & Clubs (Middle Row Right)
+    draw_entity_box(81, 12, 35, 30, "clubs & staff_club", [
+        "[PK] id",
+        "• name (Club Name)",
+        "• [FK] faculty_incharge_id",
+        "• [FK] co_faculty_incharge_id",
+        "• staff_club (events organized)"
+    ], color_hdr='#0F766E', color_bg='#F0FDFA')
+
+    draw_entity_box(120, 12, 34, 30, "staff_interaction & certs", [
+        "[PK] id, [FK] staff_id",
+        "• FDP / workshop_title, duration",
+        "• staff_resource (talk_title)",
+        "• staff_certificate (NPTEL, etc)",
+        "• staff_award (award_name)"
+    ], color_hdr='#0F766E', color_bg='#F0FDFA')
+
+    # Cluster Connectors / Cardinality Lines
+    # staff_personal to staff_academics
+    ax.annotate('', xy=(42, 90), xytext=(37, 90),
+                arrowprops=dict(arrowstyle="->,head_width=0.3", color="#0F331F", lw=1.5))
+    ax.text(39.5, 91.5, "1:1", fontsize=8.5, fontweight='bold', color="#0F331F", fontfamily='DejaVu Sans')
+
+    # staff_personal to staff_appraisal
+    ax.annotate('', xy=(80, 90), xytext=(72, 90),
+                arrowprops=dict(arrowstyle="->,head_width=0.3", color="#991B1B", lw=1.5))
+    ax.text(76, 91.5, "1:N", fontsize=8.5, fontweight='bold', color="#991B1B", fontfamily='DejaVu Sans')
+
+    # staff_personal to staff_publication
+    ax.annotate('', xy=(20, 42), xytext=(20, 48),
+                arrowprops=dict(arrowstyle="->,head_width=0.3", color="#0369A1", lw=1.5))
+    ax.text(21, 45, "1:N", fontsize=8.5, fontweight='bold', color="#0369A1", fontfamily='DejaVu Sans')
+
+    # staff_personal to clubs
+    ax.annotate('', xy=(81, 27), xytext=(77, 27),
+                arrowprops=dict(arrowstyle="->,head_width=0.3", color="#0F766E", lw=1.5))
+    ax.text(78.5, 28.5, "1:N", fontsize=8.5, fontweight='bold', color="#0F766E", fontfamily='DejaVu Sans')
+
+    # Save figure image
+    plt.tight_layout()
+    plt.savefig(img_path, format='png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
 def generate_docx():
     docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
     os.makedirs(docs_dir, exist_ok=True)
     output_path = os.path.join(docs_dir, 'Database_Schema.docx')
+    er_img_path = os.path.join(docs_dir, 'er_diagram.png')
     
+    # Render fresh ER Diagram image
+    try:
+        generate_er_diagram_image(er_img_path)
+        print(f"ER Diagram image generated successfully at: {er_img_path}")
+    except Exception as e:
+        print(f"Warning: Failed to generate ER diagram image: {e}")
+
     use_mysql = False
     tables_data = {}
     
@@ -367,14 +489,26 @@ def generate_docx():
     set_table_borders(meta_table)
     doc.add_paragraph().paragraph_format.space_after = Pt(12)
 
-    add_diagram_box(doc, "Relational Entity Relationship (ER) & Schema Layering Architecture", [
-        "Core Identity Layer: staff_user, staff_personal, staff_academics (Key: staff_id).",
-        "R&D & Scholarly Layer: staff_publication, staff_book_published, staff_ipr, staff_funding, staff_seed_money, staff_scholars.",
-        "Activities & Clubs Layer: staff_interaction, staff_resource, staff_event_organized, staff_club, staff_certificate, staff_award.",
-        "Governance & Appraisal Layer: staff_responsibilities, clubs (Coordinators & Co-Coordinators), staff_appraisal, appraisal_template, staff_department_history.",
-        "Master Lookup Layer: departments, university, professional, designations, clubs."
-    ])
-    
+    # Insert High-Resolution Entity-Relationship (ER) Diagram Image
+    if os.path.exists(er_img_path):
+        add_heading_styled(doc, "1. Entity-Relationship (ER) Architecture Diagram", level=1)
+        p_img = doc.add_paragraph()
+        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img.paragraph_format.space_before = Pt(6)
+        p_img.paragraph_format.space_after = Pt(10)
+        r_img = p_img.add_run()
+        r_img.add_picture(er_img_path, width=Inches(6.8))
+
+        p_cap = doc.add_paragraph()
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.paragraph_format.space_before = Pt(0)
+        p_cap.paragraph_format.space_after = Pt(14)
+        r_cap = p_cap.add_run("Figure 1: High-Resolution Entity-Relationship (ER) Diagram for SREC FIS V3.0 Relational Database")
+        r_cap.font.name = 'Times New Roman'
+        r_cap.font.size = Pt(11)
+        r_cap.font.italic = True
+        r_cap.font.color.rgb = RGBColor(71, 85, 105)
+
     processed_tables = set()
     existing_tables = set(tables_data.keys())
     
