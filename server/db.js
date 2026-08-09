@@ -509,6 +509,7 @@ const createTables = async () => {
       max_marks DOUBLE DEFAULT 10,
       calculation_rule VARCHAR(100) DEFAULT 'fixed_per_record',
       bracket_config TEXT,
+      data_source_page VARCHAR(100) DEFAULT NULL,
       target_designation VARCHAR(100) DEFAULT 'ALL',
       display_order INT DEFAULT 1,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -675,48 +676,50 @@ const createTables = async () => {
   try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN fixed_mark_per_record DOUBLE DEFAULT 0'); } catch (e) {}
   try { await pool.query("ALTER TABLE appraisal_template ADD COLUMN calculation_rule VARCHAR(100) DEFAULT 'fixed_per_record'"); } catch (e) {}
   try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN bracket_config TEXT'); } catch (e) {}
+  try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN data_source_page VARCHAR(100) DEFAULT NULL'); } catch (e) {}
 
   // Seed / Sync default appraisal template
   try {
     const defaultItems = [
-      ['PART_A', 'PART A: Teaching Learning Process', 'A1', 'Use of Innovative ICT Tools', '5 marks per innovative ICT tool integrated in course delivery', 'manual', 5, 10, 'fixed_per_record', null, 1],
-      ['PART_A', 'PART A: Teaching Learning Process', 'A2', 'E-Content Development', '5 marks per e-content / video lecture launched on YouTube/LMS', 'manual', 5, 10, 'fixed_per_record', null, 2],
-      ['PART_A', 'PART A: Teaching Learning Process', 'A3', 'Development of New Experiments / Labs', '5 marks per new lab experiment or virtual lab manual developed', 'manual', 5, 10, 'fixed_per_record', null, 3],
-      ['PART_A', 'PART A: Teaching Learning Process', 'A4', 'Student Feedback Rating', '5 marks for >=4.0 rating, 3 marks for <4.0 rating', 'manual', 5, 5, 'bracket_rating', JSON.stringify({ rating_threshold: 4.0, high_score: 5, low_score: 3 }), 4],
-      ['PART_A', 'PART A: Teaching Learning Process', 'A5', 'End Semester Course Pass Percentage', '10 marks for >=80% pass rate, 5 marks for 60-79% pass rate', 'manual', 10, 10, 'bracket_rating', JSON.stringify({ pass_threshold: 80, high_score: 10, low_score: 5 }), 5],
-      ['PART_A', 'PART A: Teaching Learning Process', 'A6', 'Value Added Courses / Industry Workshops Organized', '5 marks per value added course or industry workshop delivered', 'manual', 5, 5, 'fixed_per_record', null, 6],
-      ['PART_A', 'PART A: Teaching Learning Process', 'A7', 'Mentoring Students in Hackathons & Competitions', '10 marks for Prize Won, 5 marks for Participation', 'manual', 10, 10, 'bracket_rating', JSON.stringify({ prize_score: 10, participation_score: 5 }), 7],
-      ['PART_B', 'PART B: Professional Development Activities', 'B1', 'Professional Society Memberships', 'Automatic mapping: 3 marks per active professional society membership', 'auto', 3, 3, 'fixed_per_record', null, 8],
-      ['PART_B', 'PART B: Professional Development Activities', 'B2', 'Resource Speaker / Session Chair', 'Automatic mapping: 2 marks per invited talk / resource person role', 'auto', 2, 4, 'fixed_per_record', null, 9],
-      ['PART_B', 'PART B: Professional Development Activities', 'B3', 'External Academic / Professional Interactions', 'Automatic mapping: 2.5 marks per external interaction detail', 'auto', 2.5, 5, 'fixed_per_record', null, 10],
-      ['PART_B', 'PART B: Professional Development Activities', 'B4', 'Curriculum Development & Board of Studies (BOS)', '5 marks for active BoS membership / syllabus revision', 'manual', 5, 5, 'fixed_per_record', null, 11],
-      ['PART_B', 'PART B: Professional Development Activities', 'B5', 'Organizing FDPs / Conferences / Symposia', 'Automatic mapping: 4 marks per national/international conference, FDP, or symposium organized [Max 8 pts]', 'auto', 4, 8, 'fixed_per_record', null, 12],
-      ['PART_B', 'PART B: Professional Development Activities', 'B6', 'Online Certifications (SWAYAM / NPTEL / Coursera)', 'Automatic mapping: 5 marks for 8/12 week course, 2.5 for 4 week', 'auto', 5, 10, 'bracket_rating', JSON.stringify({ long_course_score: 5, short_course_score: 2.5 }), 13],
-      ['PART_B', 'PART B: Professional Development Activities', 'B7', 'Industrial Training / Corporate Internship Completed', '5 marks per industrial training completed', 'manual', 5, 5, 'fixed_per_record', null, 14],
-      ['PART_C', 'PART C: Research & Consultancy', 'C1', 'Research Publications in Journals & Conferences', 'Automatic mapping: 10 marks per Journal, 5 per Conference', 'auto', 10, 20, 'pub_type_split', JSON.stringify({ journal_score: 10, conf_score: 5 }), 15],
-      ['PART_C', 'PART C: Research & Consultancy', 'C2', 'Books & Book Chapters Published', 'Automatic mapping: 5 marks per book or book chapter published', 'auto', 5, 10, 'fixed_per_record', null, 16],
-      ['PART_C', 'PART C: Research & Consultancy', 'C3', 'Community Service & Extension Activities', '5 marks per community outreach project', 'manual', 5, 5, 'fixed_per_record', null, 17],
-      ['PART_C', 'PART C: Research & Consultancy', 'C4', 'IPR, Patents & Copyrights', 'Automatic mapping: 10 marks for Granted/Registered, 7 for Published, 3 for Filed', 'auto', 10, 10, 'patent_status_split', JSON.stringify({ granted_score: 10, published_score: 7, filed_score: 3 }), 18],
-      ['PART_C', 'PART C: Research & Consultancy', 'C5', 'Research Grants & External Sponsored Projects', 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 for <=5 Lakhs, 5 per proposal', 'auto', 10, 15, 'bracket_rating', JSON.stringify({ high_grant_score: 10, low_grant_score: 8, proposal_score: 5 }), 19],
-      ['PART_C', 'PART C: Research & Consultancy', 'C6', 'Seed Money & Consultancy Services', 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project', 'auto', 5, 10, 'fixed_per_record', null, 20],
-      ['PART_C', 'PART C: Research & Consultancy', 'C7', 'Research Scholars Guidance (Ph.D)', 'Automatic mapping: 2.5 marks per registered Ph.D scholar (Only for Recognized Research Supervisors)', 'auto', 2.5, 5, 'phd_supervisor_gated', JSON.stringify({ scholar_unit_score: 2.5 }), 21],
-      ['PART_C', 'PART C: Research & Consultancy', 'C8', 'Awards & Recognitions Received', 'Automatic mapping: 5 marks per national/international award received', 'auto', 5, 5, 'fixed_per_record', null, 22],
-      ['PART_D', 'PART D: Institutional Development & Contribution', 'D1', 'Assigned Institutional & Departmental Responsibilities', 'Automatic mapping: 10 marks per Institutional role (Max 20), 10 per Departmental role (Max 10). Combined Max 20', 'auto', 10, 20, 'fixed_per_record', null, 23],
-      ['PART_D', 'PART D: Institutional Development & Contribution', 'D2', 'Student Mentoring & Counseling Contributions', '10 marks for active student counseling tracking', 'manual', 10, 10, 'fixed_per_record', null, 24],
-      ['PART_D', 'PART D: Institutional Development & Contribution', 'D3', 'Contribution to NBA / NAAC / Autonomous Accreditations', '10 marks for active module coordination in accreditations', 'manual', 10, 10, 'fixed_per_record', null, 25]
+      ['PART_A', 'PART A: Teaching Learning Process', 'A1', 'Use of Innovative ICT Tools', '5 marks per innovative ICT tool integrated in course delivery', 'manual', 5, 10, 'fixed_per_record', null, null, 1],
+      ['PART_A', 'PART A: Teaching Learning Process', 'A2', 'E-Content Development', '5 marks per e-content / video lecture launched on YouTube/LMS', 'manual', 5, 10, 'fixed_per_record', null, null, 2],
+      ['PART_A', 'PART A: Teaching Learning Process', 'A3', 'Development of New Experiments / Labs', '5 marks per new lab experiment or virtual lab manual developed', 'manual', 5, 10, 'fixed_per_record', null, null, 3],
+      ['PART_A', 'PART A: Teaching Learning Process', 'A4', 'Student Feedback Rating', '5 marks for >=4.0 rating, 3 marks for <4.0 rating', 'manual', 5, 5, 'bracket_rating', JSON.stringify({ rating_threshold: 4.0, high_score: 5, low_score: 3 }), null, 4],
+      ['PART_A', 'PART A: Teaching Learning Process', 'A5', 'End Semester Course Pass Percentage', '10 marks for >=80% pass rate, 5 marks for 60-79% pass rate', 'manual', 10, 10, 'bracket_rating', JSON.stringify({ pass_threshold: 80, high_score: 10, low_score: 5 }), null, 5],
+      ['PART_A', 'PART A: Teaching Learning Process', 'A6', 'Value Added Courses / Industry Workshops Organized', '5 marks per value added course or industry workshop delivered', 'manual', 5, 5, 'fixed_per_record', null, null, 6],
+      ['PART_A', 'PART A: Teaching Learning Process', 'A7', 'Mentoring Students in Hackathons & Competitions', '10 marks for Prize Won, 5 marks for Participation', 'manual', 10, 10, 'bracket_rating', JSON.stringify({ prize_score: 10, participation_score: 5 }), null, 7],
+      ['PART_B', 'PART B: Professional Development Activities', 'B1', 'Professional Society Memberships', 'Automatic mapping: 3 marks per active professional society membership', 'auto', 3, 3, 'fixed_per_record', null, 'memberships', 8],
+      ['PART_B', 'PART B: Professional Development Activities', 'B2', 'Resource Speaker / Session Chair', 'Automatic mapping: 2 marks per invited talk / resource person role', 'auto', 2, 4, 'fixed_per_record', null, 'resource', 9],
+      ['PART_B', 'PART B: Professional Development Activities', 'B3', 'External Academic / Professional Interactions', 'Automatic mapping: 2.5 marks per external interaction detail', 'auto', 2.5, 5, 'fixed_per_record', null, 'interactions', 10],
+      ['PART_B', 'PART B: Professional Development Activities', 'B4', 'Curriculum Development & Board of Studies (BOS)', '5 marks for active BoS membership / syllabus revision', 'manual', 5, 5, 'fixed_per_record', null, null, 11],
+      ['PART_B', 'PART B: Professional Development Activities', 'B5', 'Organizing FDPs / Conferences / Symposia', 'Automatic mapping: 4 marks per national/international conference, FDP, or symposium organized [Max 8 pts]', 'auto', 4, 8, 'fixed_per_record', null, 'events', 12],
+      ['PART_B', 'PART B: Professional Development Activities', 'B6', 'Online Certifications (SWAYAM / NPTEL / Coursera)', 'Automatic mapping: 5 marks for 8/12 week course, 2.5 for 4 week', 'auto', 5, 10, 'bracket_rating', JSON.stringify({ long_course_score: 5, short_course_score: 2.5 }), 'certs', 13],
+      ['PART_B', 'PART B: Professional Development Activities', 'B7', 'Industrial Training / Corporate Internship Completed', '5 marks per industrial training completed', 'manual', 5, 5, 'fixed_per_record', null, null, 14],
+      ['PART_C', 'PART C: Research & Consultancy', 'C1', 'Research Publications in Journals & Conferences', 'Automatic mapping: 10 marks per Journal, 5 per Conference', 'auto', 10, 20, 'pub_type_split', JSON.stringify({ journal_score: 10, conf_score: 5 }), 'publications', 15],
+      ['PART_C', 'PART C: Research & Consultancy', 'C2', 'Books & Book Chapters Published', 'Automatic mapping: 5 marks per book or book chapter published', 'auto', 5, 10, 'fixed_per_record', null, 'books', 16],
+      ['PART_C', 'PART C: Research & Consultancy', 'C3', 'Community Service & Extension Activities', '5 marks per community outreach project', 'manual', 5, 5, 'fixed_per_record', null, null, 17],
+      ['PART_C', 'PART C: Research & Consultancy', 'C4', 'IPR, Patents & Copyrights', 'Automatic mapping: 10 marks for Granted/Registered, 7 for Published, 3 for Filed', 'auto', 10, 10, 'patent_status_split', JSON.stringify({ granted_score: 10, published_score: 7, filed_score: 3 }), 'ipr', 18],
+      ['PART_C', 'PART C: Research & Consultancy', 'C5', 'Research Grants & External Sponsored Projects', 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 for <=5 Lakhs, 5 per proposal', 'auto', 10, 15, 'bracket_rating', JSON.stringify({ high_grant_score: 10, low_grant_score: 8, proposal_score: 5 }), 'funding', 19],
+      ['PART_C', 'PART C: Research & Consultancy', 'C6', 'Seed Money & Consultancy Services', 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project', 'auto', 5, 10, 'fixed_per_record', null, 'seed_money', 20],
+      ['PART_C', 'PART C: Research & Consultancy', 'C7', 'Research Scholars Guidance (Ph.D)', 'Automatic mapping: 2.5 marks per registered Ph.D scholar (Only for Recognized Research Supervisors)', 'auto', 2.5, 5, 'phd_supervisor_gated', JSON.stringify({ scholar_unit_score: 2.5 }), 'scholars', 21],
+      ['PART_C', 'PART C: Research & Consultancy', 'C8', 'Awards & Recognitions Received', 'Automatic mapping: 5 marks per national/international award received', 'auto', 5, 5, 'fixed_per_record', null, 'awards', 22],
+      ['PART_D', 'PART D: Institutional Development & Contribution', 'D1', 'Assigned Institutional & Departmental Responsibilities', 'Automatic mapping: 10 marks per Institutional role (Max 20), 10 per Departmental role (Max 10). Combined Max 20', 'auto', 10, 20, 'fixed_per_record', null, 'responsibilities', 23],
+      ['PART_D', 'PART D: Institutional Development & Contribution', 'D2', 'Student Mentoring & Counseling Contributions', '10 marks for active student counseling tracking', 'manual', 10, 10, 'fixed_per_record', null, null, 24],
+      ['PART_D', 'PART D: Institutional Development & Contribution', 'D3', 'Contribution to NBA / NAAC / Autonomous Accreditations', '10 marks for active module coordination in accreditations', 'manual', 10, 10, 'fixed_per_record', null, null, 25]
     ];
 
     for (const item of defaultItems) {
       await pool.query(`
-        INSERT INTO appraisal_template (section_code, section_title, criteria_code, criteria_title, rubric_description, mapping_type, fixed_mark_per_record, max_marks, calculation_rule, bracket_config, display_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO appraisal_template (section_code, section_title, criteria_code, criteria_title, rubric_description, mapping_type, fixed_mark_per_record, max_marks, calculation_rule, bracket_config, data_source_page, display_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
           criteria_title = VALUES(criteria_title),
           rubric_description = VALUES(rubric_description),
           fixed_mark_per_record = VALUES(fixed_mark_per_record),
           max_marks = VALUES(max_marks),
           calculation_rule = VALUES(calculation_rule),
-          bracket_config = VALUES(bracket_config)
+          bracket_config = VALUES(bracket_config),
+          data_source_page = VALUES(data_source_page)
       `, item);
     }
   } catch (e) {}
