@@ -30,6 +30,77 @@ export default function Appraisal({ auth }) {
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [ruleModalItem, setRuleModalItem] = useState(null);
 
+  // Custom PART / Section State in Form Builder
+  const [showAddPartModal, setShowAddPartModal] = useState(false);
+  const [newPartForm, setNewPartForm] = useState({
+    section_code: 'PART_E',
+    section_title: 'PART E: Innovation, Startups & Entrepreneurship (Max Score: 20 Marks)',
+    criteria_code: 'E1',
+    criteria_title: 'Incubation & Startup Mentoring',
+    rubric_description: '5 marks per startup mentored or incubated.',
+    fixed_mark_per_record: 5,
+    max_marks: 10
+  });
+
+  // Dynamic Section Extraction across template items
+  const distinctSections = useMemo(() => {
+    const defaultSections = ['PART_A', 'PART_B', 'PART_C', 'PART_D'];
+    const codesInItems = Array.from(new Set((templateItems || []).map(i => i.section_code || 'PART_A')));
+    const result = [...defaultSections];
+    codesInItems.forEach(c => {
+      if (c && !result.includes(c)) {
+        result.push(c);
+      }
+    });
+    return result;
+  }, [templateItems]);
+
+  const getSectionTitle = (sectionCode) => {
+    const itemWithTitle = (templateItems || []).find(i => i.section_code === sectionCode && i.section_title);
+    if (itemWithTitle?.section_title) {
+      return itemWithTitle.section_title;
+    }
+    const defaultTitleMap = {
+      'PART_A': 'PART A: Teaching Learning Process (Default Max: 60)',
+      'PART_B': 'PART B: Professional Development Activities (Default Max: 40)',
+      'PART_C': 'PART C: Research & Consultancy (Default Max: 80)',
+      'PART_D': 'PART D: Institutional Development & Contribution (Default Max: 20)'
+    };
+    return defaultTitleMap[sectionCode] || `${sectionCode.replace('_', ' ')}: Custom Evaluation Part`;
+  };
+
+  const handleCreateNewPart = (e) => {
+    e.preventDefault();
+    if (!newPartForm.section_code || !newPartForm.section_title || !newPartForm.criteria_code) {
+      alert('Please fill in Part Code, Part Title, and initial Criteria Code.');
+      return;
+    }
+    const formattedCode = newPartForm.section_code.toUpperCase().trim().replace(/\s+/g, '_');
+    setTemplateItems(prev => [
+      ...prev,
+      {
+        section_code: formattedCode,
+        section_title: newPartForm.section_title.trim(),
+        criteria_code: newPartForm.criteria_code.toUpperCase().trim(),
+        criteria_title: newPartForm.criteria_title.trim() || 'New Evaluation Criteria',
+        rubric_description: newPartForm.rubric_description.trim() || 'Enter evaluation rubrics and scoring guidelines...',
+        mapping_type: 'manual',
+        fixed_mark_per_record: parseFloat(newPartForm.fixed_mark_per_record) || 5,
+        max_marks: parseFloat(newPartForm.max_marks) || 10,
+        calculation_rule: 'fixed_per_record',
+        bracket_config: null,
+        display_order: prev.length + 1
+      }
+    ]);
+    setShowAddPartModal(false);
+  };
+
+  const handleRemoveSection = (code) => {
+    if (window.confirm(`Are you sure you want to remove ${code} and all its evaluation criteria from the template?`)) {
+      setTemplateItems(prev => prev.filter(i => i.section_code !== code));
+    }
+  };
+
   // General Information State (Auto-Mapped from Portal)
   const [generalInfo, setGeneralInfo] = useState({
     departmentName: '',
@@ -1476,39 +1547,67 @@ export default function Appraisal({ auth }) {
               </p>
             </div>
 
-            <button
-              onClick={handleSaveTemplate}
-              disabled={savingTemplate}
-              className="btn btn-primary"
-              style={{ padding: '10px 20px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Save size={16} />
-              {savingTemplate ? 'Publishing Template...' : 'Save & Publish Template'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={() => setShowAddPartModal(true)}
+                className="btn btn-secondary"
+                style={{ padding: '10px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e0f2fe', color: '#0369a1', borderColor: '#7dd3fc' }}
+              >
+                <Plus size={16} /> Add New PART / Section
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate}
+                className="btn btn-primary"
+                style={{ padding: '10px 20px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Save size={16} />
+                {savingTemplate ? 'Publishing Template...' : 'Save & Publish Template'}
+              </button>
+            </div>
           </div>
 
-          {['PART_A', 'PART_B', 'PART_C', 'PART_D'].map((sectionCode) => {
-            const sectionTitleMap = {
-              'PART_A': 'PART A: Teaching Learning Process (Default Max: 60)',
-              'PART_B': 'PART B: Professional Development Activities (Default Max: 40)',
-              'PART_C': 'PART C: Research & Consultancy (Default Max: 80)',
-              'PART_D': 'PART D: Institutional Development & Contribution (Default Max: 20)'
-            };
+          {distinctSections.map((sectionCode) => {
+            const currentTitle = getSectionTitle(sectionCode);
             const sectionItems = templateItems.filter(i => i.section_code === sectionCode);
+            const isStandardPart = ['PART_A', 'PART_B', 'PART_C', 'PART_D'].includes(sectionCode);
 
             return (
               <div key={sectionCode} style={{ marginBottom: '28px', background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    {sectionTitleMap[sectionCode] || sectionCode}
-                  </h4>
-                  <button
-                    onClick={() => handleAddCriteriaItem(sectionCode, sectionTitleMap[sectionCode])}
-                    className="btn btn-secondary"
-                    style={{ fontSize: '0.8rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    <Plus size={14} /> Add Criteria
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#e0f2fe', padding: '4px 8px', borderRadius: '4px', border: '1px solid #7dd3fc' }}>
+                      {sectionCode}
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={currentTitle}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTemplateItems(prev => prev.map(item => item.section_code === sectionCode ? { ...item, section_title: val } : item));
+                      }}
+                      style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => handleAddCriteriaItem(sectionCode, currentTitle)}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.8rem', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                    >
+                      <Plus size={14} /> Add Criteria
+                    </button>
+                    {!isStandardPart && (
+                      <button
+                        onClick={() => handleRemoveSection(sectionCode)}
+                        style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.78rem', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        title="Delete this custom part"
+                      >
+                        <Trash2 size={13} /> Delete Part
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="table-container">
@@ -5126,6 +5225,154 @@ export default function Appraisal({ auth }) {
           </div>
         );
       })()}
+
+      {/* ADD NEW PART / SECTION MODAL */}
+      {showAddPartModal && (
+        <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1150, padding: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '14px', maxWidth: '600px', width: '100%', padding: '24px', border: '1.5px solid #cbd5e1', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={20} color="#0284c7" /> Create New Appraisal PART / Section
+              </h3>
+              <button type="button" onClick={() => setShowAddPartModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewPart} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', marginBottom: '4px', display: 'block' }}>
+                    Section Code:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="form-control"
+                    value={newPartForm.section_code}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, section_code: e.target.value })}
+                    placeholder="e.g. PART_E"
+                    style={{ fontSize: '0.85rem', fontWeight: 700 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', marginBottom: '4px', display: 'block' }}>
+                    Full Section Title:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="form-control"
+                    value={newPartForm.section_title}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, section_title: e.target.value })}
+                    placeholder="e.g. PART E: Innovation & Startups (Max: 20 Marks)"
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0369a1' }}>
+                  Initial Evaluation Criteria Item setup:
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '3px', display: 'block' }}>
+                      Criteria Code:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="form-control"
+                      value={newPartForm.criteria_code}
+                      onChange={(e) => setNewPartForm({ ...newPartForm, criteria_code: e.target.value })}
+                      placeholder="e.g. E1"
+                      style={{ fontSize: '0.82rem', fontWeight: 700 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '3px', display: 'block' }}>
+                      Criteria Title:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="form-control"
+                      value={newPartForm.criteria_title}
+                      onChange={(e) => setNewPartForm({ ...newPartForm, criteria_title: e.target.value })}
+                      placeholder="e.g. Incubation & Startup Mentoring"
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '3px', display: 'block' }}>
+                    Rubrics & Evaluation Description:
+                  </label>
+                  <textarea
+                    rows="2"
+                    className="form-control"
+                    value={newPartForm.rubric_description}
+                    onChange={(e) => setNewPartForm({ ...newPartForm, rubric_description: e.target.value })}
+                    placeholder="Enter rubrics description..."
+                    style={{ fontSize: '0.82rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#15803d', marginBottom: '3px', display: 'block' }}>
+                      Fixed Mark / Record:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      className="form-control"
+                      value={newPartForm.fixed_mark_per_record}
+                      onChange={(e) => setNewPartForm({ ...newPartForm, fixed_mark_per_record: e.target.value })}
+                      style={{ fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '3px', display: 'block' }}>
+                      Criteria Max Marks:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      className="form-control"
+                      value={newPartForm.max_marks}
+                      onChange={(e) => setNewPartForm({ ...newPartForm, max_marks: e.target.value })}
+                      style={{ fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.85rem', padding: '6px 14px' }}
+                  onClick={() => setShowAddPartModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.85rem', padding: '6px 18px', fontWeight: 800 }}
+                >
+                  Create New PART
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
