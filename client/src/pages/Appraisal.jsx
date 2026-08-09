@@ -454,7 +454,7 @@ export default function Appraisal({ auth }) {
 
   const fetchTemplate = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/appraisal/template`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/template`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       const contentType = res.headers.get('content-type') || '';
@@ -475,7 +475,7 @@ export default function Appraisal({ auth }) {
     setError('');
     setSavingTemplate(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/appraisal/template`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/template`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
