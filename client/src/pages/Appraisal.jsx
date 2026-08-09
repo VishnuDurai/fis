@@ -528,6 +528,28 @@ export default function Appraisal({ auth }) {
     setTemplateItems(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleMoveCriteriaUp = (index) => {
+    if (index <= 0) return;
+    setTemplateItems(prev => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[index - 1];
+      copy[index - 1] = temp;
+      return copy.map((item, i) => ({ ...item, display_order: i + 1 }));
+    });
+  };
+
+  const handleMoveCriteriaDown = (index) => {
+    setTemplateItems(prev => {
+      if (index >= prev.length - 1) return prev;
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[index + 1];
+      copy[index + 1] = temp;
+      return copy.map((item, i) => ({ ...item, display_order: i + 1 }));
+    });
+  };
+
   const fetchFpiSummary = async () => {
     try {
       fetch(`${API_BASE_URL}/api/activities/interactions?staffId=${auth.staffId}`, {
@@ -1731,6 +1753,14 @@ export default function Appraisal({ auth }) {
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button
+                type="button"
+                onClick={() => setShowLivePreviewModal(true)}
+                className="btn btn-secondary"
+                style={{ padding: '10px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0fdf4', color: '#15803d', borderColor: '#86efac' }}
+              >
+                <Eye size={16} /> Live Preview Form
+              </button>
+              <button
                 onClick={() => setShowAddPartModal(true)}
                 className="btn btn-secondary"
                 style={{ padding: '10px 16px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e0f2fe', color: '#0369a1', borderColor: '#7dd3fc' }}
@@ -2014,14 +2044,35 @@ export default function Appraisal({ auth }) {
                                 />
                               </td>
                               <td style={{ textAlign: 'center' }}>
-                                <button
-                                  onClick={() => handleRemoveCriteriaItem(itemIndex)}
-                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                                  title="Remove Criteria"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
+                                 <div style={{ display: 'flex', gap: '3px', justifyContent: 'center', alignItems: 'center' }}>
+                                   <button
+                                     type="button"
+                                     onClick={() => handleMoveCriteriaUp(itemIndex)}
+                                     disabled={itemIndex === 0}
+                                     style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', borderRadius: '4px', padding: '2px 5px', cursor: 'pointer', fontSize: '0.7rem', opacity: itemIndex === 0 ? 0.3 : 1 }}
+                                     title="Move Criteria Up"
+                                   >
+                                     ▲
+                                   </button>
+                                   <button
+                                     type="button"
+                                     onClick={() => handleMoveCriteriaDown(itemIndex)}
+                                     disabled={itemIndex === templateItems.length - 1}
+                                     style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', borderRadius: '4px', padding: '2px 5px', cursor: 'pointer', fontSize: '0.7rem', opacity: itemIndex === templateItems.length - 1 ? 0.3 : 1 }}
+                                     title="Move Criteria Down"
+                                   >
+                                     ▼
+                                   </button>
+                                   <button
+                                     type="button"
+                                     onClick={() => handleRemoveCriteriaItem(itemIndex)}
+                                     style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                                     title="Remove Criteria"
+                                   >
+                                     <Trash2 size={15} />
+                                   </button>
+                                 </div>
+                               </td>
                             </tr>
                           );
                         })
@@ -3664,6 +3715,13 @@ export default function Appraisal({ auth }) {
                     <div><strong>Grants Received:</strong> {app.grants_amount || 'N/A'}</div>
                     <div><strong>HOD Total Score:</strong> <span style={{ color: '#16a34a', fontWeight: 800 }}>{app.hod_total_score ? `${app.hod_total_score} / 200` : 'Pending'}</span></div>
                   </div>
+
+                  {app.reviewer_remarks && (
+                    <div style={{ marginBottom: '16px', background: '#fffbe6', border: '1.5px solid #ffe58f', borderRadius: '8px', padding: '12px 16px', color: '#92400e', fontSize: '0.85rem' }}>
+                      <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>📌 Reviewer Feedback / Revision Note:</strong>
+                      <p style={{ margin: '4px 0 0 0', fontWeight: 600 }}>{app.reviewer_remarks}</p>
+                    </div>
+                  )}
 
                   {/* HOD Evaluation & Score Breakdown View */}
                   {(app.status === 'HOD Approved' || app.status === 'Final Approved') && (
@@ -5706,6 +5764,89 @@ export default function Appraisal({ auth }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* LIVE FORM BUILDER PREVIEW MODAL */}
+      {showLivePreviewModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '1000px', maxHeight: '90vh', overflowY: 'auto', padding: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Eye size={20} color="#15803d" /> Live Faculty FPI Form Preview
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+                  This is how the configured appraisal form appears to faculty members during appraisal submission.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLivePreviewModal(false)}
+                style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {distinctSections.map(sectionCode => {
+                const currentTitle = getSectionTitle(sectionCode);
+                const sectionItems = templateItems.filter(i => i.section_code === sectionCode);
+                return (
+                  <div key={sectionCode} style={{ background: '#f8fafc', padding: '18px', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e3a8a', marginBottom: '12px' }}>
+                      {currentTitle}
+                    </h4>
+                    <div className="table-container">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th style={{ width: '60px' }}>Code</th>
+                            <th style={{ width: '220px' }}>Criteria Title</th>
+                            <th>Rubrics & Guidelines</th>
+                            <th style={{ width: '120px' }}>Type</th>
+                            <th style={{ width: '90px' }}>Max Marks</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sectionItems.map((item, idx) => (
+                            <tr key={idx}>
+                              <td style={{ fontWeight: 800, color: '#0369a1' }}>{item.criteria_code}</td>
+                              <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.criteria_title}</td>
+                              <td style={{ fontSize: '0.82rem', color: '#475569' }}>{item.rubric_description}</td>
+                              <td>
+                                <span style={{
+                                  padding: '3px 8px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 800,
+                                  background: item.mapping_type === 'auto' ? '#ecfdf5' : '#fffbe6',
+                                  color: item.mapping_type === 'auto' ? '#047857' : '#d97706',
+                                  border: item.mapping_type === 'auto' ? '1px solid #a7f3d0' : '1px solid #fef08a'
+                                }}>
+                                  {item.mapping_type === 'auto' ? '⚡ Auto Portal' : '✍️ Manual Entry'}
+                                </span>
+                              </td>
+                              <td style={{ fontWeight: 800, color: '#15803d', textAlign: 'center' }}>{item.max_marks}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: '24px', textAlign: 'right' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowLivePreviewModal(false)}
+                style={{ padding: '8px 20px', fontWeight: 800 }}
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -678,6 +678,10 @@ const createTables = async () => {
   try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN bracket_config TEXT'); } catch (e) {}
   try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN data_source_page VARCHAR(100) DEFAULT NULL'); } catch (e) {}
   try { await pool.query("ALTER TABLE appraisal_template ADD COLUMN target_designation VARCHAR(100) DEFAULT 'ALL'"); } catch (e) {}
+  try { await pool.query("ALTER TABLE appraisal_template ADD COLUMN academic_year VARCHAR(20) DEFAULT '2026-2027'"); } catch (e) {}
+
+  // Add staff_appraisals reviewer_remarks column if missing
+  try { await pool.query('ALTER TABLE staff_appraisals ADD COLUMN reviewer_remarks TEXT'); } catch (e) {}
 
   // Ensure criteria_code is VARCHAR(50) NOT NULL, deduplicate existing rows, and add UNIQUE index
   try {

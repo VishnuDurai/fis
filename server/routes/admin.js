@@ -1326,4 +1326,67 @@ router.delete('/clubs/:id', authenticateToken, (req, res) => {
   });
 });
 
+// Instant Faculty Global Search API
+router.get('/search-faculty', authenticateToken, (req, res) => {
+  const query = (req.query.q || '').trim();
+  if (!query) return res.json([]);
+
+  const searchPattern = `%${query}%`;
+  const sql = `
+    SELECT p.staff_id, p.staff_name, a.Department as department, a.Designation as designation
+    FROM staff_personal p
+    LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+    WHERE p.staff_id LIKE ? OR p.staff_name LIKE ? OR a.Department LIKE ? OR a.Designation LIKE ?
+    LIMIT 15
+  `;
+
+  db.all(sql, [searchPattern, searchPattern, searchPattern, searchPattern], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows || []);
+  });
+});
+
+// NAAC Accreditation Summary Exporter API (Criterion 3: Research & Extension)
+router.get('/accreditation/naac-summary', authenticateToken, async (req, res) => {
+  const department = req.query.department || '';
+  try {
+    const publications = await new Promise(r => db.all('SELECT * FROM staff_publication', [], (_, rows) => r(rows || [])));
+    const books = await new Promise(r => db.all('SELECT * FROM staff_book_published', [], (_, rows) => r(rows || [])));
+    const funding = await new Promise(r => db.all('SELECT * FROM staff_funding', [], (_, rows) => r(rows || [])));
+    const seedMoney = await new Promise(r => db.all('SELECT * FROM staff_seed_money', [], (_, rows) => r(rows || [])));
+    const ipr = await new Promise(r => db.all('SELECT * FROM staff_ipr', [], (_, rows) => r(rows || [])));
+
+    res.json({
+      naac_3_1_publications: publications,
+      naac_3_2_books: books,
+      naac_3_3_grants: funding,
+      naac_3_4_seed_money: seedMoney,
+      naac_3_5_patents: ipr
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// NBA Accreditation Summary Exporter API (Criterion 5: Faculty Contributions)
+router.get('/accreditation/nba-summary', authenticateToken, async (req, res) => {
+  try {
+    const interactions = await new Promise(r => db.all('SELECT * FROM staff_interaction', [], (_, rows) => r(rows || [])));
+    const events = await new Promise(r => db.all('SELECT * FROM staff_event_organized', [], (_, rows) => r(rows || [])));
+    const certs = await new Promise(r => db.all('SELECT * FROM staff_certificate', [], (_, rows) => r(rows || [])));
+    const awards = await new Promise(r => db.all('SELECT * FROM staff_award', [], (_, rows) => r(rows || [])));
+    const responsibilities = await new Promise(r => db.all('SELECT * FROM staff_responsibilities', [], (_, rows) => r(rows || [])));
+
+    res.json({
+      nba_5_1_fdp_attended: interactions,
+      nba_5_2_events_organized: events,
+      nba_5_3_certifications: certs,
+      nba_5_4_awards: awards,
+      nba_5_5_responsibilities: responsibilities
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;

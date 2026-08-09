@@ -25,6 +25,20 @@
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+body.dark-theme {
+  --bg-main: 220 25% 10%;
+  --bg-card: 220 20% 14%;
+  --bg-popover: 220 20% 16%;
+  
+  --primary: 145 55% 42%;
+  --primary-hover: 145 60% 48%;
+  --text-main: 210 20% 98%;
+  --text-muted: 215 15% 70%;
+  --border: 215 15% 25%;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

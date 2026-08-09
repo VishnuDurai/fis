@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
-import { FileText, Printer, FileSpreadsheet, Eye, EyeOff, Search } from 'lucide-react';
+import { FileText, Printer, FileSpreadsheet, Eye, EyeOff, Search, Award, ShieldCheck, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import Navbar from '../components/Navbar.jsx';
 
 export default function Reports({ auth }) {
@@ -8,6 +9,75 @@ export default function Reports({ auth }) {
   const [academics, setAcademics] = useState(null);
   const [reportData, setReportData] = useState({});
   const [loading, setLoading] = useState(false);
+  const [exportingAccreditation, setExportingAccreditation] = useState(false);
+
+  const handleExportNAACTables = async () => {
+    try {
+      setExportingAccreditation(true);
+      const res = await fetch(`${API_BASE_URL}/api/admin/accreditation/naac-summary`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch NAAC data');
+      const data = await res.json();
+
+      const wb = XLSX.utils.book_new();
+      
+      const pubSheet = XLSX.utils.json_to_sheet(data.naac_3_1_publications || []);
+      XLSX.utils.book_append_sheet(wb, pubSheet, "3.1 Research Publications");
+
+      const bookSheet = XLSX.utils.json_to_sheet(data.naac_3_2_books || []);
+      XLSX.utils.book_append_sheet(wb, bookSheet, "3.2 Books Published");
+
+      const grantSheet = XLSX.utils.json_to_sheet(data.naac_3_3_grants || []);
+      XLSX.utils.book_append_sheet(wb, grantSheet, "3.3 Sponsored Grants");
+
+      const seedSheet = XLSX.utils.json_to_sheet(data.naac_3_4_seed_money || []);
+      XLSX.utils.book_append_sheet(wb, seedSheet, "3.4 Seed Money");
+
+      const iprSheet = XLSX.utils.json_to_sheet(data.naac_3_5_patents || []);
+      XLSX.utils.book_append_sheet(wb, iprSheet, "3.5 Patents & IPR");
+
+      XLSX.writeFile(wb, `NAAC_Criterion_3_Research_Tables.xlsx`);
+    } catch (e) {
+      alert('Error generating NAAC export: ' + e.message);
+    } finally {
+      setExportingAccreditation(false);
+    }
+  };
+
+  const handleExportNBATables = async () => {
+    try {
+      setExportingAccreditation(true);
+      const res = await fetch(`${API_BASE_URL}/api/admin/accreditation/nba-summary`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch NBA data');
+      const data = await res.json();
+
+      const wb = XLSX.utils.book_new();
+      
+      const fdpSheet = XLSX.utils.json_to_sheet(data.nba_5_1_fdp_attended || []);
+      XLSX.utils.book_append_sheet(wb, fdpSheet, "5.1 FDPs Attended");
+
+      const eventSheet = XLSX.utils.json_to_sheet(data.nba_5_2_events_organized || []);
+      XLSX.utils.book_append_sheet(wb, eventSheet, "5.2 Events Organized");
+
+      const certSheet = XLSX.utils.json_to_sheet(data.nba_5_3_certifications || []);
+      XLSX.utils.book_append_sheet(wb, certSheet, "5.3 Certifications");
+
+      const awardSheet = XLSX.utils.json_to_sheet(data.nba_5_4_awards || []);
+      XLSX.utils.book_append_sheet(wb, awardSheet, "5.4 Awards");
+
+      const respSheet = XLSX.utils.json_to_sheet(data.nba_5_5_responsibilities || []);
+      XLSX.utils.book_append_sheet(wb, respSheet, "5.5 Responsibilities");
+
+      XLSX.writeFile(wb, `NBA_Criterion_5_Faculty_Contributions.xlsx`);
+    } catch (e) {
+      alert('Error generating NBA export: ' + e.message);
+    } finally {
+      setExportingAccreditation(false);
+    }
+  };
 
   // Filters
   const [fromDate, setFromDate] = useState('');
@@ -190,6 +260,40 @@ export default function Reports({ auth }) {
 
       {/* Control Panel (no-print) */}
       <div className="card no-print" style={{ marginBottom: '32px' }}>
+        {/* NAAC & NBA ACCREDITATION 1-CLICK EXPORT SUITE */}
+        <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '12px', padding: '18px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#14532d', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <ShieldCheck size={20} color="#16a34a" /> NAAC & NBA Accreditation Export Suite
+              </h4>
+              <p style={{ fontSize: '0.83rem', color: '#166534', margin: '4px 0 0 0' }}>
+                Download pre-formatted Multi-Sheet Excel Workbooks ready for NAAC SSR Criterion 3 & NBA SAR Criterion 5 inspection audits.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleExportNAACTables}
+                disabled={exportingAccreditation}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontWeight: 800, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#16a34a', borderColor: '#15803d' }}
+              >
+                <Download size={16} /> NAAC Criterion 3 Export (.xlsx)
+              </button>
+              <button
+                type="button"
+                onClick={handleExportNBATables}
+                disabled={exportingAccreditation}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontWeight: 800, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0284c7', borderColor: '#0369a1' }}
+              >
+                <Download size={16} /> NBA Criterion 5 Export (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Accreditation Quick Presets */}
         <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
           <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', display: 'block', marginBottom: '10px' }}>

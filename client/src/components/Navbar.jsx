@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell } from 'lucide-react';
+import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell, Sun, Moon, Search } from 'lucide-react';
 
 export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const navigate = useNavigate();
@@ -12,8 +12,45 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [notifData, setNotifData] = useState({ unreadCount: 0, notifications: [] });
   const [pendingNotice, setPendingNotice] = useState({ userPendingCount: 0, pendingHodCount: 0, pendingPrincipalHrCount: 0 });
+  const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('srec_theme') === 'dark');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const profileMenuRef = useRef(null);
   const notifMenuRef = useRef(null);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark-theme');
+      localStorage.setItem('srec_theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-theme');
+      localStorage.setItem('srec_theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    if (!searchQuery.trim() || !auth) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetch(`${API_BASE_URL}/api/admin/search-faculty?q=${encodeURIComponent(searchQuery)}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        setSearchResults(data || []);
+        setShowSearchResults(true);
+      })
+      .catch(err => console.error(err));
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, auth]);
 
   useEffect(() => {
     if (auth && (auth.role === 'dept_admin' || auth.role === 'admin')) {
@@ -148,6 +185,44 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* INSTANT GLOBAL FACULTY SEARCH */}
+        {auth && (auth.role === 'admin' || auth.role === 'dept_admin' || auth.role === 'principal' || auth.role === 'hr') && (
+          <div ref={searchRef} style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '20px', padding: '4px 12px', gap: '6px', width: '210px' }}>
+              <Search size={15} style={{ color: 'hsl(var(--text-muted))' }} />
+              <input
+                type="text"
+                placeholder="Search faculty..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.82rem', width: '100%', color: 'hsl(var(--text-main))' }}
+              />
+            </div>
+            {showSearchResults && searchResults.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '6px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: '250px', overflowY: 'auto' }}>
+                {searchResults.map(f => (
+                  <div
+                    key={f.staff_id}
+                    onClick={() => {
+                      localStorage.setItem('srec_view_staffId', f.staff_id);
+                      setSelectedStaffId(f.staff_id);
+                      setShowSearchResults(false);
+                      setSearchQuery('');
+                      window.dispatchEvent(new Event('srec_view_staffId_changed'));
+                    }}
+                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.82rem', color: '#0f172a' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f0f9ff'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                  >
+                    <div style={{ fontWeight: 700, color: '#15583b' }}>{f.staff_name}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{f.staff_id} • {f.designation || 'Faculty'} ({f.department || 'DEPT'})</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {auth && (auth.role === 'dept_admin' || auth.role === 'admin') && deptFaculty.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsla(var(--primary), 0.08)', padding: '6px 12px', borderRadius: '8px', border: '1px solid hsla(var(--primary), 0.2)' }}>
             <Eye size={16} style={{ color: 'hsl(var(--primary))' }} />
@@ -167,6 +242,28 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
             </select>
           </div>
         )}
+
+        {/* DARK MODE / SLEEK THEME SWITCHER */}
+        <button
+          type="button"
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          title={isDarkMode ? "Switch to Light Theme" : "Switch to Dark Theme"}
+          style={{
+            background: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#0f172a',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isDarkMode ? <Sun size={18} style={{ color: '#f59e0b' }} /> : <Moon size={18} style={{ color: '#6366f1' }} />}
+        </button>
 
         {/* PENDING APPRAISAL REVIEW NOTIFICATION BELL */}
         {pendingNotice.userPendingCount > 0 && (
