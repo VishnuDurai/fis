@@ -30,6 +30,24 @@ export default function Appraisal({ auth }) {
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [ruleModalItem, setRuleModalItem] = useState(null);
 
+  // Designation Filter State in Form Builder
+  const [selectedDesignationFilter, setSelectedDesignationFilter] = useState('ALL');
+
+  const handleCopyDefaultTemplateForDesignation = (targetDesig) => {
+    if (!targetDesig || targetDesig === 'ALL') return;
+    const defaultAllItems = templateItems.filter(i => (!i.target_designation || i.target_designation === 'ALL'));
+    if (defaultAllItems.length === 0) {
+      alert('No default criteria available to clone.');
+      return;
+    }
+    const copiedItems = defaultAllItems.map(item => ({
+      ...item,
+      id: undefined,
+      target_designation: targetDesig
+    }));
+    setTemplateItems(prev => [...prev, ...copiedItems]);
+  };
+
   // Custom PART / Section State in Form Builder
   const [showAddPartModal, setShowAddPartModal] = useState(false);
   const [newPartForm, setNewPartForm] = useState({
@@ -1567,9 +1585,79 @@ export default function Appraisal({ auth }) {
             </div>
           </div>
 
+          {/* DESIGNATION OVERRIDE TAB FILTER BAR */}
+          <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1.5px solid #cbd5e1', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={16} color="#0284c7" /> Target Designation Parameters:
+              </span>
+              {['ALL', 'Assistant Professor', 'Associate Professor', 'Professor', 'Professor & Head'].map((desig) => {
+                const isSelected = selectedDesignationFilter === desig;
+                const hasOverrides = desig !== 'ALL' && (templateItems || []).some(i => i.target_designation === desig);
+                return (
+                  <button
+                    key={desig}
+                    type="button"
+                    onClick={() => setSelectedDesignationFilter(desig)}
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                      background: isSelected ? '#0284c7' : (hasOverrides ? '#f0f9ff' : '#f8fafc'),
+                      color: isSelected ? '#ffffff' : (hasOverrides ? '#0369a1' : '#475569'),
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {desig === 'ALL' ? 'All Designations (Default Common)' : desig}
+                    {hasOverrides && !isSelected && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#0284c7' }}></span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedDesignationFilter !== 'ALL' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {!(templateItems || []).some(i => i.target_designation === selectedDesignationFilter) ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyDefaultTemplateForDesignation(selectedDesignationFilter)}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 800 }}
+                  >
+                    <Plus size={14} /> Create {selectedDesignationFilter} Overrides
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Clear custom parameter overrides for ${selectedDesignationFilter}? It will revert to using default ALL parameters.`)) {
+                        setTemplateItems(prev => prev.filter(i => i.target_designation !== selectedDesignationFilter));
+                      }
+                    }}
+                    style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.78rem', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    Reset to Default Common Mappings
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {distinctSections.map((sectionCode) => {
             const currentTitle = getSectionTitle(sectionCode);
-            const sectionItems = templateItems.filter(i => i.section_code === sectionCode);
+            const activeDesigItems = templateItems.filter(i => 
+              i.section_code === sectionCode && 
+              (i.target_designation || 'ALL') === selectedDesignationFilter
+            );
+            const sectionItems = activeDesigItems.length > 0 
+              ? activeDesigItems 
+              : templateItems.filter(i => i.section_code === sectionCode && (!i.target_designation || i.target_designation === 'ALL'));
+
             const isStandardPart = ['PART_A', 'PART_B', 'PART_C', 'PART_D'].includes(sectionCode);
 
             return (
@@ -3564,13 +3652,31 @@ export default function Appraisal({ auth }) {
         const vB7 = parseRows(viewingAppraisal.b7_industry_training);
         const vC3 = parseRows(viewingAppraisal.c3_community_service);
 
-        // Dynamic Helper to extract template constraints (unit mark & max mark cap)
+        // Dynamic Helper to extract template constraints (unit mark & max mark cap) with designation override resolution
         const getConstraint = (code, defUnit, defMax) => {
-          const item = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === code.toUpperCase());
+          const facultyDesig = (viewingAppraisal?.designation || generalInfo?.designation || '').trim().toLowerCase();
+
+          // 1. Check for designation-specific override first
+          let item = (templateItems || []).find(i => 
+            (i.criteria_code || '').toUpperCase() === code.toUpperCase() && 
+            i.target_designation && 
+            i.target_designation.trim().toLowerCase() === facultyDesig &&
+            i.target_designation.toUpperCase() !== 'ALL'
+          );
+
+          // 2. Fall back to 'ALL' common mapping
+          if (!item) {
+            item = (templateItems || []).find(i => 
+              (i.criteria_code || '').toUpperCase() === code.toUpperCase() && 
+              (!i.target_designation || i.target_designation.toUpperCase() === 'ALL')
+            );
+          }
+
           return {
             unitMark: item && item.fixed_mark_per_record !== undefined && item.fixed_mark_per_record !== null && item.fixed_mark_per_record !== '' ? parseFloat(item.fixed_mark_per_record) : defUnit,
             maxMarks: item && item.max_marks !== undefined && item.max_marks !== null && item.max_marks !== '' ? parseFloat(item.max_marks) : defMax,
-            rule: item?.calculation_rule || 'fixed_per_record'
+            rule: item?.calculation_rule || 'fixed_per_record',
+            targetDesignation: item?.target_designation || 'ALL'
           };
         };
 

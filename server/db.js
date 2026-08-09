@@ -500,6 +500,7 @@ const createTables = async () => {
       max_marks DOUBLE DEFAULT 10,
       calculation_rule VARCHAR(100) DEFAULT 'fixed_per_record',
       bracket_config TEXT,
+      target_designation VARCHAR(100) DEFAULT 'ALL',
       display_order INT DEFAULT 1,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`,
