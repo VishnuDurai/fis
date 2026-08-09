@@ -1066,6 +1066,19 @@ export default function Appraisal({ auth }) {
     } catch (e) {
       setViewingGeneralInfo(null);
     }
+
+    try {
+      const resFpi = await fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${app.staff_id}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (resFpi.ok) {
+        const dataFpi = await resFpi.json();
+        setFpiDetails(dataFpi.details || null);
+        setFpiBreakdown(dataFpi.breakdown || {});
+      }
+    } catch (e) {
+      console.error('Failed to fetch FPI summary for viewing appraisal:', e);
+    }
   };
 
   // Filter appraisals for Admin / Dept Admin / Principal / HR
@@ -1361,17 +1374,23 @@ export default function Appraisal({ auth }) {
       }
     };
 
-    const currentCols = cols(currentCatObj.key);
+    const getProofUrl = (item) => {
+      if (!item) return null;
+      const file = item.file || item.file1 || item.document || item.proof || item.certificate || item.certificate_file;
+      if (!file || file === 'N/A' || file === 'undefined' || file === 'null') return null;
+      if (file.startsWith('http://') || file.startsWith('https://')) return file;
+      return `${API_BASE_URL}/uploads/${encodeURIComponent(file)}?token=${encodeURIComponent(auth.token)}`;
+    };
 
     return (
       <div style={{ background: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1.5px solid #7dd3fc', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0369a1', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle size={20} /> Automatic Portal Activity Mappings & Score Verification
+              <CheckCircle size={20} /> Automatic Portal Activity Mappings & Proof Document Verification
             </h4>
             <span style={{ fontSize: '0.82rem', color: '#0284c7' }}>
-              Click any category below to verify your fetched record details and calculated scores.
+              Click any category below to verify fetched record details, awarded scores, and view original uploaded proof documents.
             </span>
           </div>
 
@@ -1459,13 +1478,15 @@ export default function Appraisal({ auth }) {
                   <th style={{ width: '40px' }}>#</th>
                   <th>{currentCols.col1}</th>
                   <th>{currentCols.col2}</th>
-                  <th style={{ width: '150px', textAlign: 'center' }}>{currentCols.col3}</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>{currentCols.col4}</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>{currentCols.col3}</th>
+                  <th style={{ width: '110px', textAlign: 'center' }}>{currentCols.col4}</th>
+                  <th style={{ width: '150px', textAlign: 'center' }}>Proof Document</th>
                 </tr>
               </thead>
               <tbody>
                 {currentList.map((item, index) => {
                   const f = fields(item, currentCatObj.key);
+                  const proofUrl = getProofUrl(item);
                   return (
                     <tr key={index}>
                       <td style={{ textAlign: 'center', fontWeight: 700 }}>{index + 1}</td>
@@ -1476,6 +1497,34 @@ export default function Appraisal({ auth }) {
                         <span className="badge badge-success" style={{ fontSize: '0.78rem', padding: '2px 8px' }}>
                           {f.field4}
                         </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {proofUrl ? (
+                          <a
+                            href={proofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-secondary"
+                            style={{
+                              fontSize: '0.78rem',
+                              padding: '4px 10px',
+                              background: '#e0f2fe',
+                              color: '#0369a1',
+                              border: '1px solid #7dd3fc',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              textDecoration: 'none'
+                            }}
+                          >
+                            <Eye size={13} /> View Proof
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                            No Proof Attached
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -3808,6 +3857,11 @@ export default function Appraisal({ auth }) {
                 >
                   <X size={26} />
                 </button>
+              </div>
+
+              {/* AUTOMAPPED PORTAL ACTIVITY DATA & PROOF DOCUMENTS VERIFICATION PANEL FOR HOD / PRINCIPAL / HR / ADMIN (HIDDEN IN PRINT) */}
+              <div className="no-print" style={{ marginBottom: '24px' }}>
+                <AutoMappedVerificationPanel details={fpiDetails} breakdown={fpiBreakdown} />
               </div>
 
               {/* OFFICIAL SREC REPORT HEADER BANNER (MATCHING FIS REPORTS HEADER) */}
