@@ -1212,8 +1212,8 @@ router.get('/appraisals/pending-counts', authenticateToken, (req, res) => {
 // 11. GET Appraisals
 router.get('/appraisals', authenticateToken, (req, res) => {
   const reqStaffId = req.query.staffId;
-  const isDeptAdmin = req.user.role === 'dept_admin';
-  const isAdmin = ['admin', 'principal', 'hr'].includes(req.user.role);
+  const isDeptAdmin = req.user.role === 'dept_admin' || req.user.isHod || req.user.isHod === 'true';
+  const isAdmin = ['admin', 'principal', 'hr'].includes(req.user.role) || req.user.isInstitutionalAdmin;
 
   if (reqStaffId && reqStaffId !== req.user.staffId) {
     // Admin/HOD looking at a specific staff — show all including drafts for own staff only

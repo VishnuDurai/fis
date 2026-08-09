@@ -8,8 +8,8 @@ import { getCurrentAcademicYear, getAppraisalAcademicYear, getAcademicYearOption
 
 export default function Appraisal({ auth }) {
   const location = useLocation();
-  const isAdminOrHR = auth.role === 'admin' || auth.role === 'principal' || auth.role === 'hr';
-  const isDeptAdmin = auth.role === 'dept_admin';
+  const isAdminOrHR = auth?.role === 'admin' || auth?.role === 'principal' || auth?.role === 'hr' || auth?.isInstitutionalAdmin || auth?.isInst;
+  const isDeptAdmin = auth?.role === 'dept_admin' || auth?.isHod === true || auth?.isHod === 'true' || (auth?.designation || '').toLowerCase().includes('hod') || (auth?.designation || '').toLowerCase().includes('head');
 
   // Navigation Tab State for Admin/HR/Principal vs HOD
   const [activeAdminTab, setActiveAdminTab] = useState('submissions'); // 'submissions' or 'configurator'
