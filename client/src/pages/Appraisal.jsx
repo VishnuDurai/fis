@@ -29,6 +29,7 @@ export default function Appraisal({ auth }) {
   const [templateItems, setTemplateItems] = useState([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [ruleModalItem, setRuleModalItem] = useState(null);
+  const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
 
   // Designation Filter State in Form Builder
   const [selectedDesignationFilter, setSelectedDesignationFilter] = useState('ALL');
