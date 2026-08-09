@@ -113,7 +113,9 @@ TABLE_DESCRIPTIONS = {
 }
 
 def generate_docx():
-    output_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../Database_Schema.docx'))
+    docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
+    os.makedirs(docs_dir, exist_ok=True)
+    output_path = os.path.join(docs_dir, 'Database_Schema.docx')
     
     use_mysql = False
     tables_data = {}

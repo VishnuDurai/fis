@@ -278,7 +278,9 @@ def create_technical_modification_guide():
         r2.font.size = Pt(14)
 
     # Save document
-    out_path = os.path.abspath("Technical_Constraints_and_File_Modification_Guide.docx")
+    docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
+    os.makedirs(docs_dir, exist_ok=True)
+    out_path = os.path.join(docs_dir, "Technical_Constraints_and_File_Modification_Guide.docx")
     doc.save(out_path)
     print(f"Technical modification guide Word document successfully generated at: {out_path}")
 

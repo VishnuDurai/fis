@@ -348,7 +348,9 @@ def create_system_constraints_document():
         r2.font.size = Pt(14)
 
     # Save document
-    out_path = os.path.abspath("System_Constraints_and_Portal_Rules.docx")
+    docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
+    os.makedirs(docs_dir, exist_ok=True)
+    out_path = os.path.join(docs_dir, "System_Constraints_and_Portal_Rules.docx")
     doc.save(out_path)
     print(f"System constraints Word document successfully generated at: {out_path}")
 
