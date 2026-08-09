@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
-import { getCurrentAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
+import { getCurrentAcademicYear, getAppraisalAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
 
 export default function Appraisal({ auth }) {
   const isAdminOrHR = auth.role === 'admin' || auth.role === 'principal' || auth.role === 'hr';
@@ -140,7 +140,7 @@ export default function Appraisal({ auth }) {
   const [activeDetailCategory, setActiveDetailCategory] = useState('publications');
 
   // General FPI Form Details
-  const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
+  const [academicYear, setAcademicYear] = useState(getAppraisalAcademicYear());
   const [coursesTaught, setCoursesTaught] = useState('');
   const [selfAppraisalScore, setSelfAppraisalScore] = useState('');
   const [goalsNextYear, setGoalsNextYear] = useState('');
@@ -154,7 +154,7 @@ export default function Appraisal({ auth }) {
   const [a6Rows, setA6Rows] = useState([{ course_name: '', industry: '', duration: '', score: '' }]);
   const [a7Rows, setA7Rows] = useState([{ competition: '', team_members: '', project_title: '', position: '', score: '' }]);
 
-  const [b4Rows, setB4Rows] = useState([{ course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '' }]);
+  const [b4Rows, setB4Rows] = useState([{ course_name: '', academic_year: getAppraisalAcademicYear(), details: '', score: '' }]);
   const [b7Rows, setB7Rows] = useState([{ name: '', company: '', duration: '', score: '' }]);
   const [c3Rows, setC3Rows] = useState([{ activity_name: '', event_type: '', location: '', date: '', score: '' }]);
 
@@ -188,7 +188,7 @@ export default function Appraisal({ auth }) {
     if (!app) return;
 
     setEditingAppraisalId(app.id);
-    setAcademicYear(app.academic_year || getCurrentAcademicYear());
+    setAcademicYear(app.academic_year || getAppraisalAcademicYear());
 
     const safeParse = (val, fallback) => {
       if (!val) return fallback;
@@ -208,7 +208,7 @@ export default function Appraisal({ auth }) {
     setA5Rows(safeParse(app.a5_pass_percentage, [{ class_name: '', course: '', odd_pass: '', even_pass: '', avg_pass: '' }]));
     setA6Rows(safeParse(app.a6_industry_partnerships, [{ course_name: '', industry: '', duration: '', score: '' }]));
     setA7Rows(safeParse(app.a7_hackathons, [{ competition: '', team_members: '', project_title: '', position: '', score: '' }]));
-    setB4Rows(safeParse(app.b4_curriculum_dev, [{ course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '' }]));
+    setB4Rows(safeParse(app.b4_curriculum_dev, [{ course_name: '', academic_year: getAppraisalAcademicYear(), details: '', score: '' }]));
     setB7Rows(safeParse(app.b7_industry_training, [{ name: '', company: '', duration: '', score: '' }]));
     setC3Rows(safeParse(app.c3_community_service, [{ activity_name: '', event_type: '', location: '', date: '', score: '' }]));
 
@@ -1348,7 +1348,7 @@ export default function Appraisal({ auth }) {
           return {
             field1: item.role || item.title || item.name || item.responsibility || 'N/A',
             field2: item.level || item.category || item.department || 'Institute Level',
-            field3: item.academic_year || item.year || getCurrentAcademicYear(),
+            field3: item.academic_year || item.year || getAppraisalAcademicYear(),
             field4: item.level || 'Active'
           };
         default:

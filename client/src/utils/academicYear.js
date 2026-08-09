@@ -18,6 +18,20 @@ export function getCurrentAcademicYear() {
   }
 }
 
+/**
+ * Performance Appraisal Academic Year Utility
+ * Performance appraisals evaluate the completed academic year (e.g. 2025-2026 when in 2026-2027).
+ */
+export function getAppraisalAcademicYear() {
+  const now = new Date();
+  let currentStartYear = now.getFullYear();
+  if (now.getMonth() < 5) {
+    currentStartYear -= 1;
+  }
+  const appraisalStartYear = currentStartYear - 1;
+  return `${appraisalStartYear}-${appraisalStartYear + 1}`;
+}
+
 export function getAcademicYearOptions(yearsPast = 5, yearsFuture = 1) {
   const now = new Date();
   let currentStartYear = now.getFullYear();
