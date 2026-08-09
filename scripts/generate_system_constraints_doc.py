@@ -40,6 +40,19 @@ def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
     tblBorders.append(border)
     tblPr.append(tblBorders)
 
+def add_page_border(section, color="0F331F", sz="8"):
+    sectPr = section._sectPr
+    pgBorders = OxmlElement('w:pgBorders')
+    pgBorders.set(qn('w:offsetFrom'), 'page')
+    for b_name in ['top', 'left', 'bottom', 'right']:
+        b = OxmlElement(f'w:{b_name}')
+        b.set(qn('w:val'), 'single')
+        b.set(qn('w:sz'), sz)
+        b.set(qn('w:space'), '20')
+        b.set(qn('w:color'), color)
+        pgBorders.append(b)
+    sectPr.append(pgBorders)
+
 def add_heading_styled(doc, text, level=1):
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(16)
@@ -59,12 +72,14 @@ def add_heading_styled(doc, text, level=1):
 def create_system_constraints_document():
     doc = Document()
     
-    # Page setup - Margins 0.75 inch
+    # Page setup - Margins & Page Border
     for section in doc.sections:
         section.top_margin = Inches(0.75)
         section.bottom_margin = Inches(0.75)
         section.left_margin = Inches(0.75)
         section.right_margin = Inches(0.75)
+
+        add_page_border(section, color="0F331F", sz="8")
 
         footer = section.footer
         footer_p = footer.paragraphs[0]
@@ -75,23 +90,39 @@ def create_system_constraints_document():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
 
-    # Standardized College Logo Header
-    logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
-    if not os.path.exists(logo_path):
-        logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/logo.png'))
+    # Dual Logo Header Table (SREC College Logo Left + SNR Sons Trust Logo Right)
+    left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
+    right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
+    
+    logo_table = doc.add_table(rows=1, cols=2)
+    logo_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    logo_table.autofit = False
+    
+    cell_l = logo_table.rows[0].cells[0]
+    cell_r = logo_table.rows[0].cells[1]
+    cell_l.width = Inches(3.5)
+    cell_r.width = Inches(3.5)
+    
+    if os.path.exists(left_logo):
+        p_l = cell_l.paragraphs[0]
+        p_l.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p_l.paragraph_format.space_before = Pt(0)
+        p_l.paragraph_format.space_after = Pt(0)
+        r_l = p_l.add_run()
+        r_l.add_picture(left_logo, height=Inches(0.85))
 
-    if os.path.exists(logo_path):
-        p_logo = doc.add_paragraph()
-        p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_logo.paragraph_format.space_before = Pt(0)
-        p_logo.paragraph_format.space_after = Pt(4)
-        r_logo = p_logo.add_run()
-        r_logo.add_picture(logo_path, width=Inches(1.8))
+    if os.path.exists(right_logo):
+        p_r = cell_r.paragraphs[0]
+        p_r.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        p_r.paragraph_format.space_before = Pt(0)
+        p_r.paragraph_format.space_after = Pt(0)
+        r_r = p_r.add_run()
+        r_r.add_picture(right_logo, height=Inches(0.85))
 
     # Standardized Institutional Report Header Text
     p_inst = doc.add_paragraph()
     p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_inst.paragraph_format.space_before = Pt(0)
+    p_inst.paragraph_format.space_before = Pt(6)
     p_inst.paragraph_format.space_after = Pt(2)
     r_inst = p_inst.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
     r_inst.font.name = 'Times New Roman'
