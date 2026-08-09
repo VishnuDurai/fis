@@ -75,7 +75,20 @@ def create_technical_modification_guide():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
 
-    # Standardized Institutional Report Header
+    # Standardized College Logo Header
+    logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
+    if not os.path.exists(logo_path):
+        logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/logo.png'))
+
+    if os.path.exists(logo_path):
+        p_logo = doc.add_paragraph()
+        p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_logo.paragraph_format.space_before = Pt(0)
+        p_logo.paragraph_format.space_after = Pt(4)
+        r_logo = p_logo.add_run()
+        r_logo.add_picture(logo_path, width=Inches(1.8))
+
+    # Standardized Institutional Report Header Text
     p_inst = doc.add_paragraph()
     p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_inst.paragraph_format.space_before = Pt(0)
@@ -260,9 +273,9 @@ def create_technical_modification_guide():
     r.font.size = Pt(14)
 
     scripts = [
-        ("Database Schema Document: ", "python3 scripts/generate_schema_doc.py -> Updates Database_Schema.docx"),
-        ("System Constraints & Rules Document: ", "python3 scripts/generate_system_constraints_doc.py -> Updates System_Constraints_and_Portal_Rules.docx"),
-        ("Technical File Modification Guide: ", "python3 scripts/generate_tech_file_guide_doc.py -> Updates Technical_Constraints_and_File_Modification_Guide.docx")
+        ("Database Schema Document: ", "python3 scripts/generate_schema_doc.py -> Updates docs/Database_Schema.docx"),
+        ("System Constraints & Rules Document: ", "python3 scripts/generate_system_constraints_doc.py -> Updates docs/System_Constraints_and_Portal_Rules.docx"),
+        ("Technical File Modification Guide: ", "python3 scripts/generate_tech_file_guide_doc.py -> Updates docs/Technical_Constraints_and_File_Modification_Guide.docx")
     ]
 
     for s_title, s_desc in scripts:

@@ -186,7 +186,20 @@ def generate_docx():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
         
-    # Standardized Institutional Report Header
+    # Standardized College Logo Header
+    logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
+    if not os.path.exists(logo_path):
+        logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/logo.png'))
+
+    if os.path.exists(logo_path):
+        p_logo = doc.add_paragraph()
+        p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_logo.paragraph_format.space_before = Pt(0)
+        p_logo.paragraph_format.space_after = Pt(4)
+        r_logo = p_logo.add_run()
+        r_logo.add_picture(logo_path, width=Inches(1.8))
+
+    # Standardized Institutional Report Header Text
     p_inst = doc.add_paragraph()
     p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_inst.paragraph_format.space_before = Pt(0)
