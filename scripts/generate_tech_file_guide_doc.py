@@ -1,0 +1,258 @@
+import os
+import datetime
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+def set_cell_background(cell, fill_hex):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear')
+    shd.set(qn('w:color'), 'auto')
+    shd.set(qn('w:fill'), fill_hex)
+    tcPr.append(shd)
+
+def set_cell_margins(cell, top=120, bottom=120, left=160, right=160):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcMar = OxmlElement('w:tcMar')
+    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
+        node = OxmlElement(f'w:{m}')
+        node.set(qn('w:w'), str(val))
+        node.set(qn('w:type'), 'dxa')
+        tcMar.append(node)
+    tcPr.append(tcMar)
+
+def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
+    tblPr = table._tbl.tblPr
+    tblBorders = OxmlElement('w:tblBorders')
+    for border_name in ['top', 'left', 'bottom', 'right', 'insideH']:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), val)
+        border.set(qn('w:sz'), sz)
+        border.set(qn('w:space'), '0')
+        border.set(qn('w:color'), color)
+        tblBorders.append(border)
+    border = OxmlElement('w:insideV')
+    border.set(qn('w:val'), 'none')
+    tblBorders.append(border)
+    tblPr.append(tblBorders)
+
+def add_heading_styled(doc, text, level=1):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(14)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = 'Calibri'
+    run.bold = True
+    if level == 1:
+        run.font.size = Pt(16)
+        run.font.color.rgb = RGBColor(15, 23, 42) # Slate 900
+    elif level == 2:
+        run.font.size = Pt(13)
+        run.font.color.rgb = RGBColor(3, 105, 161) # Sky 700
+    elif level == 3:
+        run.font.size = Pt(11.5)
+        run.font.color.rgb = RGBColor(15, 118, 110) # Teal 700
+    return p
+
+def create_technical_modification_guide():
+    doc = Document()
+    
+    # Margins 0.8 inch
+    for section in doc.sections:
+        section.top_margin = Inches(0.8)
+        section.bottom_margin = Inches(0.8)
+        section.left_margin = Inches(0.8)
+        section.right_margin = Inches(0.8)
+
+    # Document Header
+    title_p = doc.add_paragraph()
+    title_p.paragraph_format.space_before = Pt(0)
+    title_p.paragraph_format.space_after = Pt(4)
+    run_title = title_p.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
+    run_title.font.name = 'Calibri'
+    run_title.font.size = Pt(18)
+    run_title.bold = True
+    run_title.font.color.rgb = RGBColor(15, 51, 31)
+
+    sub_p = doc.add_paragraph()
+    sub_p.paragraph_format.space_before = Pt(0)
+    sub_p.paragraph_format.space_after = Pt(16)
+    run_sub = sub_p.add_run("Technical Architecture Guide: Codebase File Locations for Updating Rules & Constraints (FIS V3.0)")
+    run_sub.font.name = 'Calibri'
+    run_sub.font.size = Pt(12.5)
+    run_sub.bold = True
+    run_sub.font.color.rgb = RGBColor(2, 132, 199)
+
+    meta_p = doc.add_paragraph()
+    meta_p.paragraph_format.space_before = Pt(0)
+    meta_p.paragraph_format.space_after = Pt(16)
+    run_meta = meta_p.add_run(f"Document Generated: {datetime.datetime.now().strftime('%B %d, %Y')} | Version 3.0 | Status: Active Developer Guide")
+    run_meta.font.name = 'Calibri'
+    run_meta.font.size = Pt(9.5)
+    run_meta.font.italic = True
+    run_meta.font.color.rgb = RGBColor(100, 116, 139)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+    # Section 1
+    add_heading_styled(doc, "1. System Overview & Developer Quick Reference", level=1)
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(8)
+    r = p.add_run("This technical manual specifies the exact code files, functions, and line ranges required to modify portal rules, menu visibility, role permissions, appraisal scoring algorithms, faculty transfer mechanisms, and file upload limits in the SREC FIS codebase.")
+    r.font.name = 'Calibri'
+    r.font.size = Pt(10.5)
+
+    # Table 1: Feature to File Mapping
+    table1 = doc.add_table(rows=1, cols=4)
+    table1.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table1.autofit = False
+
+    t1_headers = ["Constraint / Rule Feature", "Target File Path", "Key Function / Block", "Line Range Range"]
+    t1_widths = [Inches(2.2), Inches(2.3), Inches(1.8), Inches(0.8)]
+
+    for i, h in enumerate(t1_headers):
+        table1.rows[0].cells[i].text = h
+        table1.rows[0].cells[i].paragraphs[0].runs[0].font.bold = True
+        table1.rows[0].cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+        table1.rows[0].cells[i].paragraphs[0].runs[0].font.name = 'Calibri'
+        table1.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(9.5)
+        set_cell_background(table1.rows[0].cells[i], "0F331F")
+        set_cell_margins(table1.rows[0].cells[i])
+        table1.rows[0].cells[i].width = t1_widths[i]
+
+    mappings = [
+        ("Navigation Sidebar Items & Tree", "client/src/components/Sidebar.jsx", "getMenuStructure()", "L60-L325"),
+        ("Navbar Role Labels & Switcher", "client/src/components/Navbar.jsx", "roleLabel / user menu", "L120-L135"),
+        ("Role JWT Issuance & Claims", "server/routes/auth.js", "POST /api/auth/login", "L35-L130"),
+        ("File Access JWT Guard", "server/server.js", "requireFileAuth middleware", "L28-L44"),
+        ("Faculty Transfer & Folder Move", "server/routes/admin.js", "POST /api/admin/faculty/transfer", "L715-L755"),
+        ("Physical Disk Directory Relocation", "server/utils/fileStorage.js", "moveFacultyDirectory()", "L230-L290"),
+        ("Department Transfer History Schema", "server/db.js", "staff_department_history DDL", "L554-L561"),
+        ("Appraisal Completed Academic Year", "client/src/utils/academicYear.js", "getAppraisalAcademicYear()", "L20-L33"),
+        ("Appraisal Engine & Designation Resolution", "client/src/pages/Appraisal.jsx", "getConstraint()", "L3565-L3610"),
+        ("Designation Filter & Copy Overrides", "client/src/pages/Appraisal.jsx", "Target Designation Bar", "L1585-L1640"),
+        ("Threshold Bracket Configurator", "client/src/pages/Appraisal.jsx", "ruleModalItem modal", "L5120-L5210"),
+        ("Custom PART / Section Addition", "client/src/pages/Appraisal.jsx", "showAddPartModal & distinctSections", "L5215-L5310"),
+        ("Appraisal Approval Workflow & Remarks", "client/src/pages/Appraisal.jsx", "viewingAppraisal submit", "L3470-L3550"),
+        ("Auto-Mapped Proof Document Links", "client/src/pages/Appraisal.jsx", "AutoMappedVerificationPanel", "L1227-L1490"),
+        ("Faculty Read-Only Inputs (Dept Admin)", "client/src/pages/Personal.jsx", "disabled={auth.role === 'dept_admin'}", "L505-L545"),
+        ("Responsibilities Hierarchy", "client/src/pages/Responsibilities.jsx", "isInstitutionalAdmin / isHod", "L25-L40"),
+        ("Database Schema Definitions", "server/db.js", "tables DDL array", "L70-L570"),
+        ("Auto-Doc Schema Script", "scripts/generate_schema_doc.py", "generate_schema_document()", "L1-L430"),
+        ("Auto-Doc Constraints Script", "scripts/generate_system_constraints_doc.py", "create_system_constraints_doc()", "L1-L240"),
+        ("Auto-Doc Technical Guide Script", "scripts/generate_tech_file_guide_doc.py", "create_technical_guide()", "L1-L250")
+    ]
+
+    for row_idx, (feat, fpath, ffunc, flines) in enumerate(mappings):
+        row_cells = table1.add_row().cells
+        bg_color = "F8FAFC" if row_idx % 2 == 0 else "FFFFFF"
+        for i, val in enumerate([feat, fpath, ffunc, flines]):
+            row_cells[i].text = val
+            p_cell = row_cells[i].paragraphs[0]
+            p_cell.runs[0].font.name = 'Calibri'
+            p_cell.runs[0].font.size = Pt(9)
+            if i == 1 or i == 3:
+                p_cell.runs[0].font.bold = True
+                p_cell.runs[0].font.color.rgb = RGBColor(3, 105, 161)
+            set_cell_background(row_cells[i], bg_color)
+            set_cell_margins(row_cells[i])
+            row_cells[i].width = t1_widths[i]
+
+    set_table_borders(table1)
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Section 2
+    add_heading_styled(doc, "2. Detailed File Modification Instructions", level=1)
+
+    sections_details = [
+        ("A. Modifying Navigation Menu Links & Visibility Roles", "client/src/components/Sidebar.jsx", [
+            ("To add/remove sidebar links: ", "Edit getMenuStructure() (Lines 62-300). Add new objects to baseMenu or category items array."),
+            ("To change role-based menu toggles: ", "Modify role checks (e.g., if (role === 'admin'), if (isHod), if (isClubCoord)) in getMenuStructure()."),
+            ("To inject custom pages: ", "Update allowedDynamicPages filter in Sidebar.jsx (Lines 303-320).")
+        ]),
+        ("B. Modifying Roles, Claims & Authorization", "server/routes/auth.js & server/server.js", [
+            ("To add new role claims: ", "Edit POST /api/auth/login in server/routes/auth.js (Lines 110-130). Include new fields in jwt.sign()."),
+            ("To change file access permissions: ", "Edit requireFileAuth middleware in server/server.js (Lines 28-44)."),
+            ("To alter API authorization checks: ", "Update authenticateToken and role conditionals in server/routes/admin.js and faculty.js.")
+        ]),
+        ("C. Modifying Faculty Department Transfer Rules", "server/routes/admin.js & server/utils/fileStorage.js", [
+            ("To update transfer audit logging: ", "Edit POST /api/admin/faculty/transfer in server/routes/admin.js (Lines 715-755)."),
+            ("To adjust physical folder mover logic: ", "Edit moveFacultyDirectory() in server/utils/fileStorage.js (Lines 230-290)."),
+            ("To change transfer history schema: ", "Update staff_department_history definition in server/db.js (Line 554).")
+        ]),
+        ("D. Modifying Performance Appraisal Rules & Form Builder", "client/src/pages/Appraisal.jsx & client/src/utils/academicYear.js", [
+            ("To change default evaluation academic year: ", "Edit getAppraisalAcademicYear() in client/src/utils/academicYear.js (Lines 20-33)."),
+            ("To alter score caps or designation overrides: ", "Edit getConstraint() in client/src/pages/Appraisal.jsx (Lines 3565-3610)."),
+            ("To modify designation filter tabs: ", "Edit Target Designation Filter Bar in Appraisal.jsx (Lines 1585-1640)."),
+            ("To adjust threshold bracket modal (⚙️ Config Bracket): ", "Edit ruleModalItem in Appraisal.jsx (Lines 5120-5210)."),
+            ("To adjust custom PART addition (➕ Add New PART): ", "Edit showAddPartModal and distinctSections memo in Appraisal.jsx (Lines 5215-5310)."),
+            ("To customize proof document viewing links: ", "Edit AutoMappedVerificationPanel in Appraisal.jsx (Lines 1227-1490).")
+        ]),
+        ("E. Modifying Document Storage & Upload Limits", "server/routes/activities.js & server/server.js", [
+            ("To change upload file size limit (currently 5MB): ", "Edit multer upload config in server/routes/activities.js (Lines 13-25)."),
+            ("To add new allowed file extensions: ", "Update file type validation regex in server/routes/activities.js and dynamic_pages.js.")
+        ])
+    ]
+
+    for title, file_path, items in sections_details:
+        add_heading_styled(doc, title, level=2)
+        p_path = doc.add_paragraph()
+        p_path.paragraph_format.space_after = Pt(4)
+        r_p = p_path.add_run(f"Primary Code File: {file_path}")
+        r_p.bold = True
+        r_p.font.name = 'Calibri'
+        r_p.font.size = Pt(10)
+        r_p.font.color.rgb = RGBColor(3, 105, 161)
+
+        for item_t, item_b in items:
+            bp = doc.add_paragraph(style='List Bullet')
+            bp.paragraph_format.space_after = Pt(3)
+            r1 = bp.add_run(item_t)
+            r1.bold = True
+            r1.font.name = 'Calibri'
+            r1.font.size = Pt(9.5)
+            r2 = bp.add_run(item_b)
+            r2.font.name = 'Calibri'
+            r2.font.size = Pt(9.5)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Section 3
+    add_heading_styled(doc, "3. Auto-Documentation Maintenance Protocol", level=1)
+
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(6)
+    r = p.add_run("To ensure permanent synchronization between codebase changes and system documentation, the following automated generator scripts must be executed whenever code constraints or database structures are updated:")
+    r.font.name = 'Calibri'
+    r.font.size = Pt(10.5)
+
+    scripts = [
+        ("Database Schema Document: ", "python3 scripts/generate_schema_doc.py -> Updates Database_Schema.docx"),
+        ("System Constraints & Rules Document: ", "python3 scripts/generate_system_constraints_doc.py -> Updates System_Constraints_and_Portal_Rules.docx"),
+        ("Technical File Modification Guide: ", "python3 scripts/generate_tech_file_guide_doc.py -> Updates Technical_Constraints_and_File_Modification_Guide.docx")
+    ]
+
+    for s_title, s_desc in scripts:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(s_title)
+        r1.bold = True
+        r1.font.name = 'Calibri'
+        r1.font.size = Pt(10)
+        r1.font.color.rgb = RGBColor(15, 51, 31)
+        r2 = bp.add_run(s_desc)
+        r2.font.name = 'Calibri'
+        r2.font.size = Pt(10)
+
+    # Save document
+    out_path = os.path.abspath("Technical_Constraints_and_File_Modification_Guide.docx")
+    doc.save(out_path)
+    print(f"Technical modification guide Word document successfully generated at: {out_path}")
+
+if __name__ == "__main__":
+    create_technical_modification_guide()

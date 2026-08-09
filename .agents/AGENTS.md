@@ -7,3 +7,7 @@
 ## System Constraints & Portal Rules Documentation Maintenance
 - Whenever there is any new constraint, rule, menu permission logic, role handling, or functionality permission defined or modified in this repository, you MUST execute `python3 scripts/generate_system_constraints_doc.py` to regenerate and update `System_Constraints_and_Portal_Rules.docx`.
 - The generator script (`scripts/generate_system_constraints_doc.py`) regenerates and synchronizes `System_Constraints_and_Portal_Rules.docx` to reflect all system rules and constraints.
+
+## Technical Codebase Constraints & File Modification Guide Maintenance
+- Whenever there is any change to codebase file structures, permission handler locations, appraisal scoring algorithms, menu item definitions, or technical constraints, you MUST execute `python3 scripts/generate_tech_file_guide_doc.py` to regenerate and update `Technical_Constraints_and_File_Modification_Guide.docx`.
+- The generator script (`scripts/generate_tech_file_guide_doc.py`) regenerates and synchronizes `Technical_Constraints_and_File_Modification_Guide.docx` to ensure developers have up-to-date technical reference maps for file modifications.
