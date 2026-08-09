@@ -678,6 +678,17 @@ const createTables = async () => {
   try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN bracket_config TEXT'); } catch (e) {}
   try { await pool.query('ALTER TABLE appraisal_template ADD COLUMN data_source_page VARCHAR(100) DEFAULT NULL'); } catch (e) {}
 
+  // Ensure criteria_code is VARCHAR(50) NOT NULL, deduplicate existing rows, and add UNIQUE index
+  try {
+    await pool.query('ALTER TABLE appraisal_template MODIFY COLUMN criteria_code VARCHAR(50) NOT NULL');
+    await pool.query(`
+      DELETE t1 FROM appraisal_template t1
+      INNER JOIN appraisal_template t2 
+      WHERE t1.id > t2.id AND t1.criteria_code = t2.criteria_code
+    `);
+    await pool.query('ALTER TABLE appraisal_template ADD UNIQUE INDEX idx_criteria_code (criteria_code)');
+  } catch (e) {}
+
   // Seed / Sync default appraisal template
   try {
     const defaultItems = [

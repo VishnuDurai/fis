@@ -1022,7 +1022,14 @@ router.get('/appraisal/template', authenticateToken, (req, res) => {
     if (err) return res.status(500).json({ error: 'Database error: ' + (err ? err.message : '') });
     
     if (rows && rows.length > 0) {
-      return res.json(rows);
+      const seen = new Set();
+      const uniqueRows = rows.filter(r => {
+        if (!r.criteria_code) return true;
+        if (seen.has(r.criteria_code)) return false;
+        seen.add(r.criteria_code);
+        return true;
+      });
+      return res.json(uniqueRows);
     }
 
     // Auto-seed default FPI.docx criteria and rubrics if empty
