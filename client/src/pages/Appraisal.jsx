@@ -281,34 +281,34 @@ export default function Appraisal({ auth }) {
   };
 
   const defaultFpiItemsFallback = [
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A1', criteria_title: 'Innovative ICT Tools Integrated in Course Delivery', rubric_description: '5 marks per innovative ICT tool (Kahoot, Virtual Labs, Canvas, Padlet, Google Classroom) integrated into course delivery.', mapping_type: 'manual', max_marks: 10, display_order: 1 },
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A2', criteria_title: 'E-Content & Video Lectures Developed', rubric_description: '5 marks per original e-content / video lecture module developed and hosted on LMS / YouTube.', mapping_type: 'manual', max_marks: 10, display_order: 2 },
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A3', criteria_title: 'Development of New Lab Experiments / Manuals', rubric_description: '5 marks per new lab experiment or virtual lab manual developed for curriculum enhancement.', mapping_type: 'manual', max_marks: 10, display_order: 3 },
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A4', criteria_title: 'Student Feedback Score Rating', rubric_description: '10 marks for average feedback rating >=4.5/5, 7 marks for 4.0-4.4, 5 marks for 3.0-3.9.', mapping_type: 'manual', max_marks: 10, display_order: 4 },
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A5', criteria_title: 'End Semester Course Pass Percentage', rubric_description: '10 marks for pass percentage >=85%, 7 marks for 75-84%, 5 marks for 60-74%.', mapping_type: 'manual', max_marks: 10, display_order: 5 },
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A6', criteria_title: 'Value Added Courses & Industry Workshops Delivered', rubric_description: '5 marks per value-added course or industry hands-on workshop conducted.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, display_order: 6 },
-    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A7', criteria_title: 'Mentoring Students in Hackathons & Competitions', rubric_description: '5 marks for mentoring winning/finalist teams in national/international hackathons.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, display_order: 7 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A1', criteria_title: 'Innovative ICT Tools Integrated in Course Delivery', rubric_description: '5 marks per innovative ICT tool (Kahoot, Virtual Labs, Canvas, Padlet, Google Classroom) integrated into course delivery.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 1 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A2', criteria_title: 'E-Content & Video Lectures Developed', rubric_description: '5 marks per original e-content / video lecture module developed and hosted on LMS / YouTube.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 2 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A3', criteria_title: 'Development of New Lab Experiments / Manuals', rubric_description: '5 marks per new lab experiment or virtual lab manual developed for curriculum enhancement.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 3 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A4', criteria_title: 'Student Feedback Score Rating', rubric_description: '5 marks for average feedback rating >=4.0/5, 3 marks for <4.0.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'bracket_rating', bracket_config: { rating_threshold: 4.0, high_score: 5, low_score: 3 }, display_order: 4 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A5', criteria_title: 'End Semester Course Pass Percentage', rubric_description: '10 marks for pass percentage >=80%, 5 marks for 60-79%.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'bracket_rating', bracket_config: { pass_threshold: 80, high_score: 10, low_score: 5 }, display_order: 5 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A6', criteria_title: 'Value Added Courses & Industry Workshops Delivered', rubric_description: '5 marks per value-added course or industry hands-on workshop conducted.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 6 },
+    { section_code: 'PART_A', section_title: 'PART A: Teaching Learning Process', criteria_code: 'A7', criteria_title: 'Mentoring Students in Hackathons & Competitions', rubric_description: '10 marks for Prize Won, 5 marks for Participation.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'bracket_rating', bracket_config: { prize_score: 10, participation_score: 5 }, display_order: 7 },
 
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B1', criteria_title: 'Professional Society Memberships', rubric_description: 'Automatic mapping: 3 marks per active professional society membership (IEEE, ISTE, ACM, CSI, etc.) [Max 3 pts].', mapping_type: 'auto', fixed_mark_per_record: 3, max_marks: 3, display_order: 8 },
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B2', criteria_title: 'Resource Speaker / Session Chair / Invited Talks', rubric_description: 'Automatic mapping: 2 marks per invited guest lecture, resource talk, or session chair role delivered [Max 4 pts].', mapping_type: 'auto', fixed_mark_per_record: 2, max_marks: 4, display_order: 9 },
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B3', criteria_title: 'FDPs / STTPs / Workshops Attended', rubric_description: 'Automatic mapping: 2.5 marks if >=5 days duration, 2 marks if <5 days duration [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 2.5, max_marks: 5, display_order: 10 },
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B4', criteria_title: 'Curriculum Development & Board of Studies (BOS)', rubric_description: '5 marks for active BoS membership, syllabus revision, or curriculum framing.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, display_order: 11 },
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B5', criteria_title: 'Organizing FDPs / Conferences / Symposia', rubric_description: 'Automatic mapping: 4 marks per national/international conference, FDP, or symposium organized [Max 8 pts].', mapping_type: 'auto', fixed_mark_per_record: 4, max_marks: 8, display_order: 12 },
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B6', criteria_title: 'Online Certifications (SWAYAM / NPTEL / Coursera)', rubric_description: 'Automatic mapping: 5 marks for 8/12 week NPTEL/SWAYAM course, 2.5 marks for 4 week course [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, display_order: 13 },
-    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B7', criteria_title: 'Industrial Training / Corporate Internship Completed', rubric_description: '5 marks per corporate training / industrial fellowship completed (min 2 weeks).', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, display_order: 14 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B1', criteria_title: 'Professional Society Memberships', rubric_description: 'Automatic mapping: 3 marks per active professional society membership (IEEE, ISTE, ACM, CSI, etc.) [Max 3 pts].', mapping_type: 'auto', fixed_mark_per_record: 3, max_marks: 3, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 8 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B2', criteria_title: 'Resource Speaker / Session Chair / Invited Talks', rubric_description: 'Automatic mapping: 2 marks per invited guest lecture, resource talk, or session chair role delivered [Max 4 pts].', mapping_type: 'auto', fixed_mark_per_record: 2, max_marks: 4, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 9 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B3', criteria_title: 'External Academic / Professional Interactions', rubric_description: 'Automatic mapping: 2.5 marks per interaction detail [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 2.5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 10 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B4', criteria_title: 'Curriculum Development & Board of Studies (BOS)', rubric_description: '5 marks for active BoS membership, syllabus revision, or curriculum framing.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 11 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B5', criteria_title: 'Organizing FDPs / Conferences / Symposia', rubric_description: 'Automatic mapping: 4 marks per national/international conference, FDP, or symposium organized [Max 8 pts].', mapping_type: 'auto', fixed_mark_per_record: 4, max_marks: 8, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 12 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B6', criteria_title: 'Online Certifications (SWAYAM / NPTEL / Coursera)', rubric_description: 'Automatic mapping: 5 marks for 8/12 week NPTEL/SWAYAM course, 2.5 marks for 4 week course [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'bracket_rating', bracket_config: { long_course_score: 5, short_course_score: 2.5 }, display_order: 13 },
+    { section_code: 'PART_B', section_title: 'PART B: Professional Development Activities', criteria_code: 'B7', criteria_title: 'Industrial Training / Corporate Internship Completed', rubric_description: '5 marks per corporate training / industrial fellowship completed (min 2 weeks).', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 14 },
 
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C1', criteria_title: 'Research Publications in Journals & Conferences', rubric_description: 'Automatic mapping: 10 marks per Journal paper, 5 marks per Conference paper [Max 20 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 20, display_order: 15 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C2', criteria_title: 'Books & Book Chapters Published', rubric_description: 'Automatic mapping: 5 marks per book or book chapter published with ISBN [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, display_order: 16 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C3', criteria_title: 'Community Service & Extension Activities', rubric_description: '5 marks per community outreach, societal project, or extension program.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, display_order: 17 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C4', criteria_title: 'IPR, Patents & Copyrights', rubric_description: 'Automatic mapping: 10 marks for Patent Granted / Copyright Registered, 7 marks for Patent Published, 3 marks for Filed [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 10, display_order: 18 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Research Grants & External Sponsored Projects', rubric_description: 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 marks for <=5 Lakhs, 5 per proposal [Max 15 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 15, display_order: 19 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Seed Money & Consultancy Services', rubric_description: 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, display_order: 20 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C7', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar under supervisorship [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 2.5, max_marks: 5, display_order: 21 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 5, display_order: 22 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C1', criteria_title: 'Research Publications in Journals & Conferences', rubric_description: 'Automatic mapping: 10 marks per Journal paper, 5 marks per Conference paper [Max 20 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 20, calculation_rule: 'pub_type_split', bracket_config: { journal_score: 10, conf_score: 5 }, display_order: 15 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C2', criteria_title: 'Books & Book Chapters Published', rubric_description: 'Automatic mapping: 5 marks per book or book chapter published with ISBN [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 16 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C3', criteria_title: 'Community Service & Extension Activities', rubric_description: '5 marks per community outreach, societal project, or extension program.', mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 17 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C4', criteria_title: 'IPR, Patents & Copyrights', rubric_description: 'Automatic mapping: 10 marks for Patent Granted / Copyright Registered, 7 marks for Patent Published, 3 marks for Filed [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'patent_status_split', bracket_config: { granted_score: 10, published_score: 7, filed_score: 3 }, display_order: 18 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Research Grants & External Sponsored Projects', rubric_description: 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 marks for <=5 Lakhs, 5 per proposal [Max 15 pts].', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 15, calculation_rule: 'bracket_rating', bracket_config: { high_grant_score: 10, low_grant_score: 8, proposal_score: 5 }, display_order: 19 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Seed Money & Consultancy Services', rubric_description: 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project [Max 10 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 20 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C7', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar (N/A for Non-Supervisors) [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 2.5, max_marks: 5, calculation_rule: 'phd_supervisor_gated', bracket_config: { scholar_unit_score: 2.5 }, display_order: 21 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 22 },
 
-    { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D1', criteria_title: 'Assigned Institutional & Departmental Responsibilities', rubric_description: 'Automatic mapping: 10 marks per Institutional role (Max 20), 10 marks per Departmental role (Max 10). Combined Max 20 pts.', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 20, display_order: 23 },
-    { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D2', criteria_title: 'Student Mentoring, Counseling & Academic Guidance', rubric_description: '10 marks for effective mentee tracking, counseling logs, and academic progress monitoring.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, display_order: 24 },
-    { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D3', criteria_title: 'Contribution to NBA / NAAC / Autonomous Accreditations', rubric_description: '10 marks for criterion head / module coordinator role in NBA, NAAC, or Autonomous audits.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, display_order: 25 }
+    { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D1', criteria_title: 'Assigned Institutional & Departmental Responsibilities', rubric_description: 'Automatic mapping: 10 marks per Institutional role (Max 20), 10 marks per Departmental role (Max 10). Combined Max 20 pts.', mapping_type: 'auto', fixed_mark_per_record: 10, max_marks: 20, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 23 },
+    { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D2', criteria_title: 'Student Mentoring, Counseling & Academic Guidance', rubric_description: '10 marks for effective mentee tracking, counseling logs, and academic progress monitoring.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 24 },
+    { section_code: 'PART_D', section_title: 'PART D: Institutional Development & Contribution', criteria_code: 'D3', criteria_title: 'Contribution to NBA / NAAC / Autonomous Accreditations', rubric_description: '10 marks for criterion head / module coordinator role in NBA, NAAC, or Autonomous audits.', mapping_type: 'manual', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 25 }
   ];
 
   const fetchTemplate = async () => {
@@ -1514,19 +1514,20 @@ export default function Appraisal({ auth }) {
                   <table>
                     <thead>
                       <tr>
-                        <th style={{ width: '75px' }}>Code</th>
-                        <th style={{ width: '200px' }}>Criteria Title</th>
+                        <th style={{ width: '65px' }}>Code</th>
+                        <th style={{ width: '180px' }}>Criteria Title</th>
                         <th>Rubrics & Evaluation Description</th>
-                        <th style={{ width: '150px' }}>Mapping Type</th>
-                        <th style={{ width: '120px' }}>Fixed Mark / Record</th>
-                        <th style={{ width: '110px' }}>Total Max Mark</th>
-                        <th style={{ width: '50px' }}>Action</th>
+                        <th style={{ width: '130px' }}>Mapping Type</th>
+                        <th style={{ width: '150px' }}>Calculation Rule</th>
+                        <th style={{ width: '110px' }}>Mark / Record</th>
+                        <th style={{ width: '100px' }}>Total Max</th>
+                        <th style={{ width: '45px' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sectionItems.length === 0 ? (
                         <tr>
-                          <td colSpan="7" style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                          <td colSpan="8" style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
                             No criteria items added for this section.
                           </td>
                         </tr>
@@ -1571,6 +1572,20 @@ export default function Appraisal({ auth }) {
                                 >
                                   <option value="auto">Auto (Portal Data)</option>
                                   <option value="manual">Manual Entry</option>
+                                </select>
+                              </td>
+                              <td>
+                                <select
+                                  className="form-control"
+                                  value={item.calculation_rule || 'fixed_per_record'}
+                                  onChange={(e) => handleTemplateItemChange(itemIndex, 'calculation_rule', e.target.value)}
+                                  style={{ fontSize: '0.8rem', padding: '4px 6px', color: '#0369a1', fontWeight: 700 }}
+                                >
+                                  <option value="fixed_per_record">Fixed Unit Mark</option>
+                                  <option value="bracket_rating">Threshold Bracket</option>
+                                  <option value="pub_type_split">Publication Split</option>
+                                  <option value="patent_status_split">Patent Status Split</option>
+                                  <option value="phd_supervisor_gated">Ph.D Supervisor Gated</option>
                                 </select>
                               </td>
                               <td>
@@ -3426,37 +3441,74 @@ export default function Appraisal({ auth }) {
         const vB7 = parseRows(viewingAppraisal.b7_industry_training);
         const vC3 = parseRows(viewingAppraisal.c3_community_service);
 
-        // Categorywise Score Calculations for Part A, B, C, D
-        const score_a1 = Math.min(10, vA1.length * 2);
-        const score_a2 = Math.min(10, vA2.length * 5);
-        const score_a3 = Math.min(10, vA3.length * 2.5);
-        const score_a4 = Math.min(5, vA4.length * 2.5);
-        const score_a5 = Math.min(10, vA5.length * 5);
-        const score_a6 = Math.min(5, vA6.length * 5);
-        const score_a7 = Math.min(10, vA7.reduce((acc, r) => acc + (r.position === 'Participation' ? 5 : 10), 0));
+        // Dynamic Helper to extract template constraints (unit mark & max mark cap)
+        const getConstraint = (code, defUnit, defMax) => {
+          const item = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === code.toUpperCase());
+          return {
+            unitMark: item && item.fixed_mark_per_record !== undefined && item.fixed_mark_per_record !== null && item.fixed_mark_per_record !== '' ? parseFloat(item.fixed_mark_per_record) : defUnit,
+            maxMarks: item && item.max_marks !== undefined && item.max_marks !== null && item.max_marks !== '' ? parseFloat(item.max_marks) : defMax,
+            rule: item?.calculation_rule || 'fixed_per_record'
+          };
+        };
+
+        const c_a1 = getConstraint('A1', 5, 10);
+        const c_a2 = getConstraint('A2', 5, 10);
+        const c_a3 = getConstraint('A3', 5, 10);
+        const c_a4 = getConstraint('A4', 5, 5);
+        const c_a5 = getConstraint('A5', 10, 10);
+        const c_a6 = getConstraint('A6', 5, 5);
+        const c_a7 = getConstraint('A7', 10, 10);
+
+        const c_b1 = getConstraint('B1', 3, 3);
+        const c_b2 = getConstraint('B2', 2, 4);
+        const c_b3 = getConstraint('B3', 2.5, 5);
+        const c_b4 = getConstraint('B4', 5, 5);
+        const c_b5 = getConstraint('B5', 4, 8);
+        const c_b6 = getConstraint('B6', 5, 10);
+        const c_b7 = getConstraint('B7', 5, 5);
+
+        const c_c1 = getConstraint('C1', 10, 20);
+        const c_c2 = getConstraint('C2', 5, 10);
+        const c_c3 = getConstraint('C3', 5, 5);
+        const c_c4 = getConstraint('C4', 10, 10);
+        const c_c5 = getConstraint('C5', 10, 15);
+        const c_c6 = getConstraint('C6', 5, 10);
+        const c_c7 = getConstraint('C7', 2.5, 5);
+        const c_c8 = getConstraint('C8', 5, 5);
+
+        const c_d1 = getConstraint('D1', 10, 20);
+
+        // Categorywise Dynamic Score Calculations for Part A, B, C, D
+        const score_a1 = Math.min(c_a1.maxMarks, vA1.length * c_a1.unitMark);
+        const score_a2 = Math.min(c_a2.maxMarks, vA2.length * c_a2.unitMark);
+        const score_a3 = Math.min(c_a3.maxMarks, vA3.length * c_a3.unitMark);
+        const score_a4 = Math.min(c_a4.maxMarks, vA4.length * c_a4.unitMark);
+        const score_a5 = Math.min(c_a5.maxMarks, vA5.length * c_a5.unitMark);
+        const score_a6 = Math.min(c_a6.maxMarks, vA6.length * c_a6.unitMark);
+        const score_a7 = Math.min(c_a7.maxMarks, vA7.reduce((acc, r) => acc + (r.position === 'Participation' ? Math.min(5, c_a7.unitMark / 2) : c_a7.unitMark), 0));
         const subtotal_A = viewingAppraisal.part_a_score || Math.min(60, score_a1 + score_a2 + score_a3 + score_a4 + score_a5 + score_a6 + score_a7);
 
-        const score_b1 = Math.min(3, fpiDetails?.breakdown?.b1_memberships ?? ((fpiDetails?.members?.length || 0) * 3));
-        const score_b2 = Math.min(4, fpiDetails?.breakdown?.b2_resource ?? ((fpiDetails?.resource?.length || 0) * 2));
-        const score_b3 = Math.min(5, fpiDetails?.breakdown?.b3_interactions ?? ((fpiDetails?.interactions?.length || 0) * 2.5));
-        const score_b4 = Math.min(5, vB4.length * 5);
-        const score_b5 = Math.min(8, fpiDetails?.breakdown?.b5_events ?? ((fpiDetails?.events?.length || 0) * 4));
-        const score_b6 = Math.min(10, fpiDetails?.breakdown?.b6_certs ?? ((fpiDetails?.certs?.length || 0) * 5));
-        const score_b7 = Math.min(5, vB7.length * 5);
+        const score_b1 = Math.min(c_b1.maxMarks, fpiDetails?.breakdown?.b1_memberships ?? ((fpiDetails?.members?.length || 0) * c_b1.unitMark));
+        const score_b2 = Math.min(c_b2.maxMarks, fpiDetails?.breakdown?.b2_resource ?? ((fpiDetails?.resource?.length || 0) * c_b2.unitMark));
+        const score_b3 = Math.min(c_b3.maxMarks, fpiDetails?.breakdown?.b3_interactions ?? ((fpiDetails?.interactions?.length || 0) * c_b3.unitMark));
+        const score_b4 = Math.min(c_b4.maxMarks, vB4.length * c_b4.unitMark);
+        const score_b5 = Math.min(c_b5.maxMarks, fpiDetails?.breakdown?.b5_events ?? ((fpiDetails?.events?.length || 0) * c_b5.unitMark));
+        const score_b6 = Math.min(c_b6.maxMarks, fpiDetails?.breakdown?.b6_certs ?? ((fpiDetails?.certs?.length || 0) * c_b6.unitMark));
+        const score_b7 = Math.min(c_b7.maxMarks, vB7.length * c_b7.unitMark);
         const subtotal_B = viewingAppraisal.part_b_score || Math.min(40, score_b1 + score_b2 + score_b3 + score_b4 + score_b5 + score_b6 + score_b7);
 
-        const score_c1 = Math.min(20, fpiDetails?.breakdown?.c1_publications ?? ((fpiDetails?.publications?.length || 0) * 10));
-        const score_c2 = Math.min(10, fpiDetails?.breakdown?.c2_books ?? ((fpiDetails?.books?.length || 0) * 5));
-        const score_c3 = Math.min(10, vC3.length * 5);
-        const score_c4 = Math.min(10, fpiDetails?.breakdown?.c4_ipr ?? ((fpiDetails?.ipr?.length || 0) * 10));
-        const score_c5 = Math.min(15, fpiDetails?.breakdown?.c5_funding ?? ((fpiDetails?.funding?.length || 0) * 10));
-        const score_c6 = Math.min(10, fpiDetails?.breakdown?.c6_seed_money ?? ((fpiDetails?.seedMoney?.length || 0) * 5));
+        const score_c1 = Math.min(c_c1.maxMarks, fpiDetails?.breakdown?.c1_publications ?? ((fpiDetails?.publications?.length || 0) * c_c1.unitMark));
+        const score_c2 = Math.min(c_c2.maxMarks, fpiDetails?.breakdown?.c2_books ?? ((fpiDetails?.books?.length || 0) * c_c2.unitMark));
+        const score_c3 = Math.min(c_c3.maxMarks, vC3.length * c_c3.unitMark);
+        const score_c4 = Math.min(c_c4.maxMarks, fpiDetails?.breakdown?.c4_ipr ?? ((fpiDetails?.ipr?.length || 0) * c_c4.unitMark));
+        const score_c5 = Math.min(c_c5.maxMarks, fpiDetails?.breakdown?.c5_funding ?? ((fpiDetails?.funding?.length || 0) * c_c5.unitMark));
+        const score_c6 = Math.min(c_c6.maxMarks, fpiDetails?.breakdown?.c6_seed_money ?? ((fpiDetails?.seedMoney?.length || 0) * c_c6.unitMark));
         const isSupervisor = fpiDetails?.is_recognized_supervisor !== false;
-        const score_c7 = !isSupervisor ? 'N/A' : Math.min(5, fpiDetails?.breakdown?.c8_scholars ?? ((fpiDetails?.scholars?.length || 0) * 2.5));
-        const score_c8 = Math.min(5, fpiDetails?.breakdown?.c9_awards ?? ((fpiDetails?.awards?.length || 0) * 5));
+        const score_c7 = !isSupervisor ? 'N/A' : Math.min(c_c7.maxMarks, fpiDetails?.breakdown?.c8_scholars ?? ((fpiDetails?.scholars?.length || 0) * c_c7.unitMark));
+        const score_c8 = Math.min(c_c8.maxMarks, fpiDetails?.breakdown?.c9_awards ?? ((fpiDetails?.awards?.length || 0) * c_c8.unitMark));
         const subtotal_C = viewingAppraisal.part_c_score || Math.min(80, (score_c1 + score_c2 + score_c3 + score_c4 + score_c5 + score_c6 + (isSupervisor ? (typeof score_c7 === 'number' ? score_c7 : 0) : 0) + score_c8));
 
-        const score_d1 = viewingAppraisal.part_d_score || Math.min(20, fpiDetails?.breakdown?.d_responsibilities ?? ((fpiDetails?.responsibilities?.length || 0) * 10));
+        const score_d1 = viewingAppraisal.part_d_score || Math.min(c_d1.maxMarks, fpiDetails?.breakdown?.d_responsibilities ?? ((fpiDetails?.responsibilities?.length || 0) * c_d1.unitMark));
         const subtotal_D = score_d1;
 
         const canEdit = !isAdminOrHR || viewingAppraisal.staff_id === auth.staffId;
