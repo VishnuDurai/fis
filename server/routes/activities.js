@@ -304,7 +304,7 @@ router.delete('/:type/:id', authenticateToken, validateType, (req, res) => {
 
     if (req.user.role !== 'admin' && req.user.role !== 'dept_admin') {
       if (type === 'scholars') {
-        query += ` AND (staff_id = ? OR (sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE '%' || LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) || '%'))`;
+        query += ` AND (staff_id = ? OR (sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE CONCAT('%', LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')), '%')))`;
         params.push(staffId, req.user.name || '');
       } else {
         query += ` AND staff_id = ?`;
@@ -389,7 +389,7 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
 
   if (req.user.role !== 'admin' && req.user.role !== 'dept_admin') {
     if (type === 'scholars') {
-      query += ` AND (staff_id = ? OR (sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE '%' || LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) || '%'))`;
+      query += ` AND (staff_id = ? OR (sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE CONCAT('%', LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')), '%')))`;
       params.push(staffId, req.user.name || '');
     } else {
       query += ` AND staff_id = ?`;
