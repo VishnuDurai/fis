@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import { getCurrentAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
@@ -25,9 +25,10 @@ export default function Appraisal({ auth }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [departments, setDepartments] = useState([]);
 
-  // Dynamic Template State
+  // Dynamic Template State & Rule Config Modal
   const [templateItems, setTemplateItems] = useState([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [ruleModalItem, setRuleModalItem] = useState(null);
 
   // General Information State (Auto-Mapped from Portal)
   const [generalInfo, setGeneralInfo] = useState({
@@ -1587,6 +1588,29 @@ export default function Appraisal({ auth }) {
                                   <option value="patent_status_split">Patent Status Split</option>
                                   <option value="phd_supervisor_gated">Ph.D Supervisor Gated</option>
                                 </select>
+                                <button
+                                  type="button"
+                                  onClick={() => setRuleModalItem({ index: itemIndex, item: { ...item } })}
+                                  style={{
+                                    marginTop: '4px',
+                                    fontSize: '0.72rem',
+                                    padding: '2px 8px',
+                                    background: '#e0f2fe',
+                                    color: '#0369a1',
+                                    border: '1px solid #7dd3fc',
+                                    borderRadius: '4px',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    width: '100%',
+                                    justifyContent: 'center'
+                                  }}
+                                  title="Configure threshold bracket cutoffs & tier scores"
+                                >
+                                  <Settings size={11} /> Config Bracket
+                                </button>
                               </td>
                               <td>
                                 <input
@@ -4874,6 +4898,228 @@ export default function Appraisal({ auth }) {
                   style={{ padding: '9px 20px', fontWeight: 700 }}
                 >
                   Close FPI View
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* RULE & THRESHOLD BRACKET CONFIGURATION MODAL */}
+      {ruleModalItem && (() => {
+        const { index, item } = ruleModalItem;
+        let configObj = {};
+        try {
+          if (typeof item.bracket_config === 'object' && item.bracket_config !== null) {
+            configObj = { ...item.bracket_config };
+          } else if (typeof item.bracket_config === 'string' && item.bracket_config.trim() !== '') {
+            configObj = JSON.parse(item.bracket_config);
+          }
+        } catch (e) {
+          configObj = {};
+        }
+
+        const ruleType = item.calculation_rule || 'fixed_per_record';
+
+        const updateConfigField = (key, val) => {
+          const num = parseFloat(val);
+          const newCfg = { ...configObj, [key]: isNaN(num) ? val : num };
+          setRuleModalItem({
+            ...ruleModalItem,
+            item: {
+              ...item,
+              bracket_config: newCfg
+            }
+          });
+        };
+
+        const handleSaveRuleModal = () => {
+          handleTemplateItemChange(index, 'bracket_config', item.bracket_config);
+          setRuleModalItem(null);
+        };
+
+        return (
+          <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+            <div style={{ background: '#ffffff', borderRadius: '14px', maxWidth: '550px', width: '100%', padding: '24px', border: '1.5px solid #cbd5e1', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Settings size={18} color="#0284c7" /> Configure Threshold & Rule Bracket ({item.criteria_code})
+                </h3>
+                <button type="button" onClick={() => setRuleModalItem(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                  <X size={22} />
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  Criteria: {item.criteria_title}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  Rule Strategy: <strong style={{ color: '#0369a1' }}>{ruleType}</strong>
+                </div>
+              </div>
+
+              {/* RULE SPECIFIC EDITORS */}
+              {ruleType === 'bracket_rating' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', display: 'block', marginBottom: '4px' }}>
+                      Cutoff Threshold Rating / Benchmark Value:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      className="form-control"
+                      value={configObj.rating_threshold ?? configObj.pass_threshold ?? 4.0}
+                      onChange={(e) => {
+                        updateConfigField('rating_threshold', e.target.value);
+                        updateConfigField('pass_threshold', e.target.value);
+                      }}
+                      placeholder="e.g. 4.0 or 80"
+                    />
+                    <small style={{ color: '#64748b', fontSize: '0.75rem' }}>Benchmark value for evaluating high vs low mark tier.</small>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#15803d', display: 'block', marginBottom: '4px' }}>
+                        High Tier Score (Above / At Threshold):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        className="form-control"
+                        value={configObj.high_score ?? configObj.prize_score ?? 5}
+                        onChange={(e) => {
+                          updateConfigField('high_score', e.target.value);
+                          updateConfigField('prize_score', e.target.value);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b45309', display: 'block', marginBottom: '4px' }}>
+                        Low Tier Score (Below Threshold):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        className="form-control"
+                        value={configObj.low_score ?? configObj.participation_score ?? 3}
+                        onChange={(e) => {
+                          updateConfigField('low_score', e.target.value);
+                          updateConfigField('participation_score', e.target.value);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {ruleType === 'pub_type_split' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', display: 'block', marginBottom: '4px' }}>
+                      Journal Publication Mark (SCI / Scopus / WoS):
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-control"
+                      value={configObj.journal_score ?? 10}
+                      onChange={(e) => updateConfigField('journal_score', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                      Conference Paper Mark:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-control"
+                      value={configObj.conf_score ?? 5}
+                      onChange={(e) => updateConfigField('conf_score', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {ruleType === 'patent_status_split' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#15803d', display: 'block', marginBottom: '4px' }}>
+                      Patent Granted / Registered Score:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-control"
+                      value={configObj.granted_score ?? 10}
+                      onChange={(e) => updateConfigField('granted_score', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', display: 'block', marginBottom: '4px' }}>
+                      Patent Published Score:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-control"
+                      value={configObj.published_score ?? 7}
+                      onChange={(e) => updateConfigField('published_score', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b45309', display: 'block', marginBottom: '4px' }}>
+                      Patent Filed Score:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-control"
+                      value={configObj.filed_score ?? 3}
+                      onChange={(e) => updateConfigField('filed_score', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {ruleType === 'phd_supervisor_gated' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', display: 'block', marginBottom: '4px' }}>
+                      Mark Awarded per Registered Ph.D Scholar:
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="form-control"
+                      value={configObj.scholar_unit_score ?? 2.5}
+                      onChange={(e) => updateConfigField('scholar_unit_score', e.target.value)}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#0284c7', background: '#e0f2fe', padding: '8px 12px', borderRadius: '6px', border: '1px solid #7dd3fc' }}>
+                    Note: For faculty who are not Recognized Research Supervisors, score automatically calculates and displays as <strong>N/A (0 Marks)</strong>.
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.85rem', padding: '6px 14px' }}
+                  onClick={() => setRuleModalItem(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.85rem', padding: '6px 18px', fontWeight: 800 }}
+                  onClick={handleSaveRuleModal}
+                >
+                  Save Bracket Config
                 </button>
               </div>
             </div>
