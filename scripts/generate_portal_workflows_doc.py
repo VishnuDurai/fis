@@ -171,7 +171,7 @@ def create_portal_workflows_document():
         p_r.paragraph_format.space_before = Pt(0)
         p_r.paragraph_format.space_after = Pt(0)
         r_r = p_r.add_run()
-        r_r.add_picture(right_logo, height=Inches(0.85))
+        r_r.add_picture(right_logo, width=Inches(2.5))
 
     # Standardized Institutional Report Header Text
     p_inst = doc.add_paragraph()
