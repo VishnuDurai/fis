@@ -11,3 +11,7 @@
 ## Technical Codebase Constraints & File Modification Guide Maintenance
 - Whenever there is any change to codebase file structures, permission handler locations, appraisal scoring algorithms, menu item definitions, or technical constraints, you MUST execute `python3 scripts/generate_tech_file_guide_doc.py` to regenerate and update `docs/Technical_Constraints_and_File_Modification_Guide.docx`.
 - The generator script (`scripts/generate_tech_file_guide_doc.py`) regenerates and synchronizes `docs/Technical_Constraints_and_File_Modification_Guide.docx` to ensure developers have up-to-date technical reference maps for file modifications.
+
+## Complete 3-Portals Workflow Guide Maintenance
+- Whenever there is any change to user workflows, portal interaction lifecycles, approval processes, or role-based user navigation flows across any of the 3 portals, you MUST execute `python3 scripts/generate_portal_workflows_doc.py` to regenerate and update `docs/Complete_3_Portals_Workflow_Guide.docx`.
+- The generator script (`scripts/generate_portal_workflows_doc.py`) regenerates and synchronizes `docs/Complete_3_Portals_Workflow_Guide.docx` to reflect all operational user workflows across all 3 portals.

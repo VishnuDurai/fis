@@ -1,0 +1,338 @@
+import os
+import datetime
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+def set_cell_background(cell, fill_hex):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear')
+    shd.set(qn('w:color'), 'auto')
+    shd.set(qn('w:fill'), fill_hex)
+    tcPr.append(shd)
+
+def set_cell_margins(cell, top=120, bottom=120, left=160, right=160):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcMar = OxmlElement('w:tcMar')
+    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
+        node = OxmlElement(f'w:{m}')
+        node.set(qn('w:w'), str(val))
+        node.set(qn('w:type'), 'dxa')
+        tcMar.append(node)
+    tcPr.append(tcMar)
+
+def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
+    tblPr = table._tbl.tblPr
+    tblBorders = OxmlElement('w:tblBorders')
+    for border_name in ['top', 'left', 'bottom', 'right', 'insideH']:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), val)
+        border.set(qn('w:sz'), sz)
+        border.set(qn('w:space'), '0')
+        border.set(qn('w:color'), color)
+        tblBorders.append(border)
+    border = OxmlElement('w:insideV')
+    border.set(qn('w:val'), 'none')
+    tblBorders.append(border)
+    tblPr.append(tblBorders)
+
+def add_page_border(section, color="0F331F", sz="8"):
+    sectPr = section._sectPr
+    pgBorders = OxmlElement('w:pgBorders')
+    pgBorders.set(qn('w:offsetFrom'), 'page')
+    for b_name in ['top', 'left', 'bottom', 'right']:
+        b = OxmlElement(f'w:{b_name}')
+        b.set(qn('w:val'), 'single')
+        b.set(qn('w:sz'), sz)
+        b.set(qn('w:space'), '20')
+        b.set(qn('w:color'), color)
+        pgBorders.append(b)
+    sectPr.append(pgBorders)
+
+def add_heading_styled(doc, text, level=1):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(16)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = 'Times New Roman'
+    run.bold = True
+    if level == 1:
+        run.font.size = Pt(16)
+        run.font.color.rgb = RGBColor(15, 23, 42)
+    elif level == 2:
+        run.font.size = Pt(14)
+        run.font.color.rgb = RGBColor(3, 105, 161)
+    elif level == 3:
+        run.font.size = Pt(14)
+        run.font.color.rgb = RGBColor(15, 118, 110)
+    return p
+
+def create_portal_workflows_document():
+    doc = Document()
+    
+    # Page setup - Margins & Page Border
+    for section in doc.sections:
+        section.top_margin = Inches(0.75)
+        section.bottom_margin = Inches(0.75)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
+
+        add_page_border(section, color="0F331F", sz="8")
+
+        footer = section.footer
+        footer_p = footer.paragraphs[0]
+        footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_p.paragraph_format.space_before = Pt(6)
+        footer_run = footer_p.add_run("© 2026 FIS Team - Sri Ramakrishna Engineering College, Coimbatore | SREC FIS V3.0")
+        footer_run.font.name = 'Times New Roman'
+        footer_run.font.size = Pt(11)
+        footer_run.font.color.rgb = RGBColor(100, 116, 139)
+
+    # Dual Logo Header Table (SREC College Logo Left + SNR Sons Trust Logo Right)
+    left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
+    right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
+    
+    logo_table = doc.add_table(rows=1, cols=2)
+    logo_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    logo_table.autofit = False
+    
+    cell_l = logo_table.rows[0].cells[0]
+    cell_r = logo_table.rows[0].cells[1]
+    cell_l.width = Inches(3.5)
+    cell_r.width = Inches(3.5)
+    
+    if os.path.exists(left_logo):
+        p_l = cell_l.paragraphs[0]
+        p_l.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p_l.paragraph_format.space_before = Pt(0)
+        p_l.paragraph_format.space_after = Pt(0)
+        r_l = p_l.add_run()
+        r_l.add_picture(left_logo, height=Inches(0.85))
+
+    if os.path.exists(right_logo):
+        p_r = cell_r.paragraphs[0]
+        p_r.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        p_r.paragraph_format.space_before = Pt(0)
+        p_r.paragraph_format.space_after = Pt(0)
+        r_r = p_r.add_run()
+        r_r.add_picture(right_logo, height=Inches(0.85))
+
+    # Standardized Institutional Report Header Text
+    p_inst = doc.add_paragraph()
+    p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_inst.paragraph_format.space_before = Pt(6)
+    p_inst.paragraph_format.space_after = Pt(2)
+    r_inst = p_inst.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
+    r_inst.font.name = 'Times New Roman'
+    r_inst.font.size = Pt(18)
+    r_inst.bold = True
+    r_inst.font.color.rgb = RGBColor(15, 51, 31)
+
+    p_subinst = doc.add_paragraph()
+    p_subinst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_subinst.paragraph_format.space_before = Pt(0)
+    p_subinst.paragraph_format.space_after = Pt(4)
+    r_subinst = p_subinst.add_run("[An Autonomous Institution | Re-Accredited by NAAC with 'A+' Grade]")
+    r_subinst.font.name = 'Times New Roman'
+    r_subinst.font.size = Pt(12)
+    r_subinst.font.italic = True
+    r_subinst.font.color.rgb = RGBColor(71, 85, 105)
+
+    p_sys = doc.add_paragraph()
+    p_sys.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_sys.paragraph_format.space_before = Pt(0)
+    p_sys.paragraph_format.space_after = Pt(14)
+    r_sys = p_sys.add_run("FACULTY INFORMATION SYSTEM (SREC FIS V3.0)")
+    r_sys.font.name = 'Times New Roman'
+    r_sys.font.size = Pt(14)
+    r_sys.bold = True
+    r_sys.font.color.rgb = RGBColor(2, 132, 199)
+
+    # Document Main Title
+    title_p = doc.add_paragraph()
+    title_p.paragraph_format.space_before = Pt(6)
+    title_p.paragraph_format.space_after = Pt(6)
+    run_title = title_p.add_run("COMPLETE & DETAILED WORKFLOW GUIDE FOR ALL 3 PORTALS")
+    run_title.font.name = 'Times New Roman'
+    run_title.font.size = Pt(16)
+    run_title.bold = True
+    run_title.font.color.rgb = RGBColor(15, 23, 42)
+
+    meta_p = doc.add_paragraph()
+    meta_p.paragraph_format.space_before = Pt(0)
+    meta_p.paragraph_format.space_after = Pt(14)
+    run_meta = meta_p.add_run(f"Document Generated: {datetime.datetime.now().strftime('%B %d, %Y')} | Version 3.0 | Status: Operational Workflow Specification")
+    run_meta.font.name = 'Times New Roman'
+    run_meta.font.size = Pt(11)
+    run_meta.font.italic = True
+    run_meta.font.color.rgb = RGBColor(100, 116, 139)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+    # Section 1
+    add_heading_styled(doc, "1. System Architectural Overview & Authentication Workflow", level=1)
+    
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(8)
+    r = p.add_run("The SREC FIS V3.0 system is designed with a multi-role, modular architecture servicing three distinct user portals: (1) Faculty Portal, (2) Department Admin / HOD Portal, and (3) System Admin & Executive Portal. Authentication is centralized via JWT (JSON Web Token) tokens issued upon authenticating at /api/auth/login.")
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
+
+    auth_steps = [
+        ("Step 1 — Login Authentication: ", "User submits credentials and role selection (Faculty, Dept Admin, System Admin). Backend verifies hashed password via bcryptjs."),
+        ("Step 2 — JWT Claim Issuance: ", "Server generates a 24-hour JWT token embedding staffId, role, name, designation, department, isHod, isInstitutionalAdmin, isSupervisorEligible, and isClubCoordinator."),
+        ("Step 3 — Client Session Initialization: ", "Token and claims stored in client localStorage. React router (App.jsx) initializes sidebar navigation tree and route guards."),
+        ("Step 4 — Protected Request Middleware: ", "All API requests attach Bearer token header. Static file uploads under /uploads/* and /SREC/* are protected by requireFileAuth middleware.")
+    ]
+
+    for t_step, b_step in auth_steps:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(t_step)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(15, 118, 110)
+        r2 = bp.add_run(b_step)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Section 2
+    add_heading_styled(doc, "2. Portal 1 — Regular Faculty Portal Workflow (role: 'faculty')", level=1)
+
+    p2 = doc.add_paragraph()
+    p2.paragraph_format.space_after = Pt(6)
+    r2 = p2.add_run("The Faculty Portal empowers teaching staff to log personal details, upload academic documents, manage research submissions, view assigned duties, fill self FPI appraisal forms, and export dossiers.")
+    r2.font.name = 'Times New Roman'
+    r2.font.size = Pt(14)
+
+    fac_workflows = [
+        ("Workflow 1.1 — Personal & Academic Profile Logging: ", "Faculty logs into Dashboard -> Personal (/profile/personal) to update DOB, Gender, Mobile, PAN, Aadhaar, and Address. Accesses Academic Info (/profile/academic) to view designation, department, and SREC experience. Uploads official identity documents via /profile/documents. File saved to server/SREC/{Department}/{Staff_ID}/."),
+        ("Workflow 1.2 — Education & Professional Memberships: ", "Faculty submits educational qualifications (SSLC, HSC, UG, PG, Ph.D) with certificate uploads in Education Details (/profile/education). Registers professional memberships (IEEE, CSI, ACM) in /activities/memberships."),
+        ("Workflow 1.3 — Activity & Certification Logging: ", "Faculty logs FDPs/workshops attended (/activities/interactions), resource person engagements (/activities/resource), online certifications (/activities/certifications), awards (/activities/awards), and events organized (/activities/events). If assigned as Club Coordinator, accesses /activities/clubs."),
+        ("Workflow 1.4 — R&D & Scholarly Submissions: ", "If non-Doctorate, accesses Research Scholar (/activities/scholars). If Doctorate/Ph.D ('Dr.'), Research Supervisor (/activities/supervisors) is automatically enabled. Logs Research Funding (/activities/funding), Seed Money (/activities/seed_money), Patents/IPR (/activities/ipr), Publications (/activities/publications), and Books (/activities/books)."),
+        ("Workflow 1.5 — Assigned Responsibilities View: ", "Faculty accesses /responsibilities to view official additional duties assigned by HOD, Principal, HR, or System Admin."),
+        ("Workflow 1.6 — Annual Performance Appraisal (FPI Form) Submission: ", "Faculty opens Appraisal Form (/appraisal). System auto-selects completed academic year (2025-2026) and auto-maps portal data into PART A (Teaching, Max 60), PART B (Prof Dev, Max 40), PART C (R&D, Max 80), and PART D (Institutional, Max 20). Self-scores calculate automatically. Faculty verifies auto-mapped proofs (👁️ View Proof) and clicks 'Submit FPI Form'. Form status updates to 'Submitted'."),
+        ("Workflow 1.7 — Self Dossier Report Generation: ", "Faculty opens Reports (/reports) to generate and download self academic dossier in PDF, Excel, or ZIP format.")
+    ]
+
+    for t_wf, b_wf in fac_workflows:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(t_wf)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(3, 105, 161)
+        r2 = bp.add_run(b_wf)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Section 3
+    add_heading_styled(doc, "3. Portal 2 — Department Admin & HOD Portal Workflow (role: 'dept_admin', isHod: true)", level=1)
+
+    p3 = doc.add_paragraph()
+    p3.paragraph_format.space_after = Pt(6)
+    r3 = p3.add_run("The Department Admin & HOD Portal provides departmental oversight, read-only faculty verification, departmental duty assignment, Part-by-Part appraisal evaluation, and departmental report exports.")
+    r3.font.name = 'Times New Roman'
+    r3.font.size = Pt(14)
+
+    hod_workflows = [
+        ("Workflow 2.1 — Department Faculty Directory & Read-Only Profile Verification: ", "HOD/Dept Admin accesses Faculty Directory (/admin/faculty) to view department faculty listings. Opens Personal Details (/profile/personal) to inspect DOB, Gender, Mobile, PAN, Aadhaar, and Address. All input fields are explicitly disabled (disabled={auth.role === 'dept_admin'}) to prevent unauthorized editing."),
+        ("Workflow 2.2 — Department Additional Responsibilities Assignment: ", "HOD accesses /responsibilities to assign official departmental additional duties (e.g. Class Advisor, Lab In-charge, Accreditation Coordinator) to department faculty members."),
+        ("Workflow 2.3 — HOD Annual Appraisal Review & Part-by-Part Evaluation: ", "HOD opens Appraisal Form (/appraisal) and monitors pending department submissions (status === 'Submitted'). Opens Auto-Mapped Activity Verification Panel and clicks 👁️ View Proof next to publications, grants, patents, certifications, and events to inspect original uploaded evidence. Opens evaluation modal, enters HOD evaluated scores for PART A, B, C, D, adds feedback remarks, and clicks 'Approve & Forward to Principal/HR'. Form status updates to 'HOD Approved'."),
+        ("Workflow 2.4 — Departmental Report & Dossier Generation: ", "HOD accesses Reports (/reports) to generate department-wide activity summaries, publication dossiers, and appraisal evaluation reports in PDF, Excel, and ZIP formats.")
+    ]
+
+    for t_wf, b_wf in hod_workflows:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(t_wf)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(15, 51, 31)
+        r2 = bp.add_run(b_wf)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Section 4
+    add_heading_styled(doc, "4. Portal 3 — System Admin & Executive Portal Workflow (role: 'admin', 'principal', 'hr')", level=1)
+
+    p4 = doc.add_paragraph()
+    p4.paragraph_format.space_after = Pt(6)
+    r4 = p4.add_run("The System Admin & Executive Portal equips Principal, HR, and System Administrators with institution-wide administration, full CRUD control, dynamic form building, appraisal rubric customization, final executive appraisal approval, and faculty transfer execution.")
+    r4.font.name = 'Times New Roman'
+    r4.font.size = Pt(14)
+
+    adm_workflows = [
+        ("Workflow 3.1 — Institution User Management & Full Profile CRUD: ", "Admin accesses System Admins (/admin/system-admins), Dept Admins (/admin/dept-admins), Faculty Directory (/admin/faculty), and Club Coordinators (/admin/clubs). Has full permission to edit personal/academic details, update designations, reset credentials, or mark faculty as relieved (is_relieved === 1)."),
+        ("Workflow 3.2 — Institutional Responsibilities Assignment: ", "Principal/HR/Admin accesses /responsibilities to assign institution-level additional responsibilities (e.g. NAAC Coordinator, IQAC Member, Anti-Ragging Committee) to any faculty across all departments."),
+        ("Workflow 3.3 — Dynamic Page & Custom Form Builder: ", "Admin accesses Dynamic Page Builder (/admin/dynamic-pages) to create custom survey forms, feedback questionnaires, or data collection pages, specifying target portal visibility."),
+        ("Workflow 3.4 — Appraisal Form Builder & Rubric Configurator (/appraisal): ", "Admin opens Form Builder tab in /appraisal to configure evaluation parameters: (a) Designation Overrides: Selects target designation (Assistant Professor, Associate Professor, Professor, Professor & Head) to customize unit marks and max caps. (b) Threshold Brackets (⚙️ Config Bracket): Configures cutoff thresholds (feedback 4.0 cutoff, pass % 80% cutoff, publication splits). (c) Custom PART Addition (➕ Add New PART): Adds new evaluation sections (PART_E, PART_F) and updates titles in real time."),
+        ("Workflow 3.5 — Final Executive Appraisal Approval: ", "Executive Admin reviews HOD-approved submissions (status === 'HOD Approved'). Inspects auto-mapped proof documents (👁️ View Proof), inputs final executive scores and remarks, and clicks 'Final Approve'. Form status updates to 'Final Approved'."),
+        ("Workflow 3.6 — Faculty Department Transfer Execution: ", "Admin initiates faculty transfer (/api/admin/faculty/transfer). System logs audit history in staff_department_history, updates staff_academics, moves physical storage directory from /SREC/{old_dept}/{staff_id}/ to /SREC/{new_dept}/{staff_id}/, remaps DB file paths, and re-queues faculty under new HOD.")
+    ]
+
+    for t_wf, b_wf in adm_workflows:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(t_wf)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(185, 28, 28)
+        r2 = bp.add_run(b_wf)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Section 5
+    add_heading_styled(doc, "5. Automated Documentation Maintenance Protocol", level=1)
+
+    p5 = doc.add_paragraph()
+    p5.paragraph_format.space_after = Pt(6)
+    r5 = p5.add_run("To ensure permanent synchronization between system modifications and workflow documentation, the following automated generator scripts must be executed whenever code rules or workflows change:")
+    r5.font.name = 'Times New Roman'
+    r5.font.size = Pt(14)
+
+    m_scripts = [
+        ("Database Schema Reference: ", "python3 scripts/generate_schema_doc.py -> Updates docs/Database_Schema.docx"),
+        ("System Constraints & Rules: ", "python3 scripts/generate_system_constraints_doc.py -> Updates docs/System_Constraints_and_Portal_Rules.docx"),
+        ("Technical File Modification Guide: ", "python3 scripts/generate_tech_file_guide_doc.py -> Updates docs/Technical_Constraints_and_File_Modification_Guide.docx"),
+        ("Complete 3-Portal Workflow Guide: ", "python3 scripts/generate_portal_workflows_doc.py -> Updates docs/Complete_3_Portals_Workflow_Guide.docx")
+    ]
+
+    for s_t, s_b in m_scripts:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(s_t)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(15, 51, 31)
+        r2 = bp.add_run(s_b)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
+    # Save document
+    docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
+    os.makedirs(docs_dir, exist_ok=True)
+    out_path = os.path.join(docs_dir, "Complete_3_Portals_Workflow_Guide.docx")
+    doc.save(out_path)
+    print(f"Complete 3-Portal Workflow Word document successfully generated at: {out_path}")
+
+if __name__ == "__main__":
+    create_portal_workflows_document()
