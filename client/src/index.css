@@ -358,7 +358,7 @@ tr:hover td {
     print-color-adjust: exact !important;
   }
 
-  /* Hide app navigation bar, sidebars, buttons, control bars, footers, badges */
+  /* Hide app navigation bar, sidebars, buttons, control bars, footers (keep category badges) */
   header,
   nav,
   aside,
@@ -366,9 +366,23 @@ tr:hover td {
   .navbar,
   .btn,
   button,
-  .no-print,
+  .no-print {
+    display: none !important;
+  }
+
   .badge {
     display: none !important;
+  }
+
+  .category-total-badge {
+    display: inline-block !important;
+    background-color: #e0f2fe !important;
+    color: #0369a1 !important;
+    border: 1px solid #7dd3fc !important;
+    padding: 2px 8px !important;
+    font-size: 8pt !important;
+    font-weight: 800 !important;
+    border-radius: 4px !important;
   }
 
   /* Reset fixed modal overlay positioning for print */
@@ -407,12 +421,23 @@ tr:hover td {
     padding: 0 !important;
   }
 
-  /* Tables formatting matching FPI.docx */
-  table {
+  .table-container {
+    overflow: visible !important;
     width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Tables formatting matching FPI.docx (Full visibility on A4 print) */
+  table, .table-container table {
+    display: table !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    white-space: normal !important;
     border-collapse: collapse !important;
     margin-bottom: 12px !important;
     page-break-inside: auto;
+    overflow: visible !important;
   }
 
   tr {
@@ -424,21 +449,28 @@ tr:hover td {
     display: table-header-group !important;
   }
 
+  th, td {
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
   th {
     background-color: #f1f5f9 !important;
     color: #0f172a !important;
     border: 1px solid #1e293b !important;
-    padding: 6px 8px !important;
+    padding: 5px 6px !important;
     font-weight: 700 !important;
-    font-size: 9.5pt !important;
+    font-size: 8.5pt !important;
     text-align: left !important;
   }
 
   td {
     border: 1px solid #334155 !important;
     color: #0f172a !important;
-    padding: 6px 8px !important;
-    font-size: 9.5pt !important;
+    padding: 5px 6px !important;
+    font-size: 8.5pt !important;
     vertical-align: top !important;
   }
 

@@ -3576,10 +3576,14 @@ export default function Appraisal({ auth }) {
                       Part A Score: {viewingAppraisal.part_a_score || 0} / 60 Pts
                     </span>
                   </div>
-
-                  {/* a1 Table */}
+                        {/* a1 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a1. Innovative Teaching Methods & ICT Tools Integrated in Course Delivery (Max: 10 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a1} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3604,11 +3608,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a1 Category Total Score: {score_a1} / 10 Pts
+                    </div>
                   </div>
 
                   {/* a2 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS) (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a2. Development of SWAYAM MOOCs & Other E-Content (YouTube / LMS) (Max: 10 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a2} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3639,11 +3651,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a2 Category Total Score: {score_a2} / 10 Pts
+                    </div>
                   </div>
 
                   {/* a3 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a3. New Laboratory Experiments Developed (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a3. New Laboratory Experiments Developed (Max: 10 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a3} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3668,11 +3688,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a3 Category Total Score: {score_a3} / 10 Pts
+                    </div>
                   </div>
 
                   {/* a4 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a4. Student Mid Sem & End Sem Feedback Rating (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a4. Student Mid Sem & End Sem Feedback Rating (Max: 5 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a4} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3701,11 +3729,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a4 Category Total Score: {score_a4} / 5 Pts
+                    </div>
                   </div>
 
                   {/* a5 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a5. Success Rate in Theory Courses (End Semester Pass %) (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a5. Success Rate in Theory Courses (End Semester Pass %) (Max: 10 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a5} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3734,11 +3770,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a5 Category Total Score: {score_a5} / 10 Pts
+                    </div>
                   </div>
 
                   {/* a6 Table */}
                   <div style={{ marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a6. Steps Taken for Enhancing Industry Institute Partnerships (Max: 5 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a6. Steps Taken for Enhancing Industry Institute Partnerships (Max: 5 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a6} / 5 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3763,11 +3807,19 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a6 Category Total Score: {score_a6} / 5 Pts
+                    </div>
                   </div>
 
                   {/* a7 Table */}
                   <div>
-                    <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests (Max: 10 Marks)</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>a7. Support & Guidance for Student Hackathons / Codethons / Contests (Max: 10 Marks)</h5>
+                      <span className="category-total-badge" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800, padding: '3px 8px', borderRadius: '4px' }}>
+                        Category Total: {score_a7} / 10 Pts
+                      </span>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
@@ -3794,6 +3846,9 @@ export default function Appraisal({ auth }) {
                         ))}
                       </tbody>
                     </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      a7 Category Total Score: {score_a7} / 10 Pts
+                    </div>
                   </div>
                 </div>
 
