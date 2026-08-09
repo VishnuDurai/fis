@@ -269,7 +269,10 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
         {pendingNotice.userPendingCount > 0 && (
           <button
             type="button"
-            onClick={() => navigate('/appraisal')}
+            onClick={() => {
+              const targetStatus = pendingNotice.isInstAdmin ? 'HOD Approved' : 'Submitted';
+              navigate(`/appraisal?tab=submissions&status=${encodeURIComponent(targetStatus)}`);
+            }}
             title={
               pendingNotice.isInstAdmin
                 ? `${pendingNotice.pendingPrincipalHrCount} HOD-approved appraisal form(s) pending Principal & HR evaluation`

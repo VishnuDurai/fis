@@ -1,16 +1,19 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import { getCurrentAcademicYear, getAppraisalAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
 
 export default function Appraisal({ auth }) {
+  const location = useLocation();
   const isAdminOrHR = auth.role === 'admin' || auth.role === 'principal' || auth.role === 'hr';
   const isDeptAdmin = auth.role === 'dept_admin';
 
-  // Navigation Tab State for Admin/HR/Principal
+  // Navigation Tab State for Admin/HR/Principal vs HOD
   const [activeAdminTab, setActiveAdminTab] = useState('submissions'); // 'submissions' or 'configurator'
+  const [hodTab, setHodTab] = useState('submissions'); // 'submissions' or 'my_appraisal'
 
   // Submission State
   const [appraisals, setAppraisals] = useState([]);
@@ -22,6 +25,24 @@ export default function Appraisal({ auth }) {
   // Search & Filter State for Submissions
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const statusParam = params.get('status');
+    const tabParam = params.get('tab');
+
+    if (statusParam) {
+      if (statusParam.toLowerCase() === 'pending') {
+        setStatusFilter(isAdminOrHR ? 'HOD Approved' : 'Submitted');
+      } else {
+        setStatusFilter(statusParam);
+      }
+    }
+    if (tabParam === 'submissions' || statusParam) {
+      setActiveAdminTab('submissions');
+      setHodTab('submissions');
+    }
+  }, [location.search, isAdminOrHR]);
   const [searchQuery, setSearchQuery] = useState('');
   const [departments, setDepartments] = useState([]);
 
@@ -1738,6 +1759,58 @@ export default function Appraisal({ auth }) {
         </div>
       )}
 
+      {/* HOD / DEPT ADMIN NAVIGATION TABS */}
+      {isDeptAdmin && (
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setHodTab('submissions')}
+            style={{
+              padding: '10px 20px',
+              fontSize: '0.95rem',
+              fontWeight: 800,
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              background: hodTab === 'submissions' ? 'hsl(var(--primary))' : '#f1f5f9',
+              color: hodTab === 'submissions' ? '#ffffff' : '#475569',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <FileCheck size={18} />
+            Submitted Department Appraisal Forms ({appraisals.length})
+            {appraisals.filter(a => a.status === 'Submitted').length > 0 && (
+              <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                {appraisals.filter(a => a.status === 'Submitted').length} Pending
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setHodTab('my_appraisal')}
+            style={{
+              padding: '10px 20px',
+              fontSize: '0.95rem',
+              fontWeight: 800,
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              background: hodTab === 'my_appraisal' ? 'hsl(var(--primary))' : '#f1f5f9',
+              color: hodTab === 'my_appraisal' ? '#ffffff' : '#475569',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Award size={18} />
+            My Faculty Appraisal Form
+          </button>
+        </div>
+      )}
+
       {/* TAB 2: DYNAMIC APPRAISAL FORM BUILDER & RUBRICS CONFIGURATOR (ADMIN/PRINCIPAL/HR) */}
       {isAdminOrHR && activeAdminTab === 'configurator' && (
         <div className="card" style={{ padding: '24px', background: '#ffffff', borderRadius: '12px', border: '1.5px solid #e2e8f0', marginBottom: '24px' }}>
@@ -3445,7 +3518,7 @@ export default function Appraisal({ auth }) {
       )}
 
       {/* AUTOMATED FPI SUMMARY CARD FOR FACULTY */}
-      {!isAdminOrHR && !showAddForm && (
+      {!isAdminOrHR && (!isDeptAdmin || hodTab === 'my_appraisal') && !showAddForm && (
         <div className="card" style={{ marginBottom: '24px', border: '1.5px solid #0284c7', background: '#f0f9ff' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h4 style={{ fontSize: '1.1rem', color: '#0369a1', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3502,12 +3575,12 @@ export default function Appraisal({ auth }) {
       )}
 
       {/* DETAILED AUTO-MAPPED PORTAL ACTIVITY VERIFICATION CONTAINER */}
-      {!isAdminOrHR && !showAddForm && (
+      {!isAdminOrHR && (!isDeptAdmin || hodTab === 'my_appraisal') && !showAddForm && (
         <AutoMappedVerificationPanel details={fpiDetails} breakdown={fpiBreakdown} />
       )}
 
       {/* SUBMITTED APPRAISALS LIST VIEW */}
-      {(!isAdminOrHR || activeAdminTab === 'submissions') && (
+      {((isAdminOrHR && activeAdminTab === 'submissions') || (isDeptAdmin && hodTab === 'submissions') || (!isAdminOrHR && !isDeptAdmin)) && (
         <div>
           {/* HOD PENDING REVIEW NOTIFICATION BANNER */}
           {(auth.role === 'dept_admin' || auth.isHod) && appraisals.filter(a => a.status === 'Submitted').length > 0 && (
