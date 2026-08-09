@@ -1374,6 +1374,8 @@ export default function Appraisal({ auth }) {
       }
     };
 
+    const currentCols = cols(currentCatObj.key);
+
     const getProofUrl = (item) => {
       if (!item) return null;
       const file = item.file || item.file1 || item.document || item.proof || item.certificate || item.certificate_file;
