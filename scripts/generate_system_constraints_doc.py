@@ -349,6 +349,7 @@ def create_system_constraints_document():
     fpi_rules = [
         ("Completed Academic Year Rule: ", "Performance appraisals evaluate the completed academic year (e.g. 2025-2026). The appraisal form defaults to getAppraisalAcademicYear() (2025-2026)."),
         ("Score Evaluation Caps (200 Total): ", "PART A (Teaching: Max 60 Pts), PART B (Prof Dev: Max 40 Pts), PART C (R&D: Max 80 Pts), PART D (Institutional: Max 20 Pts). Total FPI score capped at 200 Pts."),
+        ("Club Coordinator & Additional Responsibility Rule: ", "Being assigned as a Club Coordinator or Club In-charge is categorized as an Institutional Level Additional Responsibility under Criteria D1 in PART D (Institutional Development & Contribution), scoring 10 Pts per institutional duty up to the 20 Pts Part D cap. Furthermore, student club activities organized by coordinators log extension points under PART B."),
         ("Designation-Based Customization: ", "System Admins / HR can define custom unit marks, max caps, calculation rules, and bracket configs per designation (Assistant Professor, Associate Professor, Professor, Professor & Head). System falls back to ALL common default mappings if no override exists."),
         ("Threshold Bracket Configurator (⚙️ Config Bracket): ", "Admins can configure cutoff thresholds (e.g. feedback 4.0 cutoff, pass % 80% cutoff, journal vs conference split, patent status splits)."),
         ("Custom PART Addition (➕ Add New PART): ", "Admins can dynamically add new evaluation sections (PART_E, PART_F) and modify section titles in real time."),
@@ -374,9 +375,9 @@ def create_system_constraints_document():
     add_heading_styled(doc, "6. Document Storage & Security Constraints", level=1)
 
     sec6_rules = [
+        ("Dedicated Storage Folder Structure: ", "Uploaded documents are stored in dedicated faculty folders: server/SREC/{Department}/{Staff_ID}/, NOT in a common directory."),
         ("File Upload Size & Formats: ", "Maximum 5 MB per file upload. Supported formats: PDF, PNG, JPG, JPEG, DOC, DOCX."),
-        ("JWT Authentication Guard (requireFileAuth): ", "Direct file requests under /uploads/* or /SREC/* require valid JWT authentication via Authorization Bearer token header or ?token=<token> URL query string. Unauthenticated requests redirect to /login."),
-        ("Physical Folder Organization: ", "Documents are organized under /server/uploads/document/ or structured department directories /SREC/{Department}/{Staff_ID}/.")
+        ("JWT Authentication Guard (requireFileAuth): ", "Direct file requests under /uploads/* or /SREC/* require valid JWT authentication via Authorization Bearer token header or ?token=<token> URL query string. Unauthenticated requests redirect to /login.")
     ]
 
     for title_text, body_text in sec6_rules:
