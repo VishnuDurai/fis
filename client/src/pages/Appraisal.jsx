@@ -171,6 +171,30 @@ export default function Appraisal({ auth }) {
   const [editingAppraisalId, setEditingAppraisalId] = useState(null);
   const [lastSubmittedAppraisal, setLastSubmittedAppraisal] = useState(null);
 
+  // Draft saving state
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState(null);
+  const [draftId, setDraftId] = useState(null);
+
+  const getVal = (...args) => {
+    for (const a of args) {
+      if (a !== undefined && a !== null) {
+        const s = String(a).trim();
+        if (
+          s !== '' &&
+          s.toLowerCase() !== 'n/a' &&
+          s.toLowerCase() !== 'null' &&
+          s.toLowerCase() !== 'undefined' &&
+          !s.toLowerCase().startsWith('application/') &&
+          !s.toLowerCase().startsWith('image/')
+        ) {
+          return s;
+        }
+      }
+    }
+    return '';
+  };
+
   const parseRows = (val) => {
     if (!val) return [];
     if (Array.isArray(val)) return val;
@@ -297,7 +321,7 @@ export default function Appraisal({ auth }) {
       })
       .catch(() => {});
 
-      fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${viewingAppraisal.staff_id}`, {
+      fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${viewingAppraisal.staff_id}?academicYear=${encodeURIComponent(viewingAppraisal.academic_year || academicYear)}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(res => res.ok ? res.json() : null)
@@ -337,6 +361,13 @@ export default function Appraisal({ auth }) {
       fetchDepartments();
     }
   }, [auth]);
+
+  // Re-fetch automated FPI metrics whenever Academic Year dropdown is changed
+  useEffect(() => {
+    if (academicYear && !isAdminOrHR) {
+      fetchFpiSummary();
+    }
+  }, [academicYear]);
 
   const fetchGeneralInfo = async (targetStaffId = auth.staffId) => {
     try {
@@ -525,7 +556,7 @@ export default function Appraisal({ auth }) {
       })
       .catch(err => console.error(err));
 
-      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${auth.staffId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${auth.staffId}?academicYear=${encodeURIComponent(academicYear)}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
@@ -879,11 +910,12 @@ export default function Appraisal({ auth }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to sign');
-      // Update viewingAppraisal with new signature data so UI refreshes immediately
+      // Update viewingAppraisal with new signature data + IP so UI refreshes immediately
       setViewingAppraisal(prev => ({
         ...prev,
         [`${role}_signed_at`]: data.signedAt,
-        [`${role}_signed_name`]: data.signedName
+        [`${role}_signed_name`]: data.signedName,
+        [`${role}_signed_ip`]: data.signedIp
       }));
       fetchAppraisals();
       setMessage(`Digitally signed successfully as ${data.signedName}`);
@@ -892,7 +924,65 @@ export default function Appraisal({ auth }) {
     }
   };
 
-  // Save form + Sign in one step (when faculty signs from draft preview before submitting)
+  // Save Draft Handler — saves partial form without submitting
+  const handleSaveDraft = async () => {
+    if (!academicYear || !academicYear.trim()) { setError('Academic Year is required to save a draft.'); return; }
+    setDraftSaving(true);
+    setMessage('');
+    setError('');
+    try {
+      const payload = {
+        academic_year: academicYear,
+        courses_taught: coursesTaught || '',
+        a1_ict_tools: JSON.stringify(a1Rows),
+        a2_econtent: JSON.stringify(a2Rows),
+        a3_lab_experiments: JSON.stringify(a3Rows),
+        a4_feedback_scores: JSON.stringify(a4Rows),
+        a5_pass_percentage: JSON.stringify(a5Rows),
+        a6_industry_partnerships: JSON.stringify(a6Rows),
+        a7_hackathons: JSON.stringify(a7Rows),
+        b4_curriculum_dev: JSON.stringify(b4Rows),
+        b7_industry_training: JSON.stringify(b7Rows),
+        c3_community_service: JSON.stringify(c3Rows),
+        publications_count: publicationsCount,
+        books_count: booksCount,
+        patents_count: patentsCount,
+        grants_amount: grantsAmount,
+        goals_next_year: goalsNextYear,
+        self_appraisal_score: String(manualScores.grandTotal),
+        part_a_score: manualScores.partA,
+        part_b_score: manualScores.partB,
+        part_c_score: manualScores.partC,
+        part_d_score: manualScores.partD,
+        total_fpi_score: manualScores.grandTotal
+      };
+
+      // If we already have a draftId, update it directly
+      const url = draftId
+        ? `${API_BASE_URL}/api/faculty/appraisal/${draftId}/draft`
+        : `${API_BASE_URL}/api/faculty/appraisal/draft`;
+      const method = draftId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.token}` },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save draft');
+
+      if (!draftId) setDraftId(data.id);
+      if (!editingAppraisalId) setEditingAppraisalId(data.id);
+      setDraftSavedAt(new Date(data.savedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+      fetchAppraisals();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDraftSaving(false);
+    }
+  };
+
+  // Save form + Sign in one step (when faculty clicks Sign in the signature block)
   const handleSaveAndSign = async () => {
     setMessage('');
     setError('');
@@ -952,15 +1042,18 @@ export default function Appraisal({ auth }) {
       const signData = await signRes.json();
       if (!signRes.ok) throw new Error(signData.error || 'Failed to sign');
 
-      // Update viewingAppraisal to reflect saved + signed state
+      // Update viewingAppraisal to reflect saved + signed state including IP
       setViewingAppraisal(prev => ({
         ...prev,
         id: appraisalId,
         isDraft: false,
+        status: 'Submitted',
         faculty_signed_at: signData.signedAt,
-        faculty_signed_name: signData.signedName
+        faculty_signed_name: signData.signedName,
+        faculty_signed_ip: signData.signedIp
       }));
       setEditingAppraisalId(appraisalId);
+      setDraftId(null);
       fetchAppraisals();
       setMessage(`Form submitted and digitally signed as ${signData.signedName}`);
     } catch (err) {
@@ -1068,7 +1161,7 @@ export default function Appraisal({ auth }) {
     }
 
     try {
-      const resFpi = await fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${app.staff_id}`, {
+      const resFpi = await fetch(`${API_BASE_URL}/api/faculty/appraisal/fpi-summary/${app.staff_id}?academicYear=${encodeURIComponent(app.academic_year || academicYear)}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (resFpi.ok) {
@@ -2015,6 +2108,22 @@ export default function Appraisal({ auth }) {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button
                 type="button"
+                onClick={handleSaveDraft}
+                disabled={draftSaving}
+                className="btn btn-secondary"
+                style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#fef3c7', color: '#92400e', border: '1.5px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Save size={16} /> {draftSaving ? 'Saving Draft...' : 'Save Draft'}
+              </button>
+
+              {draftSavedAt && (
+                <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>
+                  Saved at {draftSavedAt}
+                </span>
+              )}
+
+              <button
+                type="button"
                 onClick={handlePreviewCurrentForm}
                 className="btn btn-secondary"
                 style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -2448,13 +2557,13 @@ export default function Appraisal({ auth }) {
                 </thead>
                 <tbody>
                   {(!fpiDetails?.members || fpiDetails.members.length === 0) ? (
-                    <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No professional memberships logged in portal</td></tr>
+                    <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No professional memberships logged for {academicYear}</td></tr>
                   ) : fpiDetails.members.map((m, i) => (
                     <tr key={i}>
                       <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.societyname || m.society_name || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.mem_id || m.membership_no || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.membership_type || 'Life Member'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(m.organization, m.societyname, m.society_name, m.society, m.name, m.title) || 'Professional Society Membership'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(m.membershipid, m.mem_id, m.membership_no, m.membership_id, m.member_id, m.id) || 'Active Member'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(m.membership_type, m.type) || 'Life Member'}</td>
                       <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>3 Pts</td>
                     </tr>
                   ))}
@@ -2486,14 +2595,14 @@ export default function Appraisal({ auth }) {
                 </thead>
                 <tbody>
                   {(!fpiDetails?.resource || fpiDetails.resource.length === 0) ? (
-                    <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No resource person records logged in portal</td></tr>
+                    <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No resource person records logged for {academicYear}</td></tr>
                   ) : fpiDetails.resource.map((r, i) => (
                     <tr key={i}>
                       <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.eventname || r.event_title || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.natureofwork || r.role || 'Resource Person'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.orgby || r.organizer || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.eventdate || r.date || 'N/A'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.title, r.eventname, r.event_title, r.event_name, r.name, r.programme_name, r.topic) || (r.organizer ? `${getVal(r.actedas, r.role) || 'Resource Person'} @ ${r.organizer}` : 'Guest Session / Resource Activity')}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.actedas, r.natureofwork, r.role, r.work_type) || 'Resource Person'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.organizer, r.orgby, r.org, r.conducting_body) || 'External Institution'}</td>
+                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.eventdate || (r.from_date ? (r.to_date ? `${r.from_date} to ${r.to_date}` : r.from_date) : (getVal(r.date) || 'N/A'))}</td>
                       <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2 Pts</td>
                     </tr>
                   ))}
@@ -3199,6 +3308,16 @@ export default function Appraisal({ auth }) {
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1.5px solid #cbd5e1' }}>
             <button
               type="button"
+              onClick={handleSaveDraft}
+              disabled={draftSaving}
+              className="btn btn-secondary"
+              style={{ padding: '10px 20px', fontWeight: 800, background: '#fef3c7', color: '#92400e', border: '1.5px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Save size={18} /> {draftSaving ? 'Saving Draft...' : 'Save Draft'}
+            </button>
+
+            <button
+              type="button"
               onClick={handlePreviewCurrentForm}
               className="btn btn-secondary"
               style={{ padding: '10px 20px', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -3455,11 +3574,11 @@ export default function Appraisal({ auth }) {
                         borderRadius: '20px',
                         fontSize: '0.82rem',
                         fontWeight: 800,
-                        background: app.status === 'Final Approved' ? '#dcfce7' : app.status === 'HOD Approved' ? '#e0f2fe' : 'hsla(var(--primary), 0.1)',
-                        color: app.status === 'Final Approved' ? '#15803d' : app.status === 'HOD Approved' ? '#0369a1' : 'hsl(var(--primary))',
-                        border: `1px solid ${app.status === 'Final Approved' ? '#86efac' : app.status === 'HOD Approved' ? '#7dd3fc' : 'transparent'}`
+                        background: app.status === 'Draft' ? '#fef3c7' : app.status === 'Final Approved' ? '#dcfce7' : app.status === 'HOD Approved' ? '#e0f2fe' : 'hsla(var(--primary), 0.1)',
+                        color: app.status === 'Draft' ? '#92400e' : app.status === 'Final Approved' ? '#15803d' : app.status === 'HOD Approved' ? '#0369a1' : 'hsl(var(--primary))',
+                        border: `1px solid ${app.status === 'Draft' ? '#fde68a' : app.status === 'Final Approved' ? '#86efac' : app.status === 'HOD Approved' ? '#7dd3fc' : 'transparent'}`
                       }}>
-                        Status: {app.status === 'HOD Approved' ? 'HOD Approved (Pending Principal/HR)' : (app.status || 'Submitted')}
+                        Status: {app.status === 'Draft' ? 'Saved Draft' : app.status === 'HOD Approved' ? 'HOD Approved (Pending Principal/HR)' : (app.status || 'Submitted')}
                       </span>
 
                       <button
@@ -4220,13 +4339,13 @@ export default function Appraisal({ auth }) {
                       </thead>
                       <tbody>
                         {(!fpiDetails?.members || fpiDetails.members.length === 0) ? (
-                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No professional society memberships logged in portal</td></tr>
+                          <tr><td colSpan={5} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No professional society memberships logged for {viewingAppraisal?.academic_year || academicYear}</td></tr>
                         ) : fpiDetails.members.map((m, i) => (
                           <tr key={i}>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.organization || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.membershipid || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{m.membership_type || 'Life'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(m.organization, m.societyname, m.society_name, m.society, m.name, m.title) || 'Professional Society Membership'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(m.membershipid, m.mem_id, m.membership_no, m.membership_id, m.member_id, m.id) || 'Active Member'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(m.membership_type, m.type) || 'Life Member'}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>3 Pts</td>
                           </tr>
                         ))}
@@ -4258,14 +4377,14 @@ export default function Appraisal({ auth }) {
                       </thead>
                       <tbody>
                         {(!fpiDetails?.resource || fpiDetails.resource.length === 0) ? (
-                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No resource person activities logged in portal</td></tr>
+                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No resource person activities logged for {viewingAppraisal?.academic_year || academicYear}</td></tr>
                         ) : fpiDetails.resource.map((r, i) => (
                           <tr key={i}>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.title || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.actedas || r.type || 'Resource Person'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.organizer || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.from_date ? (r.to_date ? `${r.from_date} to ${r.to_date}` : r.from_date) : (r.date || 'N/A')}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.title, r.eventname, r.event_title, r.event_name, r.programme_name, r.topic) || (r.organizer ? `${getVal(r.actedas, r.role) || 'Resource Person'} @ ${r.organizer}` : 'Guest Session / Resource Activity')}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.actedas, r.natureofwork, r.role, r.work_type) || 'Resource Person'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.organizer, r.orgby, r.org, r.conducting_body) || 'External Institution'}</td>
+                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.eventdate || (r.from_date ? (r.to_date ? `${r.from_date} to ${r.to_date}` : r.from_date) : (getVal(r.date) || 'N/A'))}</td>
                             <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2 Pts</td>
                           </tr>
                         ))}
@@ -5048,7 +5167,7 @@ export default function Appraisal({ auth }) {
                   try { return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso; }
                 };
 
-                const SigBlock = ({ label, name, signedAt, signedName, canSign, onSign }) => (
+                const SigBlock = ({ label, name, signedAt, signedName, signedIp, canSign, onSign }) => (
                   <div style={{ textAlign: 'center', width: '30%' }}>
                     <div style={{ height: signedAt ? '0' : '45px' }}></div>
                     {signedAt ? (
@@ -5058,6 +5177,11 @@ export default function Appraisal({ auth }) {
                         </div>
                         <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>{signedName}</div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{fmtDate(signedAt)}</div>
+                        {signedIp && (
+                          <div style={{ fontSize: '0.68rem', color: '#047857', marginTop: '2px', fontWeight: 700 }}>
+                            IP: {signedIp}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       canSign ? (
@@ -5088,6 +5212,7 @@ export default function Appraisal({ auth }) {
                       name={facultyDisplayName}
                       signedAt={fSigned}
                       signedName={viewingAppraisal.faculty_signed_name}
+                      signedIp={viewingAppraisal.faculty_signed_ip}
                       canSign={isFaculty}
                       onSign={() => viewingAppraisal.isDraft ? handleSaveAndSign() : handleSign(viewingAppraisal.id, 'faculty')}
                     />
@@ -5096,6 +5221,7 @@ export default function Appraisal({ auth }) {
                       name={hodDisplayName}
                       signedAt={hSigned}
                       signedName={viewingAppraisal.hod_signed_name}
+                      signedIp={viewingAppraisal.hod_signed_ip}
                       canSign={isHodOrAdmin}
                       onSign={() => handleSign(viewingAppraisal.id, 'hod')}
                     />
@@ -5104,6 +5230,7 @@ export default function Appraisal({ auth }) {
                       name={principalDisplayName || 'Principal'}
                       signedAt={pSigned}
                       signedName={viewingAppraisal.principal_signed_name}
+                      signedIp={viewingAppraisal.principal_signed_ip}
                       canSign={isPrincipal || (isAdminOrHR && auth.role === 'admin')}
                       onSign={() => handleSign(viewingAppraisal.id, 'principal')}
                     />

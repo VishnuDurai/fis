@@ -451,7 +451,7 @@ const createTables = async () => {
       events_organized TEXT,
       self_appraisal_score TEXT,
       goals_next_year TEXT,
-      status VARCHAR(50) DEFAULT 'Submitted',
+      status VARCHAR(50) DEFAULT 'Draft',
       remarks TEXT,
       submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       part_a_score TEXT,
@@ -473,7 +473,16 @@ const createTables = async () => {
       final_total_score TEXT,
       final_remarks TEXT,
       final_approved_by TEXT,
-      final_approved_at DATETIME
+      final_approved_at DATETIME,
+      faculty_signed_at VARCHAR(100) DEFAULT NULL,
+      faculty_signed_name VARCHAR(255) DEFAULT NULL,
+      faculty_signed_ip VARCHAR(100) DEFAULT NULL,
+      hod_signed_at VARCHAR(100) DEFAULT NULL,
+      hod_signed_name VARCHAR(255) DEFAULT NULL,
+      hod_signed_ip VARCHAR(100) DEFAULT NULL,
+      principal_signed_at VARCHAR(100) DEFAULT NULL,
+      principal_signed_name VARCHAR(255) DEFAULT NULL,
+      principal_signed_ip VARCHAR(100) DEFAULT NULL
     )`,
     // 29. staff_seed_money
     `CREATE TABLE IF NOT EXISTS staff_seed_money (
@@ -576,7 +585,16 @@ const createTables = async () => {
     'ALTER TABLE staff_appraisal ADD COLUMN final_part_c_score TEXT',
     'ALTER TABLE staff_appraisal ADD COLUMN final_part_d_score TEXT',
     'ALTER TABLE staff_appraisal ADD COLUMN final_total_score TEXT',
-    'ALTER TABLE staff_appraisal ADD COLUMN final_remarks TEXT'
+    'ALTER TABLE staff_appraisal ADD COLUMN final_remarks TEXT',
+    'ALTER TABLE staff_appraisal ADD COLUMN faculty_signed_at VARCHAR(100) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN faculty_signed_name VARCHAR(255) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN faculty_signed_ip VARCHAR(100) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN hod_signed_at VARCHAR(100) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN hod_signed_name VARCHAR(255) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN hod_signed_ip VARCHAR(100) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN principal_signed_at VARCHAR(100) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN principal_signed_name VARCHAR(255) DEFAULT NULL',
+    'ALTER TABLE staff_appraisal ADD COLUMN principal_signed_ip VARCHAR(100) DEFAULT NULL'
   ];
   for (const alterQuery of extraCols) {
     try { await pool.query(alterQuery); } catch (e) {}

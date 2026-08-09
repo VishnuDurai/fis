@@ -1207,12 +1207,13 @@ router.get('/appraisals', authenticateToken, (req, res) => {
   const isAdmin = ['admin', 'principal', 'hr'].includes(req.user.role);
 
   if (reqStaffId && reqStaffId !== req.user.staffId) {
+    // Admin/HOD looking at a specific staff — show all including drafts for own staff only
     db.all(`
       SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
       FROM staff_appraisal sa
       LEFT JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
-      WHERE LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(?))
+      WHERE LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(?)) AND sa.status != 'Draft'
       ORDER BY sa.id DESC
     `, [reqStaffId], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
@@ -1232,6 +1233,7 @@ router.get('/appraisals', authenticateToken, (req, res) => {
         UNION
         SELECT TRIM(LOWER(?))
       )
+      AND sa.status != 'Draft'
       ORDER BY sa.id DESC
     `, [dept, dept, dept, dept, dept], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
@@ -1243,12 +1245,14 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       FROM staff_appraisal sa
       LEFT JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE sa.status != 'Draft'
       ORDER BY sa.id DESC
     `, [], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
       res.json(rows);
     });
   } else {
+    // Faculty sees all their own including drafts
     db.all(`
       SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
       FROM staff_appraisal sa
@@ -1718,6 +1722,130 @@ const sendAppraisalConfirmationEmail = (staffId, appraisalData) => {
 };
 
 // 12. POST New Appraisal Form
+// 11d. POST Save Draft — faculty saves partial form as Draft (no email, not visible to HOD)
+router.post('/appraisal/draft', authenticateToken, (req, res) => {
+  const staffId = req.user.staffId;
+  const {
+    academic_year, courses_taught, pass_percentage, student_feedback,
+    innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+    a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+    a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+    publications_count, books_count, patents_count,
+    grants_amount, fdp_attended, events_organized, self_appraisal_score, goals_next_year,
+    part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+  } = req.body;
+
+  if (!academic_year || !academic_year.trim()) {
+    return res.status(400).json({ error: 'Academic Year is required.' });
+  }
+
+  // Check if draft already exists for this faculty + year
+  db.get('SELECT id FROM staff_appraisal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) AND academic_year = ? AND status = \'Draft\'',
+    [staffId, academic_year], (err, existing) => {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+
+    if (existing) {
+      // Update existing draft
+      db.run(`
+        UPDATE staff_appraisal SET
+          courses_taught = ?, a1_ict_tools = ?, a2_econtent = ?, a3_lab_experiments = ?,
+          a4_feedback_scores = ?, a5_pass_percentage = ?, a6_industry_partnerships = ?,
+          a7_hackathons = ?, b4_curriculum_dev = ?, b7_industry_training = ?,
+          c3_community_service = ?, publications_count = ?, books_count = ?, patents_count = ?,
+          grants_amount = ?, goals_next_year = ?,
+          part_a_score = ?, part_b_score = ?, part_c_score = ?, part_d_score = ?, total_fpi_score = ?,
+          self_appraisal_score = ?
+        WHERE id = ?
+      `, [
+        courses_taught, a1_ict_tools, a2_econtent, a3_lab_experiments,
+        a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+        a7_hackathons, b4_curriculum_dev, b7_industry_training,
+        c3_community_service, publications_count || 0, books_count || 0, patents_count || 0,
+        grants_amount, goals_next_year,
+        part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0,
+        self_appraisal_score || total_fpi_score,
+        existing.id
+      ], function(uErr) {
+        if (uErr) return res.status(500).json({ error: 'Draft update error: ' + uErr.message });
+        res.json({ success: true, id: existing.id, message: 'Draft saved successfully!', savedAt: new Date().toISOString() });
+      });
+    } else {
+      // Create new draft
+      db.run(`
+        INSERT INTO staff_appraisal (
+          staff_id, academic_year, courses_taught, pass_percentage, student_feedback,
+          innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+          a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+          a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+          publications_count, books_count, patents_count,
+          grants_amount, goals_next_year, self_appraisal_score, status,
+          part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?)
+      `, [
+        staffId, academic_year, courses_taught, 'N/A', 'N/A',
+        'N/A', a1_ict_tools, a2_econtent, a3_lab_experiments,
+        a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+        a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+        publications_count || 0, books_count || 0, patents_count || 0,
+        grants_amount, goals_next_year, self_appraisal_score || total_fpi_score,
+        part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0
+      ], function(iErr) {
+        if (iErr) return res.status(500).json({ error: 'Draft insert error: ' + iErr.message });
+        res.json({ success: true, id: this.lastID, message: 'Draft saved successfully!', savedAt: new Date().toISOString() });
+      });
+    }
+  });
+});
+
+// 11e. PUT Update an existing Draft record
+router.put('/appraisal/:id/draft', authenticateToken, (req, res) => {
+  const appId = req.params.id;
+  const staffId = req.user.staffId;
+  const {
+    academic_year, courses_taught, a1_ict_tools, a2_econtent, a3_lab_experiments,
+    a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+    a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+    publications_count, books_count, patents_count,
+    grants_amount, goals_next_year, self_appraisal_score,
+    part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+  } = req.body;
+
+  // Verify ownership
+  db.get('SELECT id, staff_id, status FROM staff_appraisal WHERE id = ?', [appId], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Draft not found.' });
+    if (row.staff_id.trim().toLowerCase() !== staffId.trim().toLowerCase()) {
+      return res.status(403).json({ error: 'Unauthorized: You can only edit your own draft.' });
+    }
+
+    db.run(`
+      UPDATE staff_appraisal SET
+        academic_year = ?, courses_taught = ?,
+        a1_ict_tools = ?, a2_econtent = ?, a3_lab_experiments = ?,
+        a4_feedback_scores = ?, a5_pass_percentage = ?, a6_industry_partnerships = ?,
+        a7_hackathons = ?, b4_curriculum_dev = ?, b7_industry_training = ?,
+        c3_community_service = ?, publications_count = ?, books_count = ?, patents_count = ?,
+        grants_amount = ?, goals_next_year = ?, self_appraisal_score = ?,
+        part_a_score = ?, part_b_score = ?, part_c_score = ?, part_d_score = ?, total_fpi_score = ?
+      WHERE id = ?
+    `, [
+      academic_year, courses_taught,
+      a1_ict_tools, a2_econtent, a3_lab_experiments,
+      a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+      a7_hackathons, b4_curriculum_dev, b7_industry_training,
+      c3_community_service, publications_count || 0, books_count || 0, patents_count || 0,
+      grants_amount, goals_next_year, self_appraisal_score || total_fpi_score,
+      part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0,
+      appId
+    ], function(uErr) {
+      if (uErr) return res.status(500).json({ error: 'Draft update error: ' + uErr.message });
+      res.json({ success: true, id: appId, message: 'Draft updated successfully!', savedAt: new Date().toISOString() });
+    });
+  });
+});
+
+
+// 12. POST New Appraisal Form (Final Submit — status = Submitted)
 router.post('/appraisal', authenticateToken, (req, res) => {
   const staffId = req.user.staffId;
   const {
@@ -1815,6 +1943,7 @@ router.put('/appraisal/:id', authenticateToken, (req, res) => {
         self_appraisal_score = ?,
         goals_next_year = ?,
         status = 'Submitted',
+        submitted_at = CURRENT_TIMESTAMP,
         part_a_score = ?,
         part_b_score = ?,
         part_c_score = ?,
@@ -1841,14 +1970,94 @@ router.put('/appraisal/:id', authenticateToken, (req, res) => {
   });
 });
 
+// Helper to parse date string into Academic Year (e.g. '2025-2026')
+function getAcademicYearFromDateStr(dateStr) {
+  if (!dateStr) return null;
+  const str = String(dateStr).trim();
+  if (!str || str.toLowerCase() === 'n/a') return null;
+
+  let year = null;
+  let month = null;
+
+  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(str)) {
+    const parts = str.split('-');
+    year = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10) - 1;
+  } else if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+    const parts = str.split('/');
+    year = parseInt(parts[2], 10);
+    month = parseInt(parts[1], 10) - 1;
+  } else if (/^\d{1,2}-\d{1,2}-\d{4}/.test(str)) {
+    const parts = str.split('-');
+    year = parseInt(parts[2], 10);
+    month = parseInt(parts[1], 10) - 1;
+  } else if (/^\d{4}$/.test(str)) {
+    year = parseInt(str, 10);
+    month = 6;
+  } else {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      year = d.getFullYear();
+      month = d.getMonth();
+    }
+  }
+
+  if (year === null || isNaN(year)) return null;
+
+  if (month >= 5) {
+    return `${year}-${year + 1}`;
+  } else {
+    return `${year - 1}-${year}`;
+  }
+}
+
+function matchesTargetAcademicYear(row, targetAy) {
+  if (!targetAy || !targetAy.trim()) return true;
+  const cleanTarget = targetAy.replace(/\s+/g, '').trim();
+
+  if (row.academic_year) {
+    const recAy = String(row.academic_year).replace(/\s+/g, '').trim();
+    if (recAy === cleanTarget) return true;
+  }
+
+  const dateFields = [
+    row.from_date, row.eventdate, row.date, row.dateofpublication,
+    row.to_date, row.registered_date, row.sanctioned_date, row.created_at
+  ];
+
+  let hasValidDate = false;
+  for (const d of dateFields) {
+    if (d && String(d).trim().toLowerCase() !== 'n/a') {
+      hasValidDate = true;
+      const rowAy = getAcademicYearFromDateStr(d);
+      if (rowAy && rowAy === cleanTarget) {
+        return true;
+      }
+    }
+  }
+
+  if (!hasValidDate && !row.academic_year) {
+    return true;
+  }
+
+  return false;
+}
+
 // 12b. GET Automated FPI Score Summary calculation
 router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res) => {
   const staffId = req.params.staffId;
+  const academicYear = req.query.academicYear || req.query.academic_year;
 
   try {
     const getRows = (query, params = [staffId]) => {
       return new Promise((resolve) => {
-        db.all(query, params, (err, rows) => resolve(rows || []));
+        db.all(query, params, (err, rows) => {
+          let list = rows || [];
+          if (academicYear) {
+            list = list.filter(r => matchesTargetAcademicYear(r, academicYear));
+          }
+          resolve(list);
+        });
       });
     };
 
@@ -2264,7 +2473,7 @@ router.post('/appraisal/:id/sign/faculty', authenticateToken, (req, res) => {
       [signedAt, signedName, signedIp, id],
       function(err2) {
         if (err2) return res.status(500).json({ error: err2.message });
-        res.json({ success: true, signedAt, signedName });
+        res.json({ success: true, signedAt, signedName, signedIp });
       }
     );
   });
@@ -2283,7 +2492,7 @@ router.post('/appraisal/:id/sign/hod', authenticateToken, (req, res) => {
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       if (this.changes === 0) return res.status(404).json({ error: 'Appraisal not found' });
-      res.json({ success: true, signedAt, signedName });
+      res.json({ success: true, signedAt, signedName, signedIp });
     }
   );
 });
@@ -2301,7 +2510,7 @@ router.post('/appraisal/:id/sign/principal', authenticateToken, (req, res) => {
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       if (this.changes === 0) return res.status(404).json({ error: 'Appraisal not found' });
-      res.json({ success: true, signedAt, signedName });
+      res.json({ success: true, signedAt, signedName, signedIp });
     }
   );
 });
