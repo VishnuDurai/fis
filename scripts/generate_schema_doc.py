@@ -16,7 +16,7 @@ def set_cell_background(cell, fill_hex):
     shd.set(qn('w:fill'), fill_hex)
     tcPr.append(shd)
 
-def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+def set_cell_margins(cell, top=120, bottom=120, left=160, right=160):
     tcPr = cell._tc.get_or_add_tcPr()
     tcMar = OxmlElement('w:tcMar')
     for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
@@ -26,7 +26,7 @@ def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
         tcMar.append(node)
     tcPr.append(tcMar)
 
-def set_table_borders(table, color="CCCCCC", sz="4", val="single"):
+def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
     tblPr = table._tbl.tblPr
     tblBorders = OxmlElement('w:tblBorders')
     for border_name in ['top', 'left', 'bottom', 'right', 'insideH']:
@@ -137,7 +137,6 @@ def generate_docx():
         for tname in existing_tables:
             cursor.execute(f"DESCRIBE `{tname}`")
             cols = cursor.fetchall()
-            # DESCRIBE output: Field, Type, Null, Key, Default, Extra
             formatted_cols = []
             for cid, col in enumerate(cols):
                 is_pk = col['Key'] == 'PRI'
@@ -169,7 +168,7 @@ def generate_docx():
 
     doc = Document()
     
-    # Page setup - Margins & Footer
+    # Page setup - Margins 0.75 inch
     for section in doc.sections:
         section.top_margin = Inches(0.75)
         section.bottom_margin = Inches(0.75)
@@ -181,27 +180,50 @@ def generate_docx():
         footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         footer_p.paragraph_format.space_before = Pt(6)
         footer_run = footer_p.add_run("© 2026 FIS Team - Sri Ramakrishna Engineering College, Coimbatore | SREC FIS V3.0")
-        footer_run.font.name = 'Arial'
-        footer_run.font.size = Pt(9)
-        footer_run.font.color.rgb = RGBColor(110, 110, 110)
+        footer_run.font.name = 'Times New Roman'
+        footer_run.font.size = Pt(11)
+        footer_run.font.color.rgb = RGBColor(100, 116, 139)
         
-    # Document Header
+    # Standardized Institutional Report Header
+    p_inst = doc.add_paragraph()
+    p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_inst.paragraph_format.space_before = Pt(0)
+    p_inst.paragraph_format.space_after = Pt(2)
+    r_inst = p_inst.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
+    r_inst.font.name = 'Times New Roman'
+    r_inst.font.size = Pt(18)
+    r_inst.bold = True
+    r_inst.font.color.rgb = RGBColor(15, 51, 31)
+
+    p_subinst = doc.add_paragraph()
+    p_subinst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_subinst.paragraph_format.space_before = Pt(0)
+    p_subinst.paragraph_format.space_after = Pt(4)
+    r_subinst = p_subinst.add_run("[An Autonomous Institution | Re-Accredited by NAAC with 'A+' Grade]")
+    r_subinst.font.name = 'Times New Roman'
+    r_subinst.font.size = Pt(12)
+    r_subinst.font.italic = True
+    r_subinst.font.color.rgb = RGBColor(71, 85, 105)
+
+    p_sys = doc.add_paragraph()
+    p_sys.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_sys.paragraph_format.space_before = Pt(0)
+    p_sys.paragraph_format.space_after = Pt(14)
+    r_sys = p_sys.add_run("FACULTY INFORMATION SYSTEM (SREC FIS V3.0)")
+    r_sys.font.name = 'Times New Roman'
+    r_sys.font.size = Pt(14)
+    r_sys.bold = True
+    r_sys.font.color.rgb = RGBColor(2, 132, 199)
+
+    # Document Main Title
     title_p = doc.add_paragraph()
-    title_p.paragraph_format.space_before = Pt(0)
-    title_p.paragraph_format.space_after = Pt(4)
-    run_title = title_p.add_run("SREC FIS V3.0 - Faculty Information System")
-    run_title.font.name = 'Arial'
-    run_title.font.size = Pt(24)
-    run_title.font.bold = True
-    run_title.font.color.rgb = RGBColor(24, 43, 73)
-    
-    subtitle_p = doc.add_paragraph()
-    subtitle_p.paragraph_format.space_before = Pt(0)
-    subtitle_p.paragraph_format.space_after = Pt(18)
-    run_sub = subtitle_p.add_run("Database Architecture & Table Schema Reference")
-    run_sub.font.name = 'Arial'
-    run_sub.font.size = Pt(14)
-    run_sub.font.color.rgb = RGBColor(100, 110, 120)
+    title_p.paragraph_format.space_before = Pt(6)
+    title_p.paragraph_format.space_after = Pt(6)
+    run_title = title_p.add_run("DATABASE ARCHITECTURE & TABLE SCHEMA REFERENCE")
+    run_title.font.name = 'Times New Roman'
+    run_title.font.size = Pt(16)
+    run_title.bold = True
+    run_title.font.color.rgb = RGBColor(15, 23, 42)
     
     # Metadata Table
     meta_table = doc.add_table(rows=2, cols=2)
@@ -213,24 +235,25 @@ def generate_docx():
     
     meta_data = [
         [("Database Engine:", True), (engine_name, False)],
-        [("Last Updated:", True), (now_str, False)]
+        [("Last Synchronized:", True), (now_str, False)]
     ]
     
     for row_idx, row in enumerate(meta_data):
         for col_idx, (text, is_bold) in enumerate(row):
             cell = meta_table.cell(row_idx, col_idx)
-            cell.width = Inches(3.25)
+            cell.width = Inches(3.5)
             p = cell.paragraphs[0]
-            p.paragraph_format.space_before = Pt(2)
-            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.space_before = Pt(3)
+            p.paragraph_format.space_after = Pt(3)
             run = p.add_run(text)
-            run.font.name = 'Arial'
-            run.font.size = Pt(9.5)
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(14)
             run.font.bold = is_bold
-            run.font.color.rgb = RGBColor(50, 50, 50)
-            set_cell_background(cell, "F0F4F8")
-            set_cell_margins(cell, top=60, bottom=60, left=100, right=100)
+            run.font.color.rgb = RGBColor(30, 41, 59)
+            set_cell_background(cell, "F8FAFC")
+            set_cell_margins(cell, top=80, bottom=80, left=120, right=120)
             
+    set_table_borders(meta_table)
     doc.add_paragraph().paragraph_format.space_after = Pt(12)
     
     processed_tables = set()
@@ -239,192 +262,174 @@ def generate_docx():
     # Iterate through structured sections
     for sec_idx, section_info in enumerate(SECTION_MAPPINGS):
         h1 = doc.add_paragraph()
-        h1.paragraph_format.space_before = Pt(16)
+        h1.paragraph_format.space_before = Pt(18)
         h1.paragraph_format.space_after = Pt(4)
         h1.paragraph_format.keep_with_next = True
         run_h1 = h1.add_run(section_info["category"])
-        run_h1.font.name = 'Arial'
-        run_h1.font.size = Pt(15)
+        run_h1.font.name = 'Times New Roman'
+        run_h1.font.size = Pt(16)
         run_h1.font.bold = True
-        run_h1.font.color.rgb = RGBColor(24, 43, 73)
+        run_h1.font.color.rgb = RGBColor(15, 23, 42)
         
-        desc_p = doc.add_paragraph()
-        desc_p.paragraph_format.space_before = Pt(0)
-        desc_p.paragraph_format.space_after = Pt(10)
-        desc_p.paragraph_format.keep_with_next = True
-        run_desc = desc_p.add_run(section_info["description"])
-        run_desc.font.name = 'Arial'
-        run_desc.font.size = Pt(9.5)
+        p_desc = doc.add_paragraph()
+        p_desc.paragraph_format.space_after = Pt(10)
+        run_desc = p_desc.add_run(section_info["description"])
+        run_desc.font.name = 'Times New Roman'
+        run_desc.font.size = Pt(14)
         run_desc.font.italic = True
-        run_desc.font.color.rgb = RGBColor(90, 90, 90)
+        run_desc.font.color.rgb = RGBColor(71, 85, 105)
         
-        for table_name in section_info["tables"]:
-            if table_name not in existing_tables:
-                continue
+        for tname in section_info["tables"]:
+            if tname in tables_data:
+                processed_tables.add(tname)
+                cols_info = tables_data[tname]
                 
-            processed_tables.add(table_name)
-            
+                h2 = doc.add_paragraph()
+                h2.paragraph_format.space_before = Pt(12)
+                h2.paragraph_format.space_after = Pt(2)
+                h2.paragraph_format.keep_with_next = True
+                
+                r_name = h2.add_run(f"Table: {tname}")
+                r_name.font.name = 'Times New Roman'
+                r_name.font.size = Pt(14)
+                r_name.font.bold = True
+                r_name.font.color.rgb = RGBColor(3, 105, 161)
+                
+                if tname in TABLE_DESCRIPTIONS:
+                    r_tdesc = h2.add_run(f" — {TABLE_DESCRIPTIONS[tname]}")
+                    r_tdesc.font.name = 'Times New Roman'
+                    r_tdesc.font.size = Pt(14)
+                    r_tdesc.font.color.rgb = RGBColor(71, 85, 105)
+                
+                # Render table
+                tbl = doc.add_table(rows=1, cols=6)
+                tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+                tbl.autofit = False
+                
+                hdr_cells = tbl.rows[0].cells
+                headers = ["#", "Column Name", "Data Type", "Nullable", "Default Value", "Key"]
+                col_widths = [Inches(0.4), Inches(2.2), Inches(1.5), Inches(0.9), Inches(1.3), Inches(0.7)]
+                
+                for i, head_text in enumerate(headers):
+                    hdr_cells[i].text = head_text
+                    hdr_cells[i].paragraphs[0].runs[0].font.bold = True
+                    hdr_cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
+                    hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(14)
+                    hdr_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                    set_cell_background(hdr_cells[i], "0F331F")
+                    set_cell_margins(hdr_cells[i])
+                    hdr_cells[i].width = col_widths[i]
+                
+                for row_idx, col in enumerate(cols_info):
+                    row_cells = tbl.add_row().cells
+                    cid, cname, ctype, notnull, dflt, pk = col[0], col[1], col[2], col[3], col[4], col[5]
+                    
+                    is_not_null = notnull if isinstance(notnull, bool) else (notnull == 1)
+                    null_str = "No" if is_not_null else "Yes"
+                    key_str = "PK" if pk else ""
+                    dflt_str = str(dflt) if dflt is not None else "NULL"
+                    
+                    vals = [str(cid+1), cname, str(ctype).upper(), null_str, dflt_str, key_str]
+                    bg_color = "F8FAFC" if row_idx % 2 == 0 else "FFFFFF"
+                    
+                    for c_i, v in enumerate(vals):
+                        row_cells[c_i].text = v
+                        p = row_cells[c_i].paragraphs[0]
+                        p.paragraph_format.space_before = Pt(2)
+                        p.paragraph_format.space_after = Pt(2)
+                        run = p.add_run()
+                        run.font.name = 'Times New Roman'
+                        run.font.size = Pt(14)
+                        if c_i == 1 and pk:
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(185, 28, 28)
+                        else:
+                            run.font.color.rgb = RGBColor(30, 41, 59)
+                        set_cell_background(row_cells[c_i], bg_color)
+                        set_cell_margins(row_cells[c_i])
+                        row_cells[c_i].width = col_widths[c_i]
+                
+                set_table_borders(tbl)
+                doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Remaining Uncategorized Tables
+    unprocessed = existing_tables - processed_tables
+    if unprocessed:
+        h1 = doc.add_paragraph()
+        h1.paragraph_format.space_before = Pt(18)
+        h1.paragraph_format.space_after = Pt(4)
+        h1.paragraph_format.keep_with_next = True
+        run_h1 = h1.add_run("7. Other Workspace Tables")
+        run_h1.font.name = 'Times New Roman'
+        run_h1.font.size = Pt(16)
+        run_h1.font.bold = True
+        run_h1.font.color.rgb = RGBColor(15, 23, 42)
+        
+        for tname in sorted(list(unprocessed)):
+            cols_info = tables_data[tname]
             h2 = doc.add_paragraph()
             h2.paragraph_format.space_before = Pt(12)
             h2.paragraph_format.space_after = Pt(2)
             h2.paragraph_format.keep_with_next = True
-            run_h2 = h2.add_run(f"Table: {table_name}")
-            run_h2.font.name = 'Arial'
-            run_h2.font.size = Pt(12)
-            run_h2.font.bold = True
-            run_h2.font.color.rgb = RGBColor(40, 70, 115)
             
-            if table_name in TABLE_DESCRIPTIONS:
-                tbl_desc = doc.add_paragraph()
-                tbl_desc.paragraph_format.space_before = Pt(0)
-                tbl_desc.paragraph_format.space_after = Pt(6)
-                tbl_desc.paragraph_format.keep_with_next = True
-                r = tbl_desc.add_run(TABLE_DESCRIPTIONS[table_name])
-                r.font.name = 'Arial'
-                r.font.size = Pt(9)
-                r.font.color.rgb = RGBColor(80, 80, 80)
+            r_name = h2.add_run(f"Table: {tname}")
+            r_name.font.name = 'Times New Roman'
+            r_name.font.size = Pt(14)
+            r_name.font.bold = True
+            r_name.font.color.rgb = RGBColor(3, 105, 161)
             
-            columns = tables_data[table_name]
+            tbl = doc.add_table(rows=1, cols=6)
+            tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+            tbl.autofit = False
             
-            table = doc.add_table(rows=1, cols=5)
-            table.alignment = WD_TABLE_ALIGNMENT.CENTER
-            table.autofit = False
-            set_table_borders(table, color="D0D7DE", sz="4")
+            hdr_cells = tbl.rows[0].cells
+            headers = ["#", "Column Name", "Data Type", "Nullable", "Default Value", "Key"]
+            col_widths = [Inches(0.4), Inches(2.2), Inches(1.5), Inches(0.9), Inches(1.3), Inches(0.7)]
             
-            hdr_cells = table.rows[0].cells
-            headers = [("Column Name", 1.8), ("Data Type", 1.2), ("Key", 0.6), ("Default", 1.0), ("Nullable", 0.9)]
+            for i, head_text in enumerate(headers):
+                hdr_cells[i].text = head_text
+                hdr_cells[i].paragraphs[0].runs[0].font.bold = True
+                hdr_cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
+                hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(14)
+                hdr_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
+                set_cell_background(hdr_cells[i], "0F331F")
+                set_cell_margins(hdr_cells[i])
+                hdr_cells[i].width = col_widths[i]
             
-            for idx, (header_text, col_width) in enumerate(headers):
-                hdr_cells[idx].width = Inches(col_width)
-                p = hdr_cells[idx].paragraphs[0]
-                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                p.paragraph_format.space_before = Pt(4)
-                p.paragraph_format.space_after = Pt(4)
-                run = p.add_run(header_text)
-                run.font.name = 'Arial'
-                run.font.size = Pt(9)
-                run.font.bold = True
-                run.font.color.rgb = RGBColor(255, 255, 255)
-                set_cell_background(hdr_cells[idx], "182B49")
-                set_cell_margins(hdr_cells[idx], top=80, bottom=80, left=100, right=100)
+            for row_idx, col in enumerate(cols_info):
+                row_cells = tbl.add_row().cells
+                cid, cname, ctype, notnull, dflt, pk = col[0], col[1], col[2], col[3], col[4], col[5]
                 
-            trPr = table.rows[0]._tr.get_or_add_trPr()
-            trPr.append(OxmlElement('w:tblHeader'))
+                is_not_null = notnull if isinstance(notnull, bool) else (notnull == 1)
+                null_str = "No" if is_not_null else "Yes"
+                key_str = "PK" if pk else ""
+                dflt_str = str(dflt) if dflt is not None else "NULL"
+                
+                vals = [str(cid+1), cname, str(ctype).upper(), null_str, dflt_str, key_str]
+                bg_color = "F8FAFC" if row_idx % 2 == 0 else "FFFFFF"
+                
+                for c_i, v in enumerate(vals):
+                    row_cells[c_i].text = v
+                    p = row_cells[c_i].paragraphs[0]
+                    p.paragraph_format.space_before = Pt(2)
+                    p.paragraph_format.space_after = Pt(2)
+                    run = p.add_run()
+                    run.font.name = 'Times New Roman'
+                    run.font.size = Pt(14)
+                    if c_i == 1 and pk:
+                        run.font.bold = True
+                        run.font.color.rgb = RGBColor(185, 28, 28)
+                    else:
+                        run.font.color.rgb = RGBColor(30, 41, 59)
+                    set_cell_background(row_cells[c_i], bg_color)
+                    set_cell_margins(row_cells[c_i])
+                    row_cells[c_i].width = col_widths[c_i]
             
-            for col_info in columns:
-                cid, name, col_type, notnull, dflt_value, pk = col_info
-                
-                row_cells = table.add_row().cells
-                trPr = table.rows[-1]._tr.get_or_add_trPr()
-                trPr.append(OxmlElement('w:cantSplit'))
-                
-                pk_str = "PK" if pk else ("FK" if name.endswith('_id') and name != 'id' else "")
-                default_str = str(dflt_value) if dflt_value is not None else "-"
-                nullable_str = "No" if notnull else "Yes"
-                col_type_str = col_type if col_type else "TEXT"
-                
-                row_data = [
-                    (name, True, RGBColor(30, 30, 30)),
-                    (col_type_str, False, RGBColor(70, 70, 70)),
-                    (pk_str, True, RGBColor(180, 40, 40) if pk else RGBColor(70, 70, 70)),
-                    (default_str, False, RGBColor(90, 90, 90)),
-                    (nullable_str, False, RGBColor(90, 90, 90))
-                ]
-                
-                bg_color = "F9FAFB" if (cid % 2 == 1) else "FFFFFF"
-                
-                for idx, (val_text, is_bold, color_rgb) in enumerate(row_data):
-                    col_width = headers[idx][1]
-                    cell = row_cells[idx]
-                    cell.width = Inches(col_width)
-                    p = cell.paragraphs[0]
-                    p.paragraph_format.space_before = Pt(3)
-                    p.paragraph_format.space_after = Pt(3)
-                    run = p.add_run(val_text)
-                    run.font.name = 'Consolas' if idx in [0, 1] else 'Arial'
-                    run.font.size = Pt(8.5)
-                    run.font.bold = is_bold
-                    run.font.color.rgb = color_rgb
-                    set_cell_background(cell, bg_color)
-                    set_cell_margins(cell, top=50, bottom=50, left=80, right=80)
-                    
+            set_table_borders(tbl)
             doc.add_paragraph().paragraph_format.space_after = Pt(8)
-            
-    # Remaining tables
-    remaining = existing_tables - processed_tables
-    if remaining:
-        h1 = doc.add_paragraph()
-        h1.paragraph_format.space_before = Pt(16)
-        h1.paragraph_format.space_after = Pt(4)
-        run_h1 = h1.add_run("7. Other Database Tables")
-        run_h1.font.name = 'Arial'
-        run_h1.font.size = Pt(15)
-        run_h1.font.bold = True
-        run_h1.font.color.rgb = RGBColor(24, 43, 73)
-        
-        for table_name in sorted(remaining):
-            h2 = doc.add_paragraph()
-            h2.paragraph_format.space_before = Pt(12)
-            h2.paragraph_format.space_after = Pt(2)
-            run_h2 = h2.add_run(f"Table: {table_name}")
-            run_h2.font.name = 'Arial'
-            run_h2.font.size = Pt(12)
-            run_h2.font.bold = True
-            
-            columns = tables_data[table_name]
-            
-            table = doc.add_table(rows=1, cols=5)
-            table.alignment = WD_TABLE_ALIGNMENT.CENTER
-            set_table_borders(table, color="D0D7DE", sz="4")
-            
-            hdr_cells = table.rows[0].cells
-            headers = [("Column Name", 1.8), ("Data Type", 1.2), ("Key", 0.6), ("Default", 1.0), ("Nullable", 0.9)]
-            for idx, (header_text, col_width) in enumerate(headers):
-                hdr_cells[idx].width = Inches(col_width)
-                p = hdr_cells[idx].paragraphs[0]
-                p.paragraph_format.space_before = Pt(4)
-                p.paragraph_format.space_after = Pt(4)
-                run = p.add_run(header_text)
-                run.font.name = 'Arial'
-                run.font.size = Pt(9)
-                run.font.bold = True
-                run.font.color.rgb = RGBColor(255, 255, 255)
-                set_cell_background(hdr_cells[idx], "182B49")
-                set_cell_margins(hdr_cells[idx], top=80, bottom=80, left=100, right=100)
-                
-            for col_info in columns:
-                cid, name, col_type, notnull, dflt_value, pk = col_info
-                row_cells = table.add_row().cells
-                pk_str = "PK" if pk else ""
-                default_str = str(dflt_value) if dflt_value is not None else "-"
-                nullable_str = "No" if notnull else "Yes"
-                
-                row_data = [
-                    (name, True, RGBColor(30, 30, 30)),
-                    (col_type if col_type else "TEXT", False, RGBColor(70, 70, 70)),
-                    (pk_str, True, RGBColor(180, 40, 40) if pk else RGBColor(70, 70, 70)),
-                    (default_str, False, RGBColor(90, 90, 90)),
-                    (nullable_str, False, RGBColor(90, 90, 90))
-                ]
-                
-                bg_color = "F9FAFB" if (cid % 2 == 1) else "FFFFFF"
-                for idx, (val_text, is_bold, color_rgb) in enumerate(row_data):
-                    cell = row_cells[idx]
-                    cell.width = Inches(headers[idx][1])
-                    p = cell.paragraphs[0]
-                    p.paragraph_format.space_before = Pt(3)
-                    p.paragraph_format.space_after = Pt(3)
-                    run = p.add_run(val_text)
-                    run.font.name = 'Consolas' if idx in [0, 1] else 'Arial'
-                    run.font.size = Pt(8.5)
-                    run.font.bold = is_bold
-                    run.font.color.rgb = color_rgb
-                    set_cell_background(cell, bg_color)
-                    set_cell_margins(cell, top=50, bottom=50, left=80, right=80)
-            doc.add_paragraph().paragraph_format.space_after = Pt(8)
-            
+
     doc.save(output_path)
-    print(f"Schema Word document successfully generated and updated at: {output_path}")
+    print(f"Database schema Word document generated successfully at: {output_path}")
 
 if __name__ == '__main__':
     generate_docx()

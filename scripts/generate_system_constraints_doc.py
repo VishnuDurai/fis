@@ -42,58 +42,86 @@ def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
 
 def add_heading_styled(doc, text, level=1):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(14)
+    p.paragraph_format.space_before = Pt(16)
     p.paragraph_format.space_after = Pt(6)
     p.paragraph_format.keep_with_next = True
     run = p.add_run(text)
-    run.font.name = 'Calibri'
+    run.font.name = 'Times New Roman'
     run.bold = True
     if level == 1:
         run.font.size = Pt(16)
-        run.font.color.rgb = RGBColor(15, 23, 42) # Slate 900
+        run.font.color.rgb = RGBColor(15, 23, 42)
     elif level == 2:
-        run.font.size = Pt(13)
-        run.font.color.rgb = RGBColor(3, 105, 161) # Sky 700
-    elif level == 3:
-        run.font.size = Pt(11.5)
-        run.font.color.rgb = RGBColor(15, 118, 110) # Teal 700
+        run.font.size = Pt(14)
+        run.font.color.rgb = RGBColor(3, 105, 161)
     return p
 
 def create_system_constraints_document():
     doc = Document()
     
-    # Page setup - Margins 0.8 inch
+    # Page setup - Margins 0.75 inch
     for section in doc.sections:
-        section.top_margin = Inches(0.8)
-        section.bottom_margin = Inches(0.8)
-        section.left_margin = Inches(0.8)
-        section.right_margin = Inches(0.8)
+        section.top_margin = Inches(0.75)
+        section.bottom_margin = Inches(0.75)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
 
-    # Document Header
+        footer = section.footer
+        footer_p = footer.paragraphs[0]
+        footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_p.paragraph_format.space_before = Pt(6)
+        footer_run = footer_p.add_run("© 2026 FIS Team - Sri Ramakrishna Engineering College, Coimbatore | SREC FIS V3.0")
+        footer_run.font.name = 'Times New Roman'
+        footer_run.font.size = Pt(11)
+        footer_run.font.color.rgb = RGBColor(100, 116, 139)
+
+    # Standardized Institutional Report Header
+    p_inst = doc.add_paragraph()
+    p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_inst.paragraph_format.space_before = Pt(0)
+    p_inst.paragraph_format.space_after = Pt(2)
+    r_inst = p_inst.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
+    r_inst.font.name = 'Times New Roman'
+    r_inst.font.size = Pt(18)
+    r_inst.bold = True
+    r_inst.font.color.rgb = RGBColor(15, 51, 31)
+
+    p_subinst = doc.add_paragraph()
+    p_subinst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_subinst.paragraph_format.space_before = Pt(0)
+    p_subinst.paragraph_format.space_after = Pt(4)
+    r_subinst = p_subinst.add_run("[An Autonomous Institution | Re-Accredited by NAAC with 'A+' Grade]")
+    r_subinst.font.name = 'Times New Roman'
+    r_subinst.font.size = Pt(12)
+    r_subinst.font.italic = True
+    r_subinst.font.color.rgb = RGBColor(71, 85, 105)
+
+    p_sys = doc.add_paragraph()
+    p_sys.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_sys.paragraph_format.space_before = Pt(0)
+    p_sys.paragraph_format.space_after = Pt(14)
+    r_sys = p_sys.add_run("FACULTY INFORMATION SYSTEM (SREC FIS V3.0)")
+    r_sys.font.name = 'Times New Roman'
+    r_sys.font.size = Pt(14)
+    r_sys.bold = True
+    r_sys.font.color.rgb = RGBColor(2, 132, 199)
+
+    # Document Main Title
     title_p = doc.add_paragraph()
-    title_p.paragraph_format.space_before = Pt(0)
-    title_p.paragraph_format.space_after = Pt(4)
-    run_title = title_p.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
-    run_title.font.name = 'Calibri'
-    run_title.font.size = Pt(18)
+    title_p.paragraph_format.space_before = Pt(6)
+    title_p.paragraph_format.space_after = Pt(6)
+    run_title = title_p.add_run("SYSTEM CONSTRAINTS, RULES & PORTAL FUNCTIONALITY MANUAL")
+    run_title.font.name = 'Times New Roman'
+    run_title.font.size = Pt(16)
     run_title.bold = True
-    run_title.font.color.rgb = RGBColor(15, 51, 31)
-
-    sub_p = doc.add_paragraph()
-    sub_p.paragraph_format.space_before = Pt(0)
-    sub_p.paragraph_format.space_after = Pt(16)
-    run_sub = sub_p.add_run("System Constraints, Rules & Portal Functionality Reference Manual (FIS V3.0)")
-    run_sub.font.name = 'Calibri'
-    run_sub.font.size = Pt(13)
-    run_sub.bold = True
-    run_sub.font.color.rgb = RGBColor(2, 132, 199)
+    run_title.font.color.rgb = RGBColor(15, 23, 42)
 
     meta_p = doc.add_paragraph()
     meta_p.paragraph_format.space_before = Pt(0)
-    meta_p.paragraph_format.space_after = Pt(16)
-    run_meta = meta_p.add_run(f"Document Generated: {datetime.datetime.now().strftime('%B %d, %Y')} | Version 3.0 | Status: Active Specification")
-    run_meta.font.name = 'Calibri'
-    run_meta.font.size = Pt(9.5)
+    meta_p.paragraph_format.space_after = Pt(14)
+    run_meta = meta_p.add_run(f"Document Generated: {datetime.datetime.now().strftime('%B %d, %Y')} | Version 3.0 | Status: Active System Rules Specification")
+    run_meta.font.name = 'Times New Roman'
+    run_meta.font.size = Pt(11)
     run_meta.font.italic = True
     run_meta.font.color.rgb = RGBColor(100, 116, 139)
 
@@ -105,8 +133,8 @@ def create_system_constraints_document():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(8)
     r = p.add_run("The Sri Ramakrishna Engineering College Faculty Information System (SREC FIS V3.0) operates across three distinct portal environments, governed by strict authorization constraints, menu visibility matrix, role elevation logic, and workflow governance.")
-    r.font.name = 'Calibri'
-    r.font.size = Pt(10.5)
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
 
     table1 = doc.add_table(rows=1, cols=3)
     table1.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -114,14 +142,14 @@ def create_system_constraints_document():
     
     hdr_cells = table1.rows[0].cells
     headers = ["Portal Environment", "Target User Roles", "Operational Scope & Access Rules"]
-    widths = [Inches(1.8), Inches(1.8), Inches(3.2)]
+    widths = [Inches(1.8), Inches(1.8), Inches(3.4)]
     
     for i, h in enumerate(headers):
         hdr_cells[i].text = h
         hdr_cells[i].paragraphs[0].runs[0].font.bold = True
         hdr_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-        hdr_cells[i].paragraphs[0].runs[0].font.name = 'Calibri'
-        hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(10)
+        hdr_cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
+        hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(14)
         set_cell_background(hdr_cells[i], "0F331F")
         set_cell_margins(hdr_cells[i])
         hdr_cells[i].width = widths[i]
@@ -138,8 +166,8 @@ def create_system_constraints_document():
         for i, val in enumerate([p_name, p_roles, p_scope]):
             row_cells[i].text = val
             p_cell = row_cells[i].paragraphs[0]
-            p_cell.runs[0].font.name = 'Calibri'
-            p_cell.runs[0].font.size = Pt(9.5)
+            p_cell.runs[0].font.name = 'Times New Roman'
+            p_cell.runs[0].font.size = Pt(14)
             set_cell_background(row_cells[i], bg_color)
             set_cell_margins(row_cells[i])
             row_cells[i].width = widths[i]
@@ -153,8 +181,8 @@ def create_system_constraints_document():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(6)
     r = p.add_run("The system dynamically evaluates user credentials and designation strings to elevate permissions and toggle menu items:")
-    r.font.name = 'Calibri'
-    r.font.size = Pt(10.5)
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
 
     rules = [
         ("Doctorate / Ph.D Designation Rule: ", "If a faculty member's name contains 'Dr.' or 'Dr ', or Ph.D qualification is recorded, the Research Supervisor menu item (/activities/supervisors) is automatically enabled in place of the Research Scholar menu item (/activities/scholars)."),
@@ -169,12 +197,12 @@ def create_system_constraints_document():
         bp.paragraph_format.space_after = Pt(4)
         r1 = bp.add_run(title_text)
         r1.bold = True
-        r1.font.name = 'Calibri'
-        r1.font.size = Pt(10)
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(15, 118, 110)
         r2 = bp.add_run(body_text)
-        r2.font.name = 'Calibri'
-        r2.font.size = Pt(10)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
@@ -184,8 +212,8 @@ def create_system_constraints_document():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(6)
     r = p.add_run("When a faculty member is transferred between departments (e.g. from CSE to AI & DS), the system executes an automated, multi-layered synchronization process:")
-    r.font.name = 'Calibri'
-    r.font.size = Pt(10.5)
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
 
     transfer_steps = [
         ("1. Transfer History Audit Log (staff_department_history): ", "An immutable record is inserted storing staff_id, from_dept, to_dept, transfer_date, and system timestamp."),
@@ -201,12 +229,12 @@ def create_system_constraints_document():
         bp.paragraph_format.space_after = Pt(4)
         r1 = bp.add_run(title_text)
         r1.bold = True
-        r1.font.name = 'Calibri'
-        r1.font.size = Pt(10)
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(3, 105, 161)
         r2 = bp.add_run(body_text)
-        r2.font.name = 'Calibri'
-        r2.font.size = Pt(10)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
@@ -218,14 +246,14 @@ def create_system_constraints_document():
     table2.autofit = False
 
     m_headers = ["Menu Item", "Path", "Faculty Portal", "Dept Admin / HOD", "System Admin / Executive"]
-    m_widths = [Inches(1.5), Inches(1.5), Inches(1.2), Inches(1.3), Inches(1.3)]
+    m_widths = [Inches(1.5), Inches(1.5), Inches(1.2), Inches(1.4), Inches(1.4)]
 
     for i, h in enumerate(m_headers):
         table2.rows[0].cells[i].text = h
         table2.rows[0].cells[i].paragraphs[0].runs[0].font.bold = True
         table2.rows[0].cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-        table2.rows[0].cells[i].paragraphs[0].runs[0].font.name = 'Calibri'
-        table2.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(9.5)
+        table2.rows[0].cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
+        table2.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(14)
         set_cell_background(table2.rows[0].cells[i], "0F331F")
         set_cell_margins(table2.rows[0].cells[i])
         table2.rows[0].cells[i].width = m_widths[i]
@@ -256,8 +284,8 @@ def create_system_constraints_document():
         for i, val in enumerate([m_item, m_path, m_fac, m_hod, m_adm]):
             row_cells[i].text = val
             p_cell = row_cells[i].paragraphs[0]
-            p_cell.runs[0].font.name = 'Calibri'
-            p_cell.runs[0].font.size = Pt(9)
+            p_cell.runs[0].font.name = 'Times New Roman'
+            p_cell.runs[0].font.size = Pt(14)
             set_cell_background(row_cells[i], bg_color)
             set_cell_margins(row_cells[i])
             row_cells[i].width = m_widths[i]
@@ -271,8 +299,8 @@ def create_system_constraints_document():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(6)
     r = p.add_run("The Faculty Performance Indicator (FPI) appraisal process is regulated by the following governance rules:")
-    r.font.name = 'Calibri'
-    r.font.size = Pt(10.5)
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
 
     fpi_rules = [
         ("Completed Academic Year Rule: ", "Performance appraisals evaluate the completed academic year (e.g. 2025-2026). The appraisal form defaults to getAppraisalAcademicYear() (2025-2026)."),
@@ -289,12 +317,12 @@ def create_system_constraints_document():
         bp.paragraph_format.space_after = Pt(4)
         r1 = bp.add_run(title_text)
         r1.bold = True
-        r1.font.name = 'Calibri'
-        r1.font.size = Pt(10)
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(15, 51, 31)
         r2 = bp.add_run(body_text)
-        r2.font.name = 'Calibri'
-        r2.font.size = Pt(10)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
@@ -312,12 +340,12 @@ def create_system_constraints_document():
         bp.paragraph_format.space_after = Pt(4)
         r1 = bp.add_run(title_text)
         r1.bold = True
-        r1.font.name = 'Calibri'
-        r1.font.size = Pt(10)
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(185, 28, 28)
         r2 = bp.add_run(body_text)
-        r2.font.name = 'Calibri'
-        r2.font.size = Pt(10)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
 
     # Save document
     out_path = os.path.abspath("System_Constraints_and_Portal_Rules.docx")

@@ -42,58 +42,86 @@ def set_table_borders(table, color="CBD5E1", sz="4", val="single"):
 
 def add_heading_styled(doc, text, level=1):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(14)
+    p.paragraph_format.space_before = Pt(16)
     p.paragraph_format.space_after = Pt(6)
     p.paragraph_format.keep_with_next = True
     run = p.add_run(text)
-    run.font.name = 'Calibri'
+    run.font.name = 'Times New Roman'
     run.bold = True
     if level == 1:
         run.font.size = Pt(16)
-        run.font.color.rgb = RGBColor(15, 23, 42) # Slate 900
+        run.font.color.rgb = RGBColor(15, 23, 42)
     elif level == 2:
-        run.font.size = Pt(13)
-        run.font.color.rgb = RGBColor(3, 105, 161) # Sky 700
-    elif level == 3:
-        run.font.size = Pt(11.5)
-        run.font.color.rgb = RGBColor(15, 118, 110) # Teal 700
+        run.font.size = Pt(14)
+        run.font.color.rgb = RGBColor(3, 105, 161)
     return p
 
 def create_technical_modification_guide():
     doc = Document()
     
-    # Margins 0.8 inch
+    # Margins 0.75 inch
     for section in doc.sections:
-        section.top_margin = Inches(0.8)
-        section.bottom_margin = Inches(0.8)
-        section.left_margin = Inches(0.8)
-        section.right_margin = Inches(0.8)
+        section.top_margin = Inches(0.75)
+        section.bottom_margin = Inches(0.75)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
 
-    # Document Header
+        footer = section.footer
+        footer_p = footer.paragraphs[0]
+        footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_p.paragraph_format.space_before = Pt(6)
+        footer_run = footer_p.add_run("© 2026 FIS Team - Sri Ramakrishna Engineering College, Coimbatore | SREC FIS V3.0")
+        footer_run.font.name = 'Times New Roman'
+        footer_run.font.size = Pt(11)
+        footer_run.font.color.rgb = RGBColor(100, 116, 139)
+
+    # Standardized Institutional Report Header
+    p_inst = doc.add_paragraph()
+    p_inst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_inst.paragraph_format.space_before = Pt(0)
+    p_inst.paragraph_format.space_after = Pt(2)
+    r_inst = p_inst.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
+    r_inst.font.name = 'Times New Roman'
+    r_inst.font.size = Pt(18)
+    r_inst.bold = True
+    r_inst.font.color.rgb = RGBColor(15, 51, 31)
+
+    p_subinst = doc.add_paragraph()
+    p_subinst.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_subinst.paragraph_format.space_before = Pt(0)
+    p_subinst.paragraph_format.space_after = Pt(4)
+    r_subinst = p_subinst.add_run("[An Autonomous Institution | Re-Accredited by NAAC with 'A+' Grade]")
+    r_subinst.font.name = 'Times New Roman'
+    r_subinst.font.size = Pt(12)
+    r_subinst.font.italic = True
+    r_subinst.font.color.rgb = RGBColor(71, 85, 105)
+
+    p_sys = doc.add_paragraph()
+    p_sys.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_sys.paragraph_format.space_before = Pt(0)
+    p_sys.paragraph_format.space_after = Pt(14)
+    r_sys = p_sys.add_run("FACULTY INFORMATION SYSTEM (SREC FIS V3.0)")
+    r_sys.font.name = 'Times New Roman'
+    r_sys.font.size = Pt(14)
+    r_sys.bold = True
+    r_sys.font.color.rgb = RGBColor(2, 132, 199)
+
+    # Document Main Title
     title_p = doc.add_paragraph()
-    title_p.paragraph_format.space_before = Pt(0)
-    title_p.paragraph_format.space_after = Pt(4)
-    run_title = title_p.add_run("SRI RAMAKRISHNA ENGINEERING COLLEGE")
-    run_title.font.name = 'Calibri'
-    run_title.font.size = Pt(18)
+    title_p.paragraph_format.space_before = Pt(6)
+    title_p.paragraph_format.space_after = Pt(6)
+    run_title = title_p.add_run("TECHNICAL CONSTRAINTS & CODEBASE FILE MODIFICATION GUIDE")
+    run_title.font.name = 'Times New Roman'
+    run_title.font.size = Pt(16)
     run_title.bold = True
-    run_title.font.color.rgb = RGBColor(15, 51, 31)
-
-    sub_p = doc.add_paragraph()
-    sub_p.paragraph_format.space_before = Pt(0)
-    sub_p.paragraph_format.space_after = Pt(16)
-    run_sub = sub_p.add_run("Technical Architecture Guide: Codebase File Locations for Updating Rules & Constraints (FIS V3.0)")
-    run_sub.font.name = 'Calibri'
-    run_sub.font.size = Pt(12.5)
-    run_sub.bold = True
-    run_sub.font.color.rgb = RGBColor(2, 132, 199)
+    run_title.font.color.rgb = RGBColor(15, 23, 42)
 
     meta_p = doc.add_paragraph()
     meta_p.paragraph_format.space_before = Pt(0)
-    meta_p.paragraph_format.space_after = Pt(16)
+    meta_p.paragraph_format.space_after = Pt(14)
     run_meta = meta_p.add_run(f"Document Generated: {datetime.datetime.now().strftime('%B %d, %Y')} | Version 3.0 | Status: Active Developer Guide")
-    run_meta.font.name = 'Calibri'
-    run_meta.font.size = Pt(9.5)
+    run_meta.font.name = 'Times New Roman'
+    run_meta.font.size = Pt(11)
     run_meta.font.italic = True
     run_meta.font.color.rgb = RGBColor(100, 116, 139)
 
@@ -104,23 +132,23 @@ def create_technical_modification_guide():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(8)
     r = p.add_run("This technical manual specifies the exact code files, functions, and line ranges required to modify portal rules, menu visibility, role permissions, appraisal scoring algorithms, faculty transfer mechanisms, and file upload limits in the SREC FIS codebase.")
-    r.font.name = 'Calibri'
-    r.font.size = Pt(10.5)
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
 
     # Table 1: Feature to File Mapping
     table1 = doc.add_table(rows=1, cols=4)
     table1.alignment = WD_TABLE_ALIGNMENT.CENTER
     table1.autofit = False
 
-    t1_headers = ["Constraint / Rule Feature", "Target File Path", "Key Function / Block", "Line Range Range"]
-    t1_widths = [Inches(2.2), Inches(2.3), Inches(1.8), Inches(0.8)]
+    t1_headers = ["Constraint / Rule Feature", "Target File Path", "Key Function / Block", "Line Range"]
+    t1_widths = [Inches(2.2), Inches(2.4), Inches(1.8), Inches(0.8)]
 
     for i, h in enumerate(t1_headers):
         table1.rows[0].cells[i].text = h
         table1.rows[0].cells[i].paragraphs[0].runs[0].font.bold = True
         table1.rows[0].cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-        table1.rows[0].cells[i].paragraphs[0].runs[0].font.name = 'Calibri'
-        table1.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(9.5)
+        table1.rows[0].cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
+        table1.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(14)
         set_cell_background(table1.rows[0].cells[i], "0F331F")
         set_cell_margins(table1.rows[0].cells[i])
         table1.rows[0].cells[i].width = t1_widths[i]
@@ -134,7 +162,7 @@ def create_technical_modification_guide():
         ("Physical Disk Directory Relocation", "server/utils/fileStorage.js", "moveFacultyDirectory()", "L230-L290"),
         ("Department Transfer History Schema", "server/db.js", "staff_department_history DDL", "L554-L561"),
         ("Appraisal Completed Academic Year", "client/src/utils/academicYear.js", "getAppraisalAcademicYear()", "L20-L33"),
-        ("Appraisal Engine & Designation Resolution", "client/src/pages/Appraisal.jsx", "getConstraint()", "L3565-L3610"),
+        ("Appraisal Engine & Designation Overrides", "client/src/pages/Appraisal.jsx", "getConstraint()", "L3565-L3610"),
         ("Designation Filter & Copy Overrides", "client/src/pages/Appraisal.jsx", "Target Designation Bar", "L1585-L1640"),
         ("Threshold Bracket Configurator", "client/src/pages/Appraisal.jsx", "ruleModalItem modal", "L5120-L5210"),
         ("Custom PART / Section Addition", "client/src/pages/Appraisal.jsx", "showAddPartModal & distinctSections", "L5215-L5310"),
@@ -154,8 +182,8 @@ def create_technical_modification_guide():
         for i, val in enumerate([feat, fpath, ffunc, flines]):
             row_cells[i].text = val
             p_cell = row_cells[i].paragraphs[0]
-            p_cell.runs[0].font.name = 'Calibri'
-            p_cell.runs[0].font.size = Pt(9)
+            p_cell.runs[0].font.name = 'Times New Roman'
+            p_cell.runs[0].font.size = Pt(14)
             if i == 1 or i == 3:
                 p_cell.runs[0].font.bold = True
                 p_cell.runs[0].font.color.rgb = RGBColor(3, 105, 161)
@@ -205,8 +233,8 @@ def create_technical_modification_guide():
         p_path.paragraph_format.space_after = Pt(4)
         r_p = p_path.add_run(f"Primary Code File: {file_path}")
         r_p.bold = True
-        r_p.font.name = 'Calibri'
-        r_p.font.size = Pt(10)
+        r_p.font.name = 'Times New Roman'
+        r_p.font.size = Pt(14)
         r_p.font.color.rgb = RGBColor(3, 105, 161)
 
         for item_t, item_b in items:
@@ -214,11 +242,11 @@ def create_technical_modification_guide():
             bp.paragraph_format.space_after = Pt(3)
             r1 = bp.add_run(item_t)
             r1.bold = True
-            r1.font.name = 'Calibri'
-            r1.font.size = Pt(9.5)
+            r1.font.name = 'Times New Roman'
+            r1.font.size = Pt(14)
             r2 = bp.add_run(item_b)
-            r2.font.name = 'Calibri'
-            r2.font.size = Pt(9.5)
+            r2.font.name = 'Times New Roman'
+            r2.font.size = Pt(14)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
@@ -228,8 +256,8 @@ def create_technical_modification_guide():
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(6)
     r = p.add_run("To ensure permanent synchronization between codebase changes and system documentation, the following automated generator scripts must be executed whenever code constraints or database structures are updated:")
-    r.font.name = 'Calibri'
-    r.font.size = Pt(10.5)
+    r.font.name = 'Times New Roman'
+    r.font.size = Pt(14)
 
     scripts = [
         ("Database Schema Document: ", "python3 scripts/generate_schema_doc.py -> Updates Database_Schema.docx"),
@@ -242,12 +270,12 @@ def create_technical_modification_guide():
         bp.paragraph_format.space_after = Pt(4)
         r1 = bp.add_run(s_title)
         r1.bold = True
-        r1.font.name = 'Calibri'
-        r1.font.size = Pt(10)
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(15, 51, 31)
         r2 = bp.add_run(s_desc)
-        r2.font.name = 'Calibri'
-        r2.font.size = Pt(10)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
 
     # Save document
     out_path = os.path.abspath("Technical_Constraints_and_File_Modification_Guide.docx")
