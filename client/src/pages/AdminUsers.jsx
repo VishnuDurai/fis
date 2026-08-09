@@ -135,9 +135,11 @@ export default function AdminUsers({ auth, initialTab }) {
   const [showAddClub, setShowAddClub] = useState(false);
   const [newClubName, setNewClubName] = useState('');
   const [newClubFacultyId, setNewClubFacultyId] = useState('');
+  const [newClubCoFacultyId, setNewClubCoFacultyId] = useState('');
   const [editClubTarget, setEditClubTarget] = useState(null);
   const [editClubName, setEditClubName] = useState('');
   const [editClubFacultyId, setEditClubFacultyId] = useState('');
+  const [editClubCoFacultyId, setEditClubCoFacultyId] = useState('');
 
   // Tab State
   const [activeTab, setActiveTab] = useState(initialTab || 'faculty'); // 'faculty' | 'dept_admins' | 'system_admins' | 'clubs' | 'lookups'
@@ -250,7 +252,11 @@ export default function AdminUsers({ auth, initialTab }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${auth.token}`
         },
-        body: JSON.stringify({ name: newClubName.trim(), faculty_incharge_id: newClubFacultyId })
+        body: JSON.stringify({
+          name: newClubName.trim(),
+          faculty_incharge_id: newClubFacultyId,
+          co_faculty_incharge_id: newClubCoFacultyId
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create club');
@@ -258,6 +264,7 @@ export default function AdminUsers({ auth, initialTab }) {
       setShowAddClub(false);
       setNewClubName('');
       setNewClubFacultyId('');
+      setNewClubCoFacultyId('');
       fetchData();
     } catch (err) {
       setError(err.message);
@@ -280,7 +287,11 @@ export default function AdminUsers({ auth, initialTab }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${auth.token}`
         },
-        body: JSON.stringify({ name: editClubName.trim(), faculty_incharge_id: editClubFacultyId })
+        body: JSON.stringify({
+          name: editClubName.trim(),
+          faculty_incharge_id: editClubFacultyId,
+          co_faculty_incharge_id: editClubCoFacultyId
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update club');
@@ -2249,8 +2260,8 @@ export default function AdminUsers({ auth, initialTab }) {
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px', textAlign: 'center', width: '60px' }}>#</th>
                     <th style={{ padding: '12px', textAlign: 'left' }}>Club Name</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Assigned Faculty Incharge</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Department</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>Faculty Incharge (Coordinator)</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>Co-Faculty Incharge (Co-Coordinator)</th>
                     <th style={{ padding: '12px', textAlign: 'center', width: '120px' }}>Status</th>
                     <th style={{ padding: '12px', textAlign: 'center', width: '140px' }}>Actions</th>
                   </tr>
@@ -2271,11 +2282,14 @@ export default function AdminUsers({ auth, initialTab }) {
                           (c.name || '').toLowerCase().includes(term) ||
                           (c.faculty_incharge_name || '').toLowerCase().includes(term) ||
                           (c.faculty_incharge_id || '').toLowerCase().includes(term) ||
+                          (c.co_faculty_incharge_name || '').toLowerCase().includes(term) ||
+                          (c.co_faculty_incharge_id || '').toLowerCase().includes(term) ||
                           (c.faculty_department || '').toLowerCase().includes(term)
                         );
                       })
                       .map((club, idx) => {
                         const hasIncharge = !!club.faculty_incharge_id;
+                        const hasCoIncharge = !!club.co_faculty_incharge_id;
                         return (
                           <tr key={club.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                             <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
@@ -2284,17 +2298,24 @@ export default function AdminUsers({ auth, initialTab }) {
                               {hasIncharge ? (
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                   <span style={{ fontWeight: 600, color: '#0f172a' }}>{club.faculty_incharge_name}</span>
-                                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>ID: {club.faculty_incharge_id}</span>
+                                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>ID: {club.faculty_incharge_id} | {club.faculty_department || ''}</span>
                                 </div>
                               ) : (
                                 <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>No Incharge Assigned</span>
                               )}
                             </td>
-                            <td style={{ padding: '12px', color: '#475569' }}>
-                              {club.faculty_department || '-'}
+                            <td style={{ padding: '12px' }}>
+                              {hasCoIncharge ? (
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{club.co_faculty_incharge_name}</span>
+                                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>ID: {club.co_faculty_incharge_id} | {club.co_faculty_department || ''}</span>
+                                </div>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>No Co-Incharge Assigned</span>
+                              )}
                             </td>
                             <td style={{ padding: '12px', textAlign: 'center' }}>
-                              {hasIncharge ? (
+                              {hasIncharge || hasCoIncharge ? (
                                 <span style={{ padding: '4px 10px', borderRadius: '12px', background: 'hsla(var(--success), 0.15)', color: 'hsl(var(--success))', fontSize: '0.78rem', fontWeight: 700 }}>
                                   Assigned
                                 </span>
@@ -2312,6 +2333,7 @@ export default function AdminUsers({ auth, initialTab }) {
                                     setEditClubTarget(club);
                                     setEditClubName(club.name);
                                     setEditClubFacultyId(club.faculty_incharge_id || '');
+                                    setEditClubCoFacultyId(club.co_faculty_incharge_id || '');
                                   }}
                                   style={{ padding: '6px 10px', fontSize: '0.8rem', background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                   title="Edit Club / Reassign Incharge"
@@ -2360,7 +2382,7 @@ export default function AdminUsers({ auth, initialTab }) {
                 />
               </div>
               <div>
-                <label className="form-label">Assign Faculty Incharge</label>
+                <label className="form-label">Assign Faculty Incharge (Coordinator)</label>
                 <SearchableSelect 
                   options={[
                     { value: '', label: '-- Select Faculty Incharge (Optional) --' },
@@ -2376,6 +2398,25 @@ export default function AdminUsers({ auth, initialTab }) {
                 />
                 <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
                   Selecting a faculty member will automatically add this club as an Institutional Responsibility to their profile.
+                </span>
+              </div>
+              <div>
+                <label className="form-label">Assign Co-Faculty Incharge (Co-Coordinator)</label>
+                <SearchableSelect 
+                  options={[
+                    { value: '', label: '-- Select Co-Faculty Incharge (Optional) --' },
+                    ...(facultyList || []).map(f => ({
+                      value: f.staff_id,
+                      label: `${f.staff_name} (${f.staff_id}) - ${f.Department || 'Dept'}`
+                    }))
+                  ]}
+                  value={newClubCoFacultyId}
+                  onChange={(val) => setNewClubCoFacultyId(val)}
+                  placeholder="Search co-coordinator name or ID..."
+                  searchPlaceholder="Type faculty name or staff ID..."
+                />
+                <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Assigning a co-coordinator automatically syncs their Institutional Responsibility for Part D FPI calculation.
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
@@ -2407,7 +2448,7 @@ export default function AdminUsers({ auth, initialTab }) {
                 />
               </div>
               <div>
-                <label className="form-label">Assign Faculty Incharge</label>
+                <label className="form-label">Assign Faculty Incharge (Coordinator)</label>
                 <SearchableSelect 
                   options={[
                     { value: '', label: '-- No Incharge (Unassigned) --' },
@@ -2421,8 +2462,24 @@ export default function AdminUsers({ auth, initialTab }) {
                   placeholder="Search faculty name or ID..."
                   searchPlaceholder="Type faculty name or staff ID..."
                 />
+              </div>
+              <div>
+                <label className="form-label">Assign Co-Faculty Incharge (Co-Coordinator)</label>
+                <SearchableSelect 
+                  options={[
+                    { value: '', label: '-- No Co-Incharge (Unassigned) --' },
+                    ...(facultyList || []).map(f => ({
+                      value: f.staff_id,
+                      label: `${f.staff_name} (${f.staff_id}) - ${f.Department || 'Dept'}`
+                    }))
+                  ]}
+                  value={editClubCoFacultyId}
+                  onChange={(val) => setEditClubCoFacultyId(val)}
+                  placeholder="Search co-coordinator name or ID..."
+                  searchPlaceholder="Type faculty name or staff ID..."
+                />
                 <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Updating the faculty incharge automatically syncs their Institutional Responsibilities.
+                  Updating club incharge or co-incharge automatically syncs Institutional Responsibilities for Part D.
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>

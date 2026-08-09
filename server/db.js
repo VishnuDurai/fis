@@ -609,6 +609,15 @@ const createTables = async () => {
     try { await pool.query(alterQuery); } catch (e) {}
   }
 
+  // Safe column migration for clubs (Faculty Incharge & Co-Faculty Incharge)
+  const clubCols = [
+    'ALTER TABLE clubs ADD COLUMN faculty_incharge_id VARCHAR(100)',
+    'ALTER TABLE clubs ADD COLUMN co_faculty_incharge_id VARCHAR(100)'
+  ];
+  for (const alterQuery of clubCols) {
+    try { await pool.query(alterQuery); } catch (e) {}
+  }
+
   // Seed default departments if empty
   try {
     const [rows] = await pool.query('SELECT COUNT(*) as count FROM departments');

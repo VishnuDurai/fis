@@ -1109,9 +1109,9 @@ const isInstAdminUser = (user) => {
   return desg.includes('principal') || desg.includes('hr');
 };
 
-// Helper to sync Club Faculty Incharge assignment with Institutional Responsibilities
-function syncClubResponsibility(clubName, oldStaffId, newStaffId, assignedByName, callback) {
-  const respTitle = `Faculty Incharge - ${clubName.trim()}`;
+// Helper to sync Club Faculty Incharge & Co-Faculty Incharge assignment with Institutional Responsibilities
+function syncClubResponsibility(clubName, oldStaffId, newStaffId, assignedByName, customRolePrefix = 'Faculty Incharge', callback) {
+  const respTitle = `${customRolePrefix} - ${clubName.trim()}`;
 
   const addOrUpdateNew = () => {
     if (!newStaffId) {
@@ -1163,7 +1163,7 @@ function syncClubResponsibility(clubName, oldStaffId, newStaffId, assignedByName
   }
 }
 
-// 1. GET all clubs with faculty incharge details
+// 1. GET all clubs with faculty incharge & co-incharge details
 router.get('/clubs', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin' && req.user.role !== 'dept_admin' && !isInstAdminUser(req.user)) {
     return res.status(403).json({ error: 'Access denied' });
@@ -1173,10 +1173,15 @@ router.get('/clubs', authenticateToken, (req, res) => {
     SELECT c.*, 
            COALESCE(p.staff_name, c.faculty_incharge_id) as faculty_incharge_name,
            a.Department as faculty_department,
-           a.Designation as faculty_designation
+           a.Designation as faculty_designation,
+           COALESCE(p2.staff_name, c.co_faculty_incharge_id) as co_faculty_incharge_name,
+           a2.Department as co_faculty_department,
+           a2.Designation as co_faculty_designation
     FROM clubs c
     LEFT JOIN staff_personal p ON LOWER(TRIM(c.faculty_incharge_id)) = LOWER(TRIM(p.staff_id))
     LEFT JOIN staff_academics a ON LOWER(TRIM(c.faculty_incharge_id)) = LOWER(TRIM(a.staff_id))
+    LEFT JOIN staff_personal p2 ON LOWER(TRIM(c.co_faculty_incharge_id)) = LOWER(TRIM(p2.staff_id))
+    LEFT JOIN staff_academics a2 ON LOWER(TRIM(c.co_faculty_incharge_id)) = LOWER(TRIM(a2.staff_id))
     ORDER BY c.name ASC
   `, [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
@@ -1184,24 +1189,25 @@ router.get('/clubs', authenticateToken, (req, res) => {
   });
 });
 
-// 2. POST create a new club
+// 2. POST create a new club with faculty incharge & co-incharge
 router.post('/clubs', authenticateToken, (req, res) => {
   if (!isInstAdminUser(req.user)) {
     return res.status(403).json({ error: 'Access denied: System Administrator, Principal, or HR only' });
   }
 
-  const { name, faculty_incharge_id } = req.body;
+  const { name, faculty_incharge_id, co_faculty_incharge_id } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Club name is required' });
   }
 
   const cleanName = name.trim();
   const inchargeId = (faculty_incharge_id || '').trim();
+  const coInchargeId = (co_faculty_incharge_id || '').trim();
   const assignerName = req.user.name || (req.user.designation ? req.user.designation : 'System Administrator');
 
   db.run(`
-    INSERT INTO clubs (name, faculty_incharge_id) VALUES (?, ?)
-  `, [cleanName, inchargeId || null], function(err) {
+    INSERT INTO clubs (name, faculty_incharge_id, co_faculty_incharge_id) VALUES (?, ?, ?)
+  `, [cleanName, inchargeId || null, coInchargeId || null], function(err) {
     if (err) {
       if (err.message.includes('UNIQUE')) {
         return res.status(400).json({ error: 'A club with this name already exists.' });
@@ -1210,24 +1216,22 @@ router.post('/clubs', authenticateToken, (req, res) => {
     }
 
     const clubId = this.lastID;
-    if (inchargeId) {
-      syncClubResponsibility(cleanName, null, inchargeId, assignerName, () => {
-        return res.json({ success: true, id: clubId, message: 'Club created successfully and Institutional Responsibility assigned!' });
+    syncClubResponsibility(cleanName, null, inchargeId, assignerName, 'Faculty Incharge', () => {
+      syncClubResponsibility(cleanName, null, coInchargeId, assignerName, 'Co-Faculty Incharge', () => {
+        return res.json({ success: true, id: clubId, message: 'Club created successfully and Institutional Responsibilities assigned!' });
       });
-    } else {
-      return res.json({ success: true, id: clubId, message: 'Club created successfully!' });
-    }
+    });
   });
 });
 
-// 3. PUT update an existing club or change faculty incharge
+// 3. PUT update an existing club or change faculty incharge / co-incharge
 router.put('/clubs/:id', authenticateToken, (req, res) => {
   if (!isInstAdminUser(req.user)) {
     return res.status(403).json({ error: 'Access denied: System Administrator, Principal, or HR only' });
   }
 
   const { id } = req.params;
-  const { name, faculty_incharge_id } = req.body;
+  const { name, faculty_incharge_id, co_faculty_incharge_id } = req.body;
 
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Club name is required' });
@@ -1235,6 +1239,7 @@ router.put('/clubs/:id', authenticateToken, (req, res) => {
 
   const cleanName = name.trim();
   const newInchargeId = (faculty_incharge_id || '').trim();
+  const newCoInchargeId = (co_faculty_incharge_id || '').trim();
   const assignerName = req.user.name || (req.user.designation ? req.user.designation : 'System Administrator');
 
   db.get('SELECT * FROM clubs WHERE id = ?', [id], (err, existingClub) => {
@@ -1244,10 +1249,11 @@ router.put('/clubs/:id', authenticateToken, (req, res) => {
 
     const oldName = existingClub.name;
     const oldInchargeId = existingClub.faculty_incharge_id;
+    const oldCoInchargeId = existingClub.co_faculty_incharge_id;
 
     db.run(`
-      UPDATE clubs SET name = ?, faculty_incharge_id = ? WHERE id = ?
-    `, [cleanName, newInchargeId || null, id], function(uErr) {
+      UPDATE clubs SET name = ?, faculty_incharge_id = ?, co_faculty_incharge_id = ? WHERE id = ?
+    `, [cleanName, newInchargeId || null, newCoInchargeId || null, id], function(uErr) {
       if (uErr) {
         if (uErr.message.includes('UNIQUE')) {
           return res.status(400).json({ error: 'A club with this name already exists.' });
@@ -1262,9 +1268,18 @@ router.put('/clubs/:id', authenticateToken, (req, res) => {
             AND LOWER(TRIM(responsibility)) = LOWER(TRIM(?))
         `, [oldInchargeId, `Faculty Incharge - ${oldName}`]);
       }
+      if (oldName !== cleanName && oldCoInchargeId) {
+        db.run(`
+          DELETE FROM staff_responsibilities 
+          WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) 
+            AND LOWER(TRIM(responsibility)) = LOWER(TRIM(?))
+        `, [oldCoInchargeId, `Co-Faculty Incharge - ${oldName}`]);
+      }
 
-      syncClubResponsibility(cleanName, oldName === cleanName ? oldInchargeId : null, newInchargeId, assignerName, () => {
-        return res.json({ success: true, message: 'Club updated successfully and Institutional Responsibility synced!' });
+      syncClubResponsibility(cleanName, oldName === cleanName ? oldInchargeId : null, newInchargeId, assignerName, 'Faculty Incharge', () => {
+        syncClubResponsibility(cleanName, oldName === cleanName ? oldCoInchargeId : null, newCoInchargeId, assignerName, 'Co-Faculty Incharge', () => {
+          return res.json({ success: true, message: 'Club updated successfully and Institutional Responsibilities synced!' });
+        });
       });
     });
   });
@@ -1285,6 +1300,7 @@ router.delete('/clubs/:id', authenticateToken, (req, res) => {
 
     const clubName = existingClub.name;
     const inchargeId = existingClub.faculty_incharge_id;
+    const coInchargeId = existingClub.co_faculty_incharge_id;
 
     db.run('DELETE FROM clubs WHERE id = ?', [id], function(dErr) {
       if (dErr) return res.status(500).json({ error: 'Database error: ' + dErr.message });
@@ -1295,6 +1311,14 @@ router.delete('/clubs/:id', authenticateToken, (req, res) => {
           WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) 
             AND LOWER(TRIM(responsibility)) = LOWER(TRIM(?))
         `, [inchargeId, `Faculty Incharge - ${clubName}`]);
+      }
+
+      if (coInchargeId) {
+        db.run(`
+          DELETE FROM staff_responsibilities 
+          WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) 
+            AND LOWER(TRIM(responsibility)) = LOWER(TRIM(?))
+        `, [coInchargeId, `Co-Faculty Incharge - ${clubName}`]);
       }
 
       res.json({ success: true, message: 'Club deleted successfully!' });
