@@ -1856,7 +1856,7 @@ export default function Appraisal({ auth }) {
               <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
                 {isAdminOrHR || isDeptAdmin 
                   ? 'View, verify, evaluate scores, and process approvals for annual FPI performance appraisal forms submitted by faculty members.'
-                  : 'Submit and view your annual Faculty Performance Indicator (FPI) appraisal forms matching the official FPI.docx format.'}
+                  : 'Submit and view your annual Faculty Performance Indicator (FPI) appraisal forms.'}
               </p>
             </div>
 
@@ -1917,7 +1917,7 @@ export default function Appraisal({ auth }) {
                         onClick={() => handleOpenViewModal(myAppraisal)}
                         style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
-                        <Eye size={16} /> View Filled Appraisal Form (FPI.docx)
+                        <Eye size={16} /> View Filled Appraisal Form
                       </button>
                     )}
 
@@ -1957,7 +1957,7 @@ export default function Appraisal({ auth }) {
                 Annual Faculty Performance Indicator (FPI) Form
               </h3>
               <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
-                Complete the manual entry tables and review automated metrics matching FPI.docx guidelines.
+                Complete the manual entry tables and review automated metrics matching evaluation guidelines.
               </p>
             </div>
 
