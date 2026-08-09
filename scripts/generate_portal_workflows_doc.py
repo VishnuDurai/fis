@@ -72,6 +72,57 @@ def add_heading_styled(doc, text, level=1):
         run.font.color.rgb = RGBColor(15, 118, 110)
     return p
 
+def add_diagram_box(doc, title, flow_steps, bg_header="0F331F"):
+    add_heading_styled(doc, f"❖ Workflow Architecture Diagram: {title}", level=2)
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl.autofit = False
+    
+    cell = tbl.rows[0].cells[0]
+    cell.width = Inches(7.0)
+    set_cell_background(cell, "F8FAFC")
+    set_cell_margins(cell, top=140, bottom=140, left=180, right=180)
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(4)
+    p.paragraph_format.space_after = Pt(6)
+    r_t = p.add_run(f"ARCHITECTURAL FLOW: {title.upper()}\n")
+    r_t.font.name = 'Times New Roman'
+    r_t.font.size = Pt(14)
+    r_t.bold = True
+    r_t.font.color.rgb = RGBColor(15, 51, 31)
+    
+    for idx, step in enumerate(flow_steps):
+        p_step = cell.add_paragraph()
+        p_step.paragraph_format.space_before = Pt(2)
+        p_step.paragraph_format.space_after = Pt(4)
+        
+        step_prefix = f"► Step {idx+1}: "
+        r_sp = p_step.add_run(step_prefix)
+        r_sp.bold = True
+        r_sp.font.name = 'Times New Roman'
+        r_sp.font.size = Pt(14)
+        r_sp.font.color.rgb = RGBColor(3, 105, 161)
+        
+        r_sb = p_step.add_run(step)
+        r_sb.font.name = 'Times New Roman'
+        r_sb.font.size = Pt(14)
+        r_sb.font.color.rgb = RGBColor(30, 41, 59)
+        
+        if idx < len(flow_steps) - 1:
+            p_arrow = cell.add_paragraph()
+            p_arrow.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_arrow.paragraph_format.space_before = Pt(0)
+            p_arrow.paragraph_format.space_after = Pt(0)
+            r_arr = p_arrow.add_run("│\n▼")
+            r_arr.bold = True
+            r_arr.font.name = 'Times New Roman'
+            r_arr.font.size = Pt(14)
+            r_arr.font.color.rgb = RGBColor(15, 118, 110)
+
+    set_table_borders(tbl, color="0F331F", sz="8")
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
 def create_portal_workflows_document():
     doc = Document()
     
@@ -93,7 +144,7 @@ def create_portal_workflows_document():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
 
-    # Dual Logo Header Table (SREC College Logo Left + SNR Sons Trust Logo Right)
+    # Dual Logo Header Table
     left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
     right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
     
@@ -183,26 +234,13 @@ def create_portal_workflows_document():
     r.font.name = 'Times New Roman'
     r.font.size = Pt(14)
 
-    auth_steps = [
-        ("Step 1 — Login Authentication: ", "User submits credentials and role selection (Faculty, Dept Admin, System Admin). Backend verifies hashed password via bcryptjs."),
-        ("Step 2 — JWT Claim Issuance: ", "Server generates a 24-hour JWT token embedding staffId, role, name, designation, department, isHod, isInstitutionalAdmin, isSupervisorEligible, and isClubCoordinator."),
-        ("Step 3 — Client Session Initialization: ", "Token and claims stored in client localStorage. React router (App.jsx) initializes sidebar navigation tree and route guards."),
-        ("Step 4 — Protected Request Middleware: ", "All API requests attach Bearer token header. Static file uploads under /uploads/* and /SREC/* are protected by requireFileAuth middleware.")
-    ]
-
-    for t_step, b_step in auth_steps:
-        bp = doc.add_paragraph(style='List Bullet')
-        bp.paragraph_format.space_after = Pt(4)
-        r1 = bp.add_run(t_step)
-        r1.bold = True
-        r1.font.name = 'Times New Roman'
-        r1.font.size = Pt(14)
-        r1.font.color.rgb = RGBColor(15, 118, 110)
-        r2 = bp.add_run(b_step)
-        r2.font.name = 'Times New Roman'
-        r2.font.size = Pt(14)
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    add_diagram_box(doc, "Centralized JWT Authentication & Portal Access Routing", [
+        "User inputs credentials (Staff ID / Password / Role Selection) at /login.",
+        "Backend verifies password via bcryptjs against staff_user or admin tables.",
+        "Server generates 24-hour JWT token with claims: role, isHod, isInstitutionalAdmin, isSupervisorEligible, isClubCoordinator.",
+        "Client stores token in localStorage and passes Bearer Authorization Header on all API calls.",
+        "React Router (App.jsx) dynamically mounts Portal 1 (Faculty), Portal 2 (Dept Admin), or Portal 3 (System Admin)."
+    ])
 
     # Section 2
     add_heading_styled(doc, "2. Portal 1 — Regular Faculty Portal Workflow (role: 'faculty')", level=1)
@@ -235,7 +273,13 @@ def create_portal_workflows_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    add_diagram_box(doc, "Faculty Annual FPI Appraisal Self-Submission Process", [
+        "Faculty accesses /appraisal for completed academic year (2025-2026).",
+        "Engine auto-fetches logged portal data (Pass %, Feedback, FDPs, Publications, Grants, Responsibilities).",
+        "System calculates auto-mapped scores across PART A (Max 60), PART B (Max 40), PART C (Max 80), PART D (Max 20).",
+        "Faculty inspects auto-mapped proof documents via 👁️ View Proof buttons.",
+        "Faculty fills goals for next year, signs form, and clicks 'Submit FPI Form' (Status set to 'Submitted')."
+    ])
 
     # Section 3
     add_heading_styled(doc, "3. Portal 2 — Department Admin & HOD Portal Workflow (role: 'dept_admin', isHod: true)", level=1)
@@ -265,7 +309,13 @@ def create_portal_workflows_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    add_diagram_box(doc, "HOD Part-by-Part Appraisal Verification & Score Evaluation", [
+        "HOD monitors department submissions queue (Status: 'Submitted').",
+        "HOD opens Auto-Mapped Activity Verification Panel and clicks 👁️ View Proof to verify uploaded evidence.",
+        "HOD inputs evaluated marks for PART A, PART B, PART C, and PART D based on institutional rubric.",
+        "HOD adds qualitative evaluation remarks and submits form.",
+        "System updates appraisal status to 'HOD Approved' and forwards queue to Principal/HR."
+    ])
 
     # Section 4
     add_heading_styled(doc, "4. Portal 3 — System Admin & Executive Portal Workflow (role: 'admin', 'principal', 'hr')", level=1)
@@ -277,7 +327,7 @@ def create_portal_workflows_document():
     r4.font.size = Pt(14)
 
     adm_workflows = [
-        ("Workflow 3.1 — Institution User Management & Full Profile CRUD: ", "Admin accesses System Admins (/admin/system-admins), Dept Admins (/admin/dept-admins), Faculty Directory (/admin/faculty), and Club Coordinators (/admin/clubs). Has full permission to edit personal/academic details, update designations, reset credentials, or mark faculty as relieved (is_relieved === 1)."),
+        ("Workflow 3.1 — Institution User Management & Full Profile CRUD: ", "Admin accesses System Admins (/admin/system-admins), Dept Admins (/admin/dept-admins), Faculty Directory (/admin/faculty), and Club Coordinators (/admin/clubs). Has full permission to edit personal/academic details, update designations, reset credentials, assign Coordinators & Co-Coordinators, or mark faculty as relieved (is_relieved === 1)."),
         ("Workflow 3.2 — Institutional Responsibilities Assignment: ", "Principal/HR/Admin accesses /responsibilities to assign institution-level additional responsibilities (e.g. NAAC Coordinator, IQAC Member, Anti-Ragging Committee) to any faculty across all departments."),
         ("Workflow 3.3 — Dynamic Page & Custom Form Builder: ", "Admin accesses Dynamic Page Builder (/admin/dynamic-pages) to create custom survey forms, feedback questionnaires, or data collection pages, specifying target portal visibility."),
         ("Workflow 3.4 — Appraisal Form Builder & Rubric Configurator (/appraisal): ", "Admin opens Form Builder tab in /appraisal to configure evaluation parameters: (a) Designation Overrides: Selects target designation (Assistant Professor, Associate Professor, Professor, Professor & Head) to customize unit marks and max caps. (b) Threshold Brackets (⚙️ Config Bracket): Configures cutoff thresholds (feedback 4.0 cutoff, pass % 80% cutoff, publication splits). (c) Custom PART Addition (➕ Add New PART): Adds new evaluation sections (PART_E, PART_F) and updates titles in real time."),
@@ -297,35 +347,13 @@ def create_portal_workflows_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # Section 5
-    add_heading_styled(doc, "5. Automated Documentation Maintenance Protocol", level=1)
-
-    p5 = doc.add_paragraph()
-    p5.paragraph_format.space_after = Pt(6)
-    r5 = p5.add_run("To ensure permanent synchronization between system modifications and workflow documentation, the following automated generator scripts must be executed whenever code rules or workflows change:")
-    r5.font.name = 'Times New Roman'
-    r5.font.size = Pt(14)
-
-    m_scripts = [
-        ("Database Schema Reference: ", "python3 scripts/generate_schema_doc.py -> Updates docs/Database_Schema.docx"),
-        ("System Constraints & Rules: ", "python3 scripts/generate_system_constraints_doc.py -> Updates docs/System_Constraints_and_Portal_Rules.docx"),
-        ("Technical File Modification Guide: ", "python3 scripts/generate_tech_file_guide_doc.py -> Updates docs/Technical_Constraints_and_File_Modification_Guide.docx"),
-        ("Complete 3-Portal Workflow Guide: ", "python3 scripts/generate_portal_workflows_doc.py -> Updates docs/Complete_3_Portals_Workflow_Guide.docx")
-    ]
-
-    for s_t, s_b in m_scripts:
-        bp = doc.add_paragraph(style='List Bullet')
-        bp.paragraph_format.space_after = Pt(4)
-        r1 = bp.add_run(s_t)
-        r1.bold = True
-        r1.font.name = 'Times New Roman'
-        r1.font.size = Pt(14)
-        r1.font.color.rgb = RGBColor(15, 51, 31)
-        r2 = bp.add_run(s_b)
-        r2.font.name = 'Times New Roman'
-        r2.font.size = Pt(14)
+    add_diagram_box(doc, "Faculty Department Transfer & Directory Relocation Lifecycle", [
+        "System Admin submits transfer request at /api/admin/faculty/transfer (Old Dept -> New Dept).",
+        "System inserts immutable audit record in staff_department_history.",
+        "System updates Department field in staff_academics and updates admin_dep scope if applicable.",
+        "Disk Mover (moveFacultyDirectory) relocates files: /SREC/OldDept/ID/ ➔ /SREC/NewDept/ID/.",
+        "System remaps document path strings in activity tables and re-queues faculty under New Department HOD."
+    ])
 
     # Save document
     docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))

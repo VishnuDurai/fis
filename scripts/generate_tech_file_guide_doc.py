@@ -69,6 +69,57 @@ def add_heading_styled(doc, text, level=1):
         run.font.color.rgb = RGBColor(3, 105, 161)
     return p
 
+def add_diagram_box(doc, title, flow_steps):
+    add_heading_styled(doc, f"❖ Technical Architecture Diagram: {title}", level=2)
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl.autofit = False
+    
+    cell = tbl.rows[0].cells[0]
+    cell.width = Inches(7.0)
+    set_cell_background(cell, "F8FAFC")
+    set_cell_margins(cell, top=140, bottom=140, left=180, right=180)
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(4)
+    p.paragraph_format.space_after = Pt(6)
+    r_t = p.add_run(f"CODEBASE ARCHITECTURE DIAGRAM: {title.upper()}\n")
+    r_t.font.name = 'Times New Roman'
+    r_t.font.size = Pt(14)
+    r_t.bold = True
+    r_t.font.color.rgb = RGBColor(15, 51, 31)
+    
+    for idx, step in enumerate(flow_steps):
+        p_step = cell.add_paragraph()
+        p_step.paragraph_format.space_before = Pt(2)
+        p_step.paragraph_format.space_after = Pt(4)
+        
+        step_prefix = f"► Component {idx+1}: "
+        r_sp = p_step.add_run(step_prefix)
+        r_sp.bold = True
+        r_sp.font.name = 'Times New Roman'
+        r_sp.font.size = Pt(14)
+        r_sp.font.color.rgb = RGBColor(3, 105, 161)
+        
+        r_sb = p_step.add_run(step)
+        r_sb.font.name = 'Times New Roman'
+        r_sb.font.size = Pt(14)
+        r_sb.font.color.rgb = RGBColor(30, 41, 59)
+        
+        if idx < len(flow_steps) - 1:
+            p_arrow = cell.add_paragraph()
+            p_arrow.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_arrow.paragraph_format.space_before = Pt(0)
+            p_arrow.paragraph_format.space_after = Pt(0)
+            r_arr = p_arrow.add_run("│\n▼")
+            r_arr.bold = True
+            r_arr.font.name = 'Times New Roman'
+            r_arr.font.size = Pt(14)
+            r_arr.font.color.rgb = RGBColor(15, 118, 110)
+
+    set_table_borders(tbl, color="0F331F", sz="8")
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
 def create_technical_modification_guide():
     doc = Document()
     
@@ -90,7 +141,7 @@ def create_technical_modification_guide():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
 
-    # Dual Logo Header Table (SREC College Logo Left + SNR Sons Trust Logo Right)
+    # Dual Logo Header Table
     left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
     right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
     
@@ -179,6 +230,13 @@ def create_technical_modification_guide():
     r.font.name = 'Times New Roman'
     r.font.size = Pt(14)
 
+    add_diagram_box(doc, "Four-Tier Codebase Architecture & Data Flow", [
+        "Frontend Tier (React 19 + Vite): Renders dynamic UI, Sidebar menu tree, SearchableSelect inputs, and Appraisal Form Engine.",
+        "API Gateway & Routing Tier (Express.js): Authenticates JWT Bearer tokens and executes role permission guards.",
+        "Database Storage Tier (MySQL 9.7+ / srec_fis): Stores 35+ relational tables, indexes, and historical audit logs.",
+        "Physical Disk Directory Tier (/server/SREC/): Stores uploaded proof documents organized under dedicated /SREC/{Dept}/{Staff_ID}/ directories."
+    ])
+
     # Table 1: Feature to File Mapping
     table1 = doc.add_table(rows=1, cols=4)
     table1.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -217,7 +275,8 @@ def create_technical_modification_guide():
         ("Database Schema Definitions", "server/db.js", "tables DDL array", "L70-L570"),
         ("Auto-Doc Schema Script", "scripts/generate_schema_doc.py", "generate_schema_document()", "L1-L430"),
         ("Auto-Doc Constraints Script", "scripts/generate_system_constraints_doc.py", "create_system_constraints_doc()", "L1-L240"),
-        ("Auto-Doc Technical Guide Script", "scripts/generate_tech_file_guide_doc.py", "create_technical_guide()", "L1-L250")
+        ("Auto-Doc Technical Guide Script", "scripts/generate_tech_file_guide_doc.py", "create_technical_guide()", "L1-L250"),
+        ("Auto-Doc Workflows Script", "scripts/generate_portal_workflows_doc.py", "create_portal_workflows_document()", "L1-L320")
     ]
 
     for row_idx, (feat, fpath, ffunc, flines) in enumerate(mappings):
@@ -237,89 +296,6 @@ def create_technical_modification_guide():
 
     set_table_borders(table1)
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # Section 2
-    add_heading_styled(doc, "2. Detailed File Modification Instructions", level=1)
-
-    sections_details = [
-        ("A. Modifying Navigation Menu Links & Visibility Roles", "client/src/components/Sidebar.jsx", [
-            ("To add/remove sidebar links: ", "Edit getMenuStructure() (Lines 62-300). Add new objects to baseMenu or category items array."),
-            ("To change role-based menu toggles: ", "Modify role checks (e.g., if (role === 'admin'), if (isHod), if (isClubCoord)) in getMenuStructure()."),
-            ("To inject custom pages: ", "Update allowedDynamicPages filter in Sidebar.jsx (Lines 303-320).")
-        ]),
-        ("B. Modifying Roles, Claims & Authorization", "server/routes/auth.js & server/server.js", [
-            ("To add new role claims: ", "Edit POST /api/auth/login in server/routes/auth.js (Lines 110-130). Include new fields in jwt.sign()."),
-            ("To change file access permissions: ", "Edit requireFileAuth middleware in server/server.js (Lines 28-44)."),
-            ("To alter API authorization checks: ", "Update authenticateToken and role conditionals in server/routes/admin.js and faculty.js.")
-        ]),
-        ("C. Modifying Faculty Department Transfer Rules", "server/routes/admin.js & server/utils/fileStorage.js", [
-            ("To update transfer audit logging: ", "Edit POST /api/admin/faculty/transfer in server/routes/admin.js (Lines 715-755)."),
-            ("To adjust physical folder mover logic: ", "Edit moveFacultyDirectory() in server/utils/fileStorage.js (Lines 230-290)."),
-            ("To change transfer history schema: ", "Update staff_department_history definition in server/db.js (Line 554).")
-        ]),
-        ("D. Modifying Performance Appraisal Rules & Form Builder", "client/src/pages/Appraisal.jsx & client/src/utils/academicYear.js", [
-            ("To change default evaluation academic year: ", "Edit getAppraisalAcademicYear() in client/src/utils/academicYear.js (Lines 20-33)."),
-            ("To alter score caps or designation overrides: ", "Edit getConstraint() in client/src/pages/Appraisal.jsx (Lines 3565-3610)."),
-            ("To modify designation filter tabs: ", "Edit Target Designation Filter Bar in Appraisal.jsx (Lines 1585-1640)."),
-            ("To adjust threshold bracket modal (⚙️ Config Bracket): ", "Edit ruleModalItem in Appraisal.jsx (Lines 5120-5210)."),
-            ("To adjust custom PART addition (➕ Add New PART): ", "Edit showAddPartModal and distinctSections memo in Appraisal.jsx (Lines 5215-5310)."),
-            ("To customize proof document viewing links: ", "Edit AutoMappedVerificationPanel in Appraisal.jsx (Lines 1227-1490).")
-        ]),
-        ("E. Modifying Document Storage & Upload Limits", "server/routes/activities.js & server/server.js", [
-            ("To change upload file size limit (currently 5MB): ", "Edit multer upload config in server/routes/activities.js (Lines 13-25)."),
-            ("To add new allowed file extensions: ", "Update file type validation regex in server/routes/activities.js and dynamic_pages.js.")
-        ])
-    ]
-
-    for title, file_path, items in sections_details:
-        add_heading_styled(doc, title, level=2)
-        p_path = doc.add_paragraph()
-        p_path.paragraph_format.space_after = Pt(4)
-        r_p = p_path.add_run(f"Primary Code File: {file_path}")
-        r_p.bold = True
-        r_p.font.name = 'Times New Roman'
-        r_p.font.size = Pt(14)
-        r_p.font.color.rgb = RGBColor(3, 105, 161)
-
-        for item_t, item_b in items:
-            bp = doc.add_paragraph(style='List Bullet')
-            bp.paragraph_format.space_after = Pt(3)
-            r1 = bp.add_run(item_t)
-            r1.bold = True
-            r1.font.name = 'Times New Roman'
-            r1.font.size = Pt(14)
-            r2 = bp.add_run(item_b)
-            r2.font.name = 'Times New Roman'
-            r2.font.size = Pt(14)
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # Section 3
-    add_heading_styled(doc, "3. Auto-Documentation Maintenance Protocol", level=1)
-
-    p = doc.add_paragraph()
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run("To ensure permanent synchronization between codebase changes and system documentation, the following automated generator scripts must be executed whenever code constraints or database structures are updated:")
-    r.font.name = 'Times New Roman'
-    r.font.size = Pt(14)
-
-    scripts = [
-        ("Database Schema Document: ", "python3 scripts/generate_schema_doc.py -> Updates docs/Database_Schema.docx"),
-        ("System Constraints & Rules Document: ", "python3 scripts/generate_system_constraints_doc.py -> Updates docs/System_Constraints_and_Portal_Rules.docx"),
-        ("Technical File Modification Guide: ", "python3 scripts/generate_tech_file_guide_doc.py -> Updates docs/Technical_Constraints_and_File_Modification_Guide.docx")
-    ]
-
-    for s_title, s_desc in scripts:
-        bp = doc.add_paragraph(style='List Bullet')
-        bp.paragraph_format.space_after = Pt(4)
-        r1 = bp.add_run(s_title)
-        r1.bold = True
-        r1.font.name = 'Times New Roman'
-        r1.font.size = Pt(14)
-        r1.font.color.rgb = RGBColor(15, 51, 31)
-        r2 = bp.add_run(s_desc)
-        r2.font.name = 'Times New Roman'
-        r2.font.size = Pt(14)
 
     # Save document
     docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))

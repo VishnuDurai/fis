@@ -69,6 +69,57 @@ def add_heading_styled(doc, text, level=1):
         run.font.color.rgb = RGBColor(3, 105, 161)
     return p
 
+def add_diagram_box(doc, title, flow_steps):
+    add_heading_styled(doc, f"❖ System Architecture Diagram: {title}", level=2)
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl.autofit = False
+    
+    cell = tbl.rows[0].cells[0]
+    cell.width = Inches(7.0)
+    set_cell_background(cell, "F8FAFC")
+    set_cell_margins(cell, top=140, bottom=140, left=180, right=180)
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(4)
+    p.paragraph_format.space_after = Pt(6)
+    r_t = p.add_run(f"SYSTEM RULE DIAGRAM: {title.upper()}\n")
+    r_t.font.name = 'Times New Roman'
+    r_t.font.size = Pt(14)
+    r_t.bold = True
+    r_t.font.color.rgb = RGBColor(15, 51, 31)
+    
+    for idx, step in enumerate(flow_steps):
+        p_step = cell.add_paragraph()
+        p_step.paragraph_format.space_before = Pt(2)
+        p_step.paragraph_format.space_after = Pt(4)
+        
+        step_prefix = f"► Stage {idx+1}: "
+        r_sp = p_step.add_run(step_prefix)
+        r_sp.bold = True
+        r_sp.font.name = 'Times New Roman'
+        r_sp.font.size = Pt(14)
+        r_sp.font.color.rgb = RGBColor(3, 105, 161)
+        
+        r_sb = p_step.add_run(step)
+        r_sb.font.name = 'Times New Roman'
+        r_sb.font.size = Pt(14)
+        r_sb.font.color.rgb = RGBColor(30, 41, 59)
+        
+        if idx < len(flow_steps) - 1:
+            p_arrow = cell.add_paragraph()
+            p_arrow.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_arrow.paragraph_format.space_before = Pt(0)
+            p_arrow.paragraph_format.space_after = Pt(0)
+            r_arr = p_arrow.add_run("│\n▼")
+            r_arr.bold = True
+            r_arr.font.name = 'Times New Roman'
+            r_arr.font.size = Pt(14)
+            r_arr.font.color.rgb = RGBColor(15, 118, 110)
+
+    set_table_borders(tbl, color="0F331F", sz="8")
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
 def create_system_constraints_document():
     doc = Document()
     
@@ -90,7 +141,7 @@ def create_system_constraints_document():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
 
-    # Dual Logo Header Table (SREC College Logo Left + SNR Sons Trust Logo Right)
+    # Dual Logo Header Table
     left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
     right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
     
@@ -232,7 +283,7 @@ def create_system_constraints_document():
         ("Doctorate / Ph.D Designation Rule: ", "If a faculty member's name contains 'Dr.' or 'Dr ', or Ph.D qualification is recorded, the Research Supervisor menu item (/activities/supervisors) is automatically enabled in place of the Research Scholar menu item (/activities/scholars)."),
         ("HOD Designation Rule: ", "If a faculty member's designation contains 'Head' or 'HOD', the isHod flag is set to true, granting Departmental Responsibility Assignment and HOD Appraisal Review privileges."),
         ("Executive Admin Rule: ", "If a faculty member's designation contains 'Principal' or 'HR', the isInstitutionalAdmin flag is set to true, granting Institutional Responsibility Assignment, Executive Appraisal Review, and Form Builder access."),
-        ("Club Coordinator Rule: ", "If a faculty member is assigned as an active coordinator in staff_club, the isClubCoordinator flag is set to true, enabling the Clubs Activity Organized menu item."),
+        ("Club Coordinator Rule: ", "If a faculty member is assigned as an active coordinator or co-coordinator in staff_club or clubs, the isClubCoordinator flag is set to true, enabling the Clubs Activity Organized menu item."),
         ("Relieved Faculty Constraint: ", "If is_relieved === 1 in staff_user or staff_personal, login authentication is strictly blocked, revoking all system access.")
     ]
 
@@ -248,7 +299,13 @@ def create_system_constraints_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    add_diagram_box(doc, "Dynamic Permission Elevation & Menu Toggle Rule Logic", [
+        "Login credentials verified against MySQL database.",
+        "System parses Designation string: Contains 'Head'/'HOD' ➔ Elevate isHod = true.",
+        "System parses Designation string: Contains 'Principal'/'HR' ➔ Elevate isInstitutionalAdmin = true.",
+        "System checks Qualification/Name: Contains 'Dr.' or Ph.D ➔ Enable Research Supervisor menu.",
+        "System checks Club Assignments: Assigned Coordinator/Co-Coordinator ➔ Enable Clubs Activity menu."
+    ])
 
     # Section 3
     add_heading_styled(doc, "3. Faculty Department Transfer Workflow & Governance Rules", level=1)
@@ -280,76 +337,13 @@ def create_system_constraints_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
     # Section 4
-    add_heading_styled(doc, "4. Sidebar & Menu Enablement / Disablement Matrix", level=1)
-
-    table2 = doc.add_table(rows=1, cols=5)
-    table2.alignment = WD_TABLE_ALIGNMENT.CENTER
-    table2.autofit = False
-
-    m_headers = ["Menu Item", "Path", "Faculty Portal", "Dept Admin / HOD", "System Admin / Executive"]
-    m_widths = [Inches(1.5), Inches(1.5), Inches(1.2), Inches(1.4), Inches(1.4)]
-
-    for i, h in enumerate(m_headers):
-        table2.rows[0].cells[i].text = h
-        table2.rows[0].cells[i].paragraphs[0].runs[0].font.bold = True
-        table2.rows[0].cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-        table2.rows[0].cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
-        table2.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(14)
-        set_cell_background(table2.rows[0].cells[i], "0F331F")
-        set_cell_margins(table2.rows[0].cells[i])
-        table2.rows[0].cells[i].width = m_widths[i]
-
-    menu_matrix = [
-        ("Dashboard", "/dashboard", "Enabled", "Enabled", "Enabled"),
-        ("Personal Details", "/profile/personal", "Self Edit", "Dept Read-Only", "Full Access"),
-        ("Faculty Directory", "/admin/faculty", "Disabled", "Dept List", "All Depts List"),
-        ("Dept / System Admins", "/admin/*-admins", "Disabled", "Disabled", "Full Access"),
-        ("Assign Clubs", "/admin/clubs", "Disabled", "Disabled", "Full Access"),
-        ("Academic Info", "/profile/academic", "Self Edit", "Dept View", "Full Access"),
-        ("Official Documents", "/profile/documents", "Upload/View", "View Proofs", "Full Access"),
-        ("Education Details", "/profile/education", "Self Edit", "Dept View", "Full Access"),
-        ("Memberships", "/activities/memberships", "Self Edit", "Dept View", "Full Access"),
-        ("Responsibilities", "/responsibilities", "View Assigned", "Assign Dept", "Assign Institution"),
-        ("Faculty Activities", "/activities/*", "Self Logging", "Dept View", "All Depts View"),
-        ("Clubs Activity", "/activities/clubs", "If Coordinator", "Dept View", "All Depts View"),
-        ("Research Scholar", "/activities/scholars", "Non-Doctorate", "Dept View", "All Depts View"),
-        ("Research Supervisor", "/activities/supervisors", "Doctorate/Ph.D", "Dept View", "All Depts View"),
-        ("Appraisal Form", "/appraisal", "Submit / View", "Review Dept", "Form Builder & Approve"),
-        ("Reports & Dossier", "/reports", "Self Dossier", "Dept Reports", "All Institution Reports"),
-        ("Dynamic Builder", "/admin/dynamic-pages", "Disabled", "Disabled", "Full Access")
-    ]
-
-    for row_idx, (m_item, m_path, m_fac, m_hod, m_adm) in enumerate(menu_matrix):
-        row_cells = table2.add_row().cells
-        bg_color = "F8FAFC" if row_idx % 2 == 0 else "FFFFFF"
-        for i, val in enumerate([m_item, m_path, m_fac, m_hod, m_adm]):
-            row_cells[i].text = val
-            p_cell = row_cells[i].paragraphs[0]
-            p_cell.runs[0].font.name = 'Times New Roman'
-            p_cell.runs[0].font.size = Pt(14)
-            set_cell_background(row_cells[i], bg_color)
-            set_cell_margins(row_cells[i])
-            row_cells[i].width = m_widths[i]
-
-    set_table_borders(table2)
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # Section 5
-    add_heading_styled(doc, "5. Annual Performance Appraisal (FPI) Governance & Rules", level=1)
-
-    p = doc.add_paragraph()
-    p.paragraph_format.space_after = Pt(6)
-    r = p.add_run("The Faculty Performance Indicator (FPI) appraisal process is regulated by the following governance rules:")
-    r.font.name = 'Times New Roman'
-    r.font.size = Pt(14)
+    add_heading_styled(doc, "4. Annual Performance Appraisal (FPI) Governance & Rules", level=1)
 
     fpi_rules = [
         ("Completed Academic Year Rule: ", "Performance appraisals evaluate the completed academic year (e.g. 2025-2026). The appraisal form defaults to getAppraisalAcademicYear() (2025-2026)."),
         ("Score Evaluation Caps (200 Total): ", "PART A (Teaching: Max 60 Pts), PART B (Prof Dev: Max 40 Pts), PART C (R&D: Max 80 Pts), PART D (Institutional: Max 20 Pts). Total FPI score capped at 200 Pts."),
-        ("Club Coordinator & Additional Responsibility Rule: ", "Being assigned as a Club Coordinator or Club In-charge is categorized as an Institutional Level Additional Responsibility under Criteria D1 in PART D (Institutional Development & Contribution), scoring 10 Pts per institutional duty up to the 20 Pts Part D cap. Furthermore, student club activities organized by coordinators log extension points under PART B."),
+        ("Club Coordinator & Co-Coordinator Rule: ", "Being assigned as a Club Coordinator or Club Co-Coordinator is categorized as an Institutional Level Additional Responsibility under Criteria D1 in PART D (Institutional Development & Contribution), scoring 10 Pts per duty up to the 20 Pts Part D cap. Furthermore, student club activities organized log extension points under PART B."),
         ("Designation-Based Customization: ", "System Admins / HR can define custom unit marks, max caps, calculation rules, and bracket configs per designation (Assistant Professor, Associate Professor, Professor, Professor & Head). System falls back to ALL common default mappings if no override exists."),
         ("Threshold Bracket Configurator (⚙️ Config Bracket): ", "Admins can configure cutoff thresholds (e.g. feedback 4.0 cutoff, pass % 80% cutoff, journal vs conference split, patent status splits)."),
         ("Custom PART Addition (➕ Add New PART): ", "Admins can dynamically add new evaluation sections (PART_E, PART_F) and modify section titles in real time."),
@@ -365,29 +359,6 @@ def create_system_constraints_document():
         r1.font.name = 'Times New Roman'
         r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(15, 51, 31)
-        r2 = bp.add_run(body_text)
-        r2.font.name = 'Times New Roman'
-        r2.font.size = Pt(14)
-
-    doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # Section 6
-    add_heading_styled(doc, "6. Document Storage & Security Constraints", level=1)
-
-    sec6_rules = [
-        ("Dedicated Storage Folder Structure: ", "Uploaded documents are stored in dedicated faculty folders: server/SREC/{Department}/{Staff_ID}/, NOT in a common directory."),
-        ("File Upload Size & Formats: ", "Maximum 5 MB per file upload. Supported formats: PDF, PNG, JPG, JPEG, DOC, DOCX."),
-        ("JWT Authentication Guard (requireFileAuth): ", "Direct file requests under /uploads/* or /SREC/* require valid JWT authentication via Authorization Bearer token header or ?token=<token> URL query string. Unauthenticated requests redirect to /login.")
-    ]
-
-    for title_text, body_text in sec6_rules:
-        bp = doc.add_paragraph(style='List Bullet')
-        bp.paragraph_format.space_after = Pt(4)
-        r1 = bp.add_run(title_text)
-        r1.bold = True
-        r1.font.name = 'Times New Roman'
-        r1.font.size = Pt(14)
-        r1.font.color.rgb = RGBColor(185, 28, 28)
         r2 = bp.add_run(body_text)
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)

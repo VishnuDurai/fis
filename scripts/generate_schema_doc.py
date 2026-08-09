@@ -7,7 +7,6 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-# Helpers for XML styling of Word tables & Page Borders
 def set_cell_background(cell, fill_hex):
     tcPr = cell._tc.get_or_add_tcPr()
     shd = OxmlElement('w:shd')
@@ -54,7 +53,73 @@ def add_page_border(section, color="0F331F", sz="8"):
         pgBorders.append(b)
     sectPr.append(pgBorders)
 
-# Section descriptions & mappings
+def add_heading_styled(doc, text, level=1):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(16)
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.font.name = 'Times New Roman'
+    run.bold = True
+    if level == 1:
+        run.font.size = Pt(16)
+        run.font.color.rgb = RGBColor(15, 23, 42)
+    elif level == 2:
+        run.font.size = Pt(14)
+        run.font.color.rgb = RGBColor(3, 105, 161)
+    return p
+
+def add_diagram_box(doc, title, flow_steps):
+    add_heading_styled(doc, f"❖ Database Architecture Diagram: {title}", level=2)
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl.autofit = False
+    
+    cell = tbl.rows[0].cells[0]
+    cell.width = Inches(7.0)
+    set_cell_background(cell, "F8FAFC")
+    set_cell_margins(cell, top=140, bottom=140, left=180, right=180)
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(4)
+    p.paragraph_format.space_after = Pt(6)
+    r_t = p.add_run(f"SCHEMA LAYER DIAGRAM: {title.upper()}\n")
+    r_t.font.name = 'Times New Roman'
+    r_t.font.size = Pt(14)
+    r_t.bold = True
+    r_t.font.color.rgb = RGBColor(15, 51, 31)
+    
+    for idx, step in enumerate(flow_steps):
+        p_step = cell.add_paragraph()
+        p_step.paragraph_format.space_before = Pt(2)
+        p_step.paragraph_format.space_after = Pt(4)
+        
+        step_prefix = f"► Schema Layer {idx+1}: "
+        r_sp = p_step.add_run(step_prefix)
+        r_sp.bold = True
+        r_sp.font.name = 'Times New Roman'
+        r_sp.font.size = Pt(14)
+        r_sp.font.color.rgb = RGBColor(3, 105, 161)
+        
+        r_sb = p_step.add_run(step)
+        r_sb.font.name = 'Times New Roman'
+        r_sb.font.size = Pt(14)
+        r_sb.font.color.rgb = RGBColor(30, 41, 59)
+        
+        if idx < len(flow_steps) - 1:
+            p_arrow = cell.add_paragraph()
+            p_arrow.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_arrow.paragraph_format.space_before = Pt(0)
+            p_arrow.paragraph_format.space_after = Pt(0)
+            r_arr = p_arrow.add_run("│\n▼")
+            r_arr.bold = True
+            r_arr.font.name = 'Times New Roman'
+            r_arr.font.size = Pt(14)
+            r_arr.font.color.rgb = RGBColor(15, 118, 110)
+
+    set_table_borders(tbl, color="0F331F", sz="8")
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
 SECTION_MAPPINGS = [
     {
         "category": "1. Authentication & System Administration",
@@ -122,7 +187,7 @@ TABLE_DESCRIPTIONS = {
     "university": "Lookup table for standard university names.",
     "professional": "Lookup table for recognized professional societies.",
     "designations": "Lookup table for academic designations.",
-    "clubs": "Lookup table for campus student clubs and technical societies."
+    "clubs": "Lookup table for campus student clubs and technical societies with Faculty Incharge & Co-Faculty Incharge assignments."
 }
 
 def generate_docx():
@@ -201,7 +266,7 @@ def generate_docx():
         footer_run.font.size = Pt(11)
         footer_run.font.color.rgb = RGBColor(100, 116, 139)
         
-    # Dual Logo Header Table (SREC College Logo Left + SNR Sons Trust Logo Right)
+    # Dual Logo Header Table
     left_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-left.png'))
     right_logo = os.path.abspath(os.path.join(os.path.dirname(__file__), '../client/public/report-logo-right.png'))
     
@@ -301,6 +366,14 @@ def generate_docx():
             
     set_table_borders(meta_table)
     doc.add_paragraph().paragraph_format.space_after = Pt(12)
+
+    add_diagram_box(doc, "Relational Entity Relationship (ER) & Schema Layering Architecture", [
+        "Core Identity Layer: staff_user, staff_personal, staff_academics (Key: staff_id).",
+        "R&D & Scholarly Layer: staff_publication, staff_book_published, staff_ipr, staff_funding, staff_seed_money, staff_scholars.",
+        "Activities & Clubs Layer: staff_interaction, staff_resource, staff_event_organized, staff_club, staff_certificate, staff_award.",
+        "Governance & Appraisal Layer: staff_responsibilities, clubs (Coordinators & Co-Coordinators), staff_appraisal, appraisal_template, staff_department_history.",
+        "Master Lookup Layer: departments, university, professional, designations, clubs."
+    ])
     
     processed_tables = set()
     existing_tables = set(tables_data.keys())
@@ -397,82 +470,6 @@ def generate_docx():
                 
                 set_table_borders(tbl)
                 doc.add_paragraph().paragraph_format.space_after = Pt(8)
-
-    # Remaining Uncategorized Tables
-    unprocessed = existing_tables - processed_tables
-    if unprocessed:
-        h1 = doc.add_paragraph()
-        h1.paragraph_format.space_before = Pt(18)
-        h1.paragraph_format.space_after = Pt(4)
-        h1.paragraph_format.keep_with_next = True
-        run_h1 = h1.add_run("7. Other Workspace Tables")
-        run_h1.font.name = 'Times New Roman'
-        run_h1.font.size = Pt(16)
-        run_h1.font.bold = True
-        run_h1.font.color.rgb = RGBColor(15, 23, 42)
-        
-        for tname in sorted(list(unprocessed)):
-            cols_info = tables_data[tname]
-            h2 = doc.add_paragraph()
-            h2.paragraph_format.space_before = Pt(12)
-            h2.paragraph_format.space_after = Pt(2)
-            h2.paragraph_format.keep_with_next = True
-            
-            r_name = h2.add_run(f"Table: {tname}")
-            r_name.font.name = 'Times New Roman'
-            r_name.font.size = Pt(14)
-            r_name.font.bold = True
-            r_name.font.color.rgb = RGBColor(3, 105, 161)
-            
-            tbl = doc.add_table(rows=1, cols=6)
-            tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-            tbl.autofit = False
-            
-            hdr_cells = tbl.rows[0].cells
-            headers = ["#", "Column Name", "Data Type", "Nullable", "Default Value", "Key"]
-            col_widths = [Inches(0.4), Inches(2.2), Inches(1.5), Inches(0.9), Inches(1.3), Inches(0.7)]
-            
-            for i, head_text in enumerate(headers):
-                hdr_cells[i].text = head_text
-                hdr_cells[i].paragraphs[0].runs[0].font.bold = True
-                hdr_cells[i].paragraphs[0].runs[0].font.name = 'Times New Roman'
-                hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(14)
-                hdr_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-                set_cell_background(hdr_cells[i], "0F331F")
-                set_cell_margins(hdr_cells[i])
-                hdr_cells[i].width = col_widths[i]
-            
-            for row_idx, col in enumerate(cols_info):
-                row_cells = tbl.add_row().cells
-                cid, cname, ctype, notnull, dflt, pk = col[0], col[1], col[2], col[3], col[4], col[5]
-                
-                is_not_null = notnull if isinstance(notnull, bool) else (notnull == 1)
-                null_str = "No" if is_not_null else "Yes"
-                key_str = "PK" if pk else ""
-                dflt_str = str(dflt) if dflt is not None else "NULL"
-                
-                vals = [str(cid+1), cname, str(ctype).upper(), null_str, dflt_str, key_str]
-                bg_color = "F8FAFC" if row_idx % 2 == 0 else "FFFFFF"
-                
-                for c_i, v in enumerate(vals):
-                    row_cells[c_i].text = v
-                    p = row_cells[c_i].paragraphs[0]
-                    p.paragraph_format.space_before = Pt(2)
-                    p.paragraph_format.space_after = Pt(2)
-                    run = p.add_run()
-                    run.font.name = 'Times New Roman'
-                    run.font.size = Pt(14)
-                    if c_i == 1 and pk:
-                        run.font.bold = True
-                        run.font.color.rgb = RGBColor(185, 28, 28)
-                    else:
-                        run.font.color.rgb = RGBColor(30, 41, 59)
-                    set_cell_background(row_cells[c_i], bg_color)
-                    set_cell_margins(row_cells[c_i])
-                    row_cells[c_i].width = col_widths[c_i]
-            
-            set_table_borders(tbl)
-            doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
     doc.save(output_path)
     print(f"Database schema Word document generated successfully at: {output_path}")
