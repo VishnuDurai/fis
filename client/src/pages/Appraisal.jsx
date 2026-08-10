@@ -4263,76 +4263,7 @@ export default function Appraisal({ auth }) {
                     </div>
                   )}
 
-                  {/* HOD Action Card (For HOD & Dept Admins when Status is Submitted) */}
-                  {(auth.role === 'dept_admin' || auth.isHod) && app.status === 'Submitted' && (() => {
-                    const facA = parseFloat(app.part_a_score) || 0;
-                    const facB = parseFloat(app.part_b_score) || 0;
-                    const facC = parseFloat(app.part_c_score) || 0;
-                    const facD = parseFloat(app.part_d_score) || 0;
-                    const facTotal = facA + facB + facC + facD;
 
-                    const curA = hodScores.hod_part_a_score !== '' ? parseFloat(hodScores.hod_part_a_score) : facA;
-                    const curB = hodScores.hod_part_b_score !== '' ? parseFloat(hodScores.hod_part_b_score) : facB;
-                    const curC = hodScores.hod_part_c_score !== '' ? parseFloat(hodScores.hod_part_c_score) : facC;
-                    const curD = hodScores.hod_part_d_score !== '' ? parseFloat(hodScores.hod_part_d_score) : facD;
-                    const curTotal = (isNaN(curA)?0:curA) + (isNaN(curB)?0:curB) + (isNaN(curC)?0:curC) + (isNaN(curD)?0:curD);
-
-                    const isDeviatedCard = curA !== facA || curB !== facB || curC !== facC || curD !== facD;
-
-                    return (
-                      <div style={{ marginTop: '16px', background: '#fffbe6', padding: '16px', borderRadius: '8px', border: '1px solid #ffe58f' }}>
-                        <h5 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#873800', marginBottom: '12px' }}>
-                          HOD Verification & Evaluated Score Entry
-                        </h5>
-
-                        {isDeviatedCard && (
-                          <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '10px 14px', borderRadius: '6px', marginBottom: '12px', color: '#92400e', fontSize: '0.82rem' }}>
-                            <strong>⚠️ Score Deviation Detected:</strong> Faculty Score ({facTotal}) vs HOD Evaluated Score ({curTotal}). Reason for deviation is mandatory before approving.
-                          </div>
-                        )}
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
-                          <div>
-                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part A Score (/60)</label>
-                            <input type="number" className="form-control" placeholder={app.part_a_score || '0'} value={hodScores.hod_part_a_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_a_score: e.target.value }))} />
-                          </div>
-                          <div>
-                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part B Score (/40)</label>
-                            <input type="number" className="form-control" placeholder={app.part_b_score || '0'} value={hodScores.hod_part_b_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_b_score: e.target.value }))} />
-                          </div>
-                          <div>
-                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part C Score (/80)</label>
-                            <input type="number" className="form-control" placeholder={app.part_c_score || '0'} value={hodScores.hod_part_c_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_c_score: e.target.value }))} />
-                          </div>
-                          <div>
-                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part D Score (/20)</label>
-                            <input type="number" className="form-control" placeholder={app.part_d_score || '0'} value={hodScores.hod_part_d_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_d_score: e.target.value }))} />
-                          </div>
-                        </div>
-                        <div style={{ marginBottom: '12px' }}>
-                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: isDeviatedCard ? '#b45309' : 'inherit' }}>
-                            {isDeviatedCard ? 'Reason for Score Deviation (Mandatory) *' : 'HOD Deviation Remarks / Feedback'}
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder={isDeviatedCard ? "Reason for score deviation (e.g. Adjusted Part C score due to unverified publication)..." : "Remarks in case of score adjustment..."}
-                            value={hodScores.hod_remarks}
-                            onChange={(e) => setHodScores(prev => ({ ...prev, hod_remarks: e.target.value }))}
-                            style={{ borderColor: isDeviatedCard && !hodScores.hod_remarks.trim() ? '#d97706' : undefined }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                          <button className="btn btn-primary" onClick={() => handleHodApproveSubmit(app.id, 'approve')} style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
-                            Approve & Forward to Principal/HR
-                          </button>
-                          <button className="btn btn-secondary" onClick={() => handleHodApproveSubmit(app.id, 'revision')} style={{ fontSize: '0.85rem', padding: '8px 16px', background: '#fff1f0', color: '#cf1322', borderColor: '#ffa39e' }}>
-                            Request Revision
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
 
                   {/* Principal & HR Final Performance Evaluation Card (When HOD Approved) */}
                   {isAdminOrHR && app.status === 'HOD Approved' && (
