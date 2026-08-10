@@ -161,6 +161,15 @@ export default function Appraisal({ auth }) {
   const [fpiBreakdown, setFpiBreakdown] = useState({});
   const [activeDetailCategory, setActiveDetailCategory] = useState('publications');
 
+  const getHodTotalScore = (app) => {
+    if (!app) return null;
+    const score = parseFloat(app.hod_total_score);
+    if (!isNaN(score) && score > 0) return score;
+    const partsSum = (parseFloat(app.hod_part_a_score) || 0) + (parseFloat(app.hod_part_b_score) || 0) + (parseFloat(app.hod_part_c_score) || 0) + (parseFloat(app.hod_part_d_score) || 0);
+    if (partsSum > 0) return partsSum;
+    return null;
+  };
+
   // General FPI Form Details
   const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
   const [coursesTaught, setCoursesTaught] = useState('');
@@ -1129,6 +1138,13 @@ export default function Appraisal({ auth }) {
     setMessage('');
     setError('');
     try {
+      const targetApp = appraisals.find(a => a.id === appId) || {};
+      const partA = hodScores.hod_part_a_score !== undefined && hodScores.hod_part_a_score !== '' ? parseFloat(hodScores.hod_part_a_score) : (parseFloat(targetApp.part_a_score) || 0);
+      const partB = hodScores.hod_part_b_score !== undefined && hodScores.hod_part_b_score !== '' ? parseFloat(hodScores.hod_part_b_score) : (parseFloat(targetApp.part_b_score) || 0);
+      const partC = hodScores.hod_part_c_score !== undefined && hodScores.hod_part_c_score !== '' ? parseFloat(hodScores.hod_part_c_score) : (parseFloat(targetApp.part_c_score) || 0);
+      const partD = hodScores.hod_part_d_score !== undefined && hodScores.hod_part_d_score !== '' ? parseFloat(hodScores.hod_part_d_score) : (parseFloat(targetApp.part_d_score) || 0);
+      const hodTotal = partA + partB + partC + partD;
+
       const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${appId}/hod-approve`, {
         method: 'PUT',
         headers: {
@@ -1136,7 +1152,12 @@ export default function Appraisal({ auth }) {
           'Authorization': `Bearer ${auth.token}`
         },
         body: JSON.stringify({
-          ...hodScores,
+          hod_part_a_score: partA,
+          hod_part_b_score: partB,
+          hod_part_c_score: partC,
+          hod_part_d_score: partD,
+          hod_total_score: hodTotal,
+          hod_remarks: hodScores.hod_remarks || '',
           action
         })
       });
@@ -2216,7 +2237,7 @@ export default function Appraisal({ auth }) {
                   a.Department || 'N/A',
                   a.academic_year || 'N/A',
                   a.self_appraisal_score || 'N/A',
-                  a.hod_total_score ? `${a.hod_total_score} / 200` : 'Pending Review',
+                  getHodTotalScore(a) !== null ? `${getHodTotalScore(a)} / 200` : 'Pending Review',
                   a.status || 'Submitted'
                 ])}
                 auth={auth}
@@ -3787,7 +3808,7 @@ export default function Appraisal({ auth }) {
                     <div><strong>Books / Chapters:</strong> {app.books_count}</div>
                     <div><strong>Patents Count:</strong> {app.patents_count}</div>
                     <div><strong>Grants Received:</strong> {app.grants_amount || 'N/A'}</div>
-                    <div><strong>HOD Total Score:</strong> <span style={{ color: '#16a34a', fontWeight: 800 }}>{app.hod_total_score ? `${app.hod_total_score} / 200` : 'Pending'}</span></div>
+                    <div><strong>HOD Total Score:</strong> <span style={{ color: '#16a34a', fontWeight: 800 }}>{getHodTotalScore(app) !== null ? `${getHodTotalScore(app)} / 200` : 'Pending'}</span></div>
                   </div>
 
                   {app.reviewer_remarks && (
@@ -3810,7 +3831,7 @@ export default function Appraisal({ auth }) {
                         <div><strong>Part D Score:</strong> {app.hod_part_d_score || 0} / 20</div>
                       </div>
                       <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#15803d', marginBottom: '4px' }}>
-                        Total HOD Evaluated Score: {app.hod_total_score || 0} / 200
+                        Total HOD Evaluated Score: {getHodTotalScore(app) ?? 0} / 200
                       </div>
                       {app.hod_remarks && (
                         <div style={{ fontSize: '0.82rem', color: '#166534', fontStyle: 'italic' }}>
@@ -3870,7 +3891,7 @@ export default function Appraisal({ auth }) {
                       </div>
 
                       <p style={{ fontSize: '0.88rem', color: '#334155', marginBottom: '14px', background: '#ffffff', padding: '10px 14px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                        <strong>HOD Evaluated Score:</strong> <span style={{ color: '#15803d', fontWeight: 800 }}>{app.hod_total_score || 0} / 200</span>
+                        <strong>HOD Evaluated Score:</strong> <span style={{ color: '#15803d', fontWeight: 800 }}>{getHodTotalScore(app) ?? 0} / 200</span>
                         {app.hod_remarks && <span style={{ marginLeft: '12px', fontStyle: 'italic', color: '#475569' }}>— HOD Remarks: "{app.hod_remarks}"</span>}
                       </p>
 
@@ -3969,7 +3990,7 @@ export default function Appraisal({ auth }) {
                         <ShieldCheck size={16} /> Principal & HR Final Executive Approval Confirmed
                       </h5>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.85rem', marginBottom: '6px' }}>
-                        <div><strong>Final Total Score:</strong> <span style={{ color: '#15803d', fontWeight: 800 }}>{app.final_total_score || app.hod_total_score || 'N/A'} / 200</span></div>
+                        <div><strong>Final Total Score:</strong> <span style={{ color: '#15803d', fontWeight: 800 }}>{app.final_total_score || getHodTotalScore(app) || 'N/A'} / 200</span></div>
                         <div><strong>Approved By:</strong> {app.final_approved_by || 'Principal / HR'}</div>
                         <div><strong>Approved On:</strong> {app.final_approved_at ? new Date(app.final_approved_at).toLocaleDateString('en-GB') : 'Recently'}</div>
                       </div>
@@ -4075,8 +4096,12 @@ export default function Appraisal({ auth }) {
         const score_b7 = Math.min(c_b7.maxMarks, vB7.length * c_b7.unitMark);
         const subtotal_B = viewingAppraisal.part_b_score || Math.min(40, score_b1 + score_b2 + score_b3 + score_b4 + score_b5 + score_b6 + score_b7);
 
-        const score_c1 = Math.min(c_c1.maxMarks, fpiDetails?.breakdown?.c1_publications ?? ((fpiDetails?.publications?.length || 0) * c_c1.unitMark));
-        const score_c2 = Math.min(c_c2.maxMarks, fpiDetails?.breakdown?.c2_books ?? ((fpiDetails?.books?.length || 0) * c_c2.unitMark));
+        const journalPubsList = (fpiDetails?.publications || []).filter(p => !((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
+        const confPubsList = (fpiDetails?.publications || []).filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
+        const bookPubsList = fpiDetails?.books || [];
+
+        const score_c1 = Math.min(c_c1.maxMarks, fpiDetails?.breakdown?.c1_publications ?? (journalPubsList.length * c_c1.unitMark));
+        const score_c2 = Math.min(c_c2.maxMarks, fpiDetails?.breakdown?.c2_books ?? ((confPubsList.length + bookPubsList.length) * c_c2.unitMark));
         const score_c3 = Math.min(c_c3.maxMarks, vC3.length * c_c3.unitMark);
         const score_c4 = Math.min(c_c4.maxMarks, fpiDetails?.breakdown?.c4_ipr ?? ((fpiDetails?.ipr?.length || 0) * c_c4.unitMark));
         const score_c5 = Math.min(c_c5.maxMarks, fpiDetails?.breakdown?.c5_funding ?? ((fpiDetails?.funding?.length || 0) * c_c5.unitMark));
@@ -5257,8 +5282,8 @@ export default function Appraisal({ auth }) {
                         <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>80</td>
                         <td style={{ padding: '8px 12px', textAlign: 'center', color: '#0369a1' }}>{subtotal_C} / 80 Pts</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c1</td><td style={{ padding: '6px 12px' }}>Journal & Conference Publications</td><td style={{ textAlign: 'center' }}>20</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c1} Pts</td></tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c2</td><td style={{ padding: '6px 12px' }}>Books & Book Chapters Published</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c2} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c1</td><td style={{ padding: '6px 12px' }}>Publication of Research Article in Journals (Scopus / WoS / SCI)</td><td style={{ textAlign: 'center' }}>20</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c1} Pts</td></tr>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c2</td><td style={{ padding: '6px 12px' }}>Publication in Conference Proceedings / Book / Book Chapters</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c2} Pts</td></tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c3</td><td style={{ padding: '6px 12px' }}>Consultancy & Product Development</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c3} Pts</td></tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c4</td><td style={{ padding: '6px 12px' }}>IPR / Patents Granted / Published</td><td style={{ textAlign: 'center' }}>10</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c4} Pts</td></tr>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}><td style={{ textAlign: 'center', fontWeight: 700, color: '#475569' }}>c5</td><td style={{ padding: '6px 12px' }}>Research Grants Received / Applied</td><td style={{ textAlign: 'center' }}>15</td><td style={{ textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{score_c5} Pts</td></tr>
@@ -5325,7 +5350,7 @@ export default function Appraisal({ auth }) {
                         <td style={{ padding: '12px 14px', color: '#0369a1' }}>GRAND TOTAL APPRAISAL SCORE</td>
                         <td style={{ padding: '12px 14px', textAlign: 'center', color: '#0369a1' }}>200</td>
                         <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{viewingAppraisal.self_appraisal_score || viewingAppraisal.total_fpi_score || 0}</td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{viewingAppraisal.hod_total_score ? `${viewingAppraisal.hod_total_score}` : '-'}</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{getHodTotalScore(viewingAppraisal) !== null ? `${getHodTotalScore(viewingAppraisal)}` : '-'}</td>
                         <td style={{ padding: '12px 14px', textAlign: 'center', color: '#15803d', fontSize: '1.1rem' }}>{viewingAppraisal.final_total_score ? `${viewingAppraisal.final_total_score}` : '-'}</td>
                       </tr>
                     </tbody>

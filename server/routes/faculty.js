@@ -1209,6 +1209,37 @@ router.get('/appraisals/pending-counts', authenticateToken, (req, res) => {
   });
 });
 
+const sanitizeAppraisalRow = (r) => {
+  if (!r) return r;
+  const hodA = parseFloat(r.hod_part_a_score) || 0;
+  const hodB = parseFloat(r.hod_part_b_score) || 0;
+  const hodC = parseFloat(r.hod_part_c_score) || 0;
+  const hodD = parseFloat(r.hod_part_d_score) || 0;
+  const sumHodParts = hodA + hodB + hodC + hodD;
+
+  let hodTotal = parseFloat(r.hod_total_score);
+  if ((isNaN(hodTotal) || hodTotal === 0) && sumHodParts > 0) {
+    hodTotal = sumHodParts;
+  }
+
+  const finalA = parseFloat(r.final_part_a_score) || 0;
+  const finalB = parseFloat(r.final_part_b_score) || 0;
+  const finalC = parseFloat(r.final_part_c_score) || 0;
+  const finalD = parseFloat(r.final_part_d_score) || 0;
+  const sumFinalParts = finalA + finalB + finalC + finalD;
+
+  let finalTotal = parseFloat(r.final_total_score);
+  if ((isNaN(finalTotal) || finalTotal === 0) && sumFinalParts > 0) {
+    finalTotal = sumFinalParts;
+  }
+
+  return {
+    ...r,
+    hod_total_score: !isNaN(hodTotal) && hodTotal > 0 ? hodTotal : (r.status === 'HOD Approved' || r.status === 'Final Approved' ? sumHodParts : r.hod_total_score),
+    final_total_score: !isNaN(finalTotal) && finalTotal > 0 ? finalTotal : (r.status === 'Final Approved' ? sumFinalParts : r.final_total_score)
+  };
+};
+
 // 11. GET Appraisals
 router.get('/appraisals', authenticateToken, (req, res) => {
   const reqStaffId = req.query.staffId;
@@ -1226,7 +1257,7 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       ORDER BY sa.id DESC
     `, [reqStaffId], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
-      res.json(rows);
+      res.json((rows || []).map(sanitizeAppraisalRow));
     });
   } else if (isDeptAdmin) {
     const dept = (req.user.department || '').trim();
@@ -1246,7 +1277,7 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       ORDER BY sa.id DESC
     `, [dept, dept, dept, dept, dept], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
-      res.json(rows);
+      res.json((rows || []).map(sanitizeAppraisalRow));
     });
   } else if (isAdmin) {
     db.all(`
@@ -1258,7 +1289,7 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       ORDER BY sa.id DESC
     `, [], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
-      res.json(rows);
+      res.json((rows || []).map(sanitizeAppraisalRow));
     });
   } else {
     // Faculty sees all their own including drafts
@@ -1271,7 +1302,7 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       ORDER BY sa.id DESC
     `, [req.user.staffId], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
-      res.json(rows);
+      res.json((rows || []).map(sanitizeAppraisalRow));
     });
   }
 });
@@ -1412,6 +1443,15 @@ router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
     hod_total_score, hod_remarks, action
   } = req.body;
 
+  const scoreA = hod_part_a_score !== undefined && hod_part_a_score !== '' ? parseFloat(hod_part_a_score) : 0;
+  const scoreB = hod_part_b_score !== undefined && hod_part_b_score !== '' ? parseFloat(hod_part_b_score) : 0;
+  const scoreC = hod_part_c_score !== undefined && hod_part_c_score !== '' ? parseFloat(hod_part_c_score) : 0;
+  const scoreD = hod_part_d_score !== undefined && hod_part_d_score !== '' ? parseFloat(hod_part_d_score) : 0;
+  const computedHodTotal = scoreA + scoreB + scoreC + scoreD;
+  const finalHodTotal = (hod_total_score !== undefined && hod_total_score !== '' && parseFloat(hod_total_score) > 0)
+    ? parseFloat(hod_total_score)
+    : computedHodTotal;
+
   const status = action === 'revision' ? 'HOD Revision Requested' : 'HOD Approved';
 
   db.run(`
@@ -1426,11 +1466,11 @@ router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
         hod_approved_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `, [
-    hod_part_a_score || 0,
-    hod_part_b_score || 0,
-    hod_part_c_score || 0,
-    hod_part_d_score || 0,
-    hod_total_score || 0,
+    scoreA,
+    scoreB,
+    scoreC,
+    scoreD,
+    finalHodTotal,
     hod_remarks || '',
     status,
     id
@@ -1439,11 +1479,11 @@ router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
     
     // Trigger automated email notification to faculty member
     sendAppraisalStatusEmail(id, status, {
-      part_a: hod_part_a_score,
-      part_b: hod_part_b_score,
-      part_c: hod_part_c_score,
-      part_d: hod_part_d_score,
-      total_score: hod_total_score,
+      part_a: scoreA,
+      part_b: scoreB,
+      part_c: scoreC,
+      part_d: scoreD,
+      total_score: finalHodTotal,
       remarks: hod_remarks
     });
 
@@ -2160,15 +2200,17 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     // Part C Calculation (Max 80)
     let scoreC = 0;
 
-    // c1. Publications (Journal = 10 marks, Conference = 5 marks)
+    // c1. Journal Publications (10 marks each, max 20) & c2. Conference Proceedings / Books / Book Chapters (5 marks each, max 10)
+    const journalPubs = publications.filter(p => !((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
+    const confPubs = publications.filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
+
     const ruleC1 = getCriteriaRule('C1', 10, 20);
-    const rawC1 = publications.length * ruleC1.fixedMark;
+    const rawC1 = journalPubs.length * ruleC1.fixedMark;
     const scoreC1 = Math.min(ruleC1.maxMark, rawC1);
     scoreC += scoreC1;
 
-    // c2. Books/Chapters
     const ruleC2 = getCriteriaRule('C2', 5, 10);
-    const rawC2 = books.length * ruleC2.fixedMark;
+    const rawC2 = (confPubs.length + books.length) * ruleC2.fixedMark;
     const scoreC2 = Math.min(ruleC2.maxMark, rawC2);
     scoreC += scoreC2;
 
@@ -2289,8 +2331,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         d_responsibilities: finalPartD
       },
       rawBreakdown: {
-        c1_publications: { count: publications.length, fixedMark: ruleC1.fixedMark, rawScore: rawC1, cappedScore: scoreC1, maxMark: ruleC1.maxMark },
-        c2_books: { count: books.length, fixedMark: ruleC2.fixedMark, rawScore: rawC2, cappedScore: scoreC2, maxMark: ruleC2.maxMark },
+        c1_publications: { count: journalPubs.length, fixedMark: ruleC1.fixedMark, rawScore: rawC1, cappedScore: scoreC1, maxMark: ruleC1.maxMark },
+        c2_books: { count: confPubs.length + books.length, fixedMark: ruleC2.fixedMark, rawScore: rawC2, cappedScore: scoreC2, maxMark: ruleC2.maxMark },
         c4_ipr: { count: ipr.length, fixedMark: ruleC4.fixedMark, rawScore: rawC4, cappedScore: scoreC4, maxMark: ruleC4.maxMark },
         c5_funding: { count: funding.length, fixedMark: ruleC5.fixedMark, rawScore: rawC5, cappedScore: scoreC5, maxMark: ruleC5.maxMark },
         c6_seed_money: { count: seedMoney.length, fixedMark: ruleC6.fixedMark, rawScore: rawC6, cappedScore: scoreC6, maxMark: ruleC6.maxMark },
