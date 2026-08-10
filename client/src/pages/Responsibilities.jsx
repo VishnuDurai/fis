@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Plus, Trash2, Search, CheckCircle2, FileText, User, Edit2, Award } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
