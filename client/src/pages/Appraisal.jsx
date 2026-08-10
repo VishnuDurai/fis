@@ -4267,240 +4267,106 @@ export default function Appraisal({ auth }) {
             </div>
           )}
 
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#0f172a', fontWeight: 800 }}>
-            Submitted Performance Appraisals ({filteredAppraisals.length})
-          </h3>
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>Loading appraisal records...</div>
-          ) : filteredAppraisals.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'hsl(var(--text-muted))' }}>
-              No performance appraisal forms match the selected status or department filter.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {filteredAppraisals.map((app) => (
-                <div key={app.id} className="card" style={{ borderLeft: `5px solid ${app.status === 'Final Approved' ? '#15803d' : app.status === 'HOD Approved' ? '#0284c7' : 'hsl(var(--primary))'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                    <div>
-                      <span className="badge badge-success" style={{ fontSize: '0.85rem', padding: '6px 12px', marginBottom: '8px', display: 'inline-block' }}>
-                        Academic Year: {app.academic_year}
-                      </span>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                        Annual FPI Form - {app.staff_name || auth.name} ({app.staff_id})
-                      </h4>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block' }}>
-                        {app.Designation || 'Faculty'} - {app.Department || 'N/A'} | Submitted on: {new Date(app.submitted_at || Date.now()).toLocaleDateString('en-GB')}
-                      </span>
-                    </div>
+          {/* PROCESSED APPRAISALS — Approved & Revision Requested */}
+          {(() => {
+            const processedAppraisals = appraisals.filter(app => {
+              const processed = ['HOD Approved', 'Final Approved', 'Revision Requested'].includes(app.status);
+              if (!processed) return false;
+              if (selectedDeptFilter && app.Department && app.Department !== selectedDeptFilter) return false;
+              if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const matchName = (app.staff_name || app.Name || '').toLowerCase().includes(q);
+                const matchId = (app.staff_id || '').toLowerCase().includes(q);
+                const matchDept = (app.Department || '').toLowerCase().includes(q);
+                if (!matchName && !matchId && !matchDept) return false;
+              }
+              return true;
+            });
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{
-                        padding: '6px 14px',
-                        borderRadius: '20px',
-                        fontSize: '0.82rem',
-                        fontWeight: 800,
-                        background: app.status === 'Draft' ? '#fef3c7' : app.status === 'Final Approved' ? '#dcfce7' : app.status === 'HOD Approved' ? '#e0f2fe' : 'hsla(var(--primary), 0.1)',
-                        color: app.status === 'Draft' ? '#92400e' : app.status === 'Final Approved' ? '#15803d' : app.status === 'HOD Approved' ? '#0369a1' : 'hsl(var(--primary))',
-                        border: `1px solid ${app.status === 'Draft' ? '#fde68a' : app.status === 'Final Approved' ? '#86efac' : app.status === 'HOD Approved' ? '#7dd3fc' : 'transparent'}`
-                      }}>
-                        Status: {app.status === 'Draft' ? 'Saved Draft' : app.status === 'HOD Approved' ? 'HOD Approved (Pending Principal/HR)' : (app.status || 'Submitted')}
-                      </span>
+            if (processedAppraisals.length === 0) return null;
 
-                      <button
-                        onClick={() => handleOpenViewModal(app)}
-                        className="btn btn-primary"
-                        style={{ padding: '6px 12px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                      >
-                        <Eye size={15} /> View Full FPI Form
-                      </button>
+            return (
+              <div style={{ marginTop: '32px' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  📋 Processed Appraisal Forms — Approved &amp; Revision Requested ({processedAppraisals.length})
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {processedAppraisals.map((app) => {
+                    const isRevision = app.status === 'Revision Requested';
+                    const isHodApproved = app.status === 'HOD Approved';
+                    const isFinalApproved = app.status === 'Final Approved';
 
-                      <button 
-                        onClick={() => window.print()}
-                        className="btn btn-secondary" 
-                        style={{ padding: '6px 12px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                      >
-                        <Printer size={14} /> Print FPI Form
-                      </button>
+                    const borderColor = isFinalApproved ? '#15803d' : isHodApproved ? '#0284c7' : '#dc2626';
+                    const badgeBg = isFinalApproved ? '#dcfce7' : isHodApproved ? '#e0f2fe' : '#fee2e2';
+                    const badgeColor = isFinalApproved ? '#15803d' : isHodApproved ? '#0369a1' : '#b91c1c';
+                    const badgeBorder = isFinalApproved ? '#86efac' : isHodApproved ? '#7dd3fc' : '#fca5a5';
+                    const statusLabel = isFinalApproved ? '✅ Final Approved' : isHodApproved ? '⏳ HOD Approved — Pending Principal/HR' : '🔄 Revision Requested';
 
-                      {auth.role !== 'dept_admin' && (
-                        <button 
-                          onClick={() => handleDelete(app.id)}
-                          style={{ background: 'transparent', border: 'none', color: 'hsl(var(--danger))', cursor: 'pointer', padding: '6px' }}
-                          title="Delete Appraisal"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                    const hodTotal = getHodTotalScore(app);
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.88rem', background: '#f8fafc', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
-                    <div><strong>Self Appraisal Score:</strong> <span style={{ color: 'hsl(var(--primary))', fontWeight: 800 }}>{app.self_appraisal_score || 'N/A'}</span></div>
-                    <div><strong>Publications:</strong> {app.publications_count}</div>
-                    <div><strong>Books / Chapters:</strong> {app.books_count}</div>
-                    <div><strong>Patents Count:</strong> {app.patents_count}</div>
-                    <div><strong>Grants Received:</strong> {app.grants_amount || 'N/A'}</div>
-                    <div><strong>HOD Total Score:</strong> <span style={{ color: '#16a34a', fontWeight: 800 }}>{getHodTotalScore(app) !== null ? `${getHodTotalScore(app)} / 200` : 'Pending'}</span></div>
-                  </div>
+                    return (
+                      <div key={app.id} className="card" style={{ borderLeft: `5px solid ${borderColor}`, padding: '16px 20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>
+                              {app.staff_name || app.Name || 'Faculty Member'}
+                              <span style={{ fontWeight: 500, color: '#64748b', fontSize: '0.85rem', marginLeft: '8px' }}>({app.staff_id})</span>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                              {app.Designation || 'Faculty'} — {app.Department || 'N/A'} &nbsp;|&nbsp; AY: {app.academic_year}
+                            </div>
+                          </div>
 
-                  {app.reviewer_remarks && (
-                    <div style={{ marginBottom: '16px', background: '#fffbe6', border: '1.5px solid #ffe58f', borderRadius: '8px', padding: '12px 16px', color: '#92400e', fontSize: '0.85rem' }}>
-                      <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>📌 Reviewer Feedback / Revision Note:</strong>
-                      <p style={{ margin: '4px 0 0 0', fontWeight: 600 }}>{app.reviewer_remarks}</p>
-                    </div>
-                  )}
-
-                  {/* HOD Evaluation & Score Breakdown View */}
-                  {(app.status === 'HOD Approved' || app.status === 'Final Approved') && (
-                    <div style={{ marginTop: '16px', background: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                      <h5 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <FileCheck size={16} /> HOD Verification & Score Evaluation
-                      </h5>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', fontSize: '0.85rem', marginBottom: '8px' }}>
-                        <div><strong>Part A Score:</strong> {app.hod_part_a_score || 0} / 60</div>
-                        <div><strong>Part B Score:</strong> {app.hod_part_b_score || 0} / 40</div>
-                        <div><strong>Part C Score:</strong> {app.hod_part_c_score || 0} / 80</div>
-                        <div><strong>Part D Score:</strong> {app.hod_part_d_score || 0} / 20</div>
-                      </div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#15803d', marginBottom: '4px' }}>
-                        Total HOD Evaluated Score: {getHodTotalScore(app) ?? 0} / 200
-                      </div>
-                      {app.hod_remarks && (
-                        <div style={{ fontSize: '0.82rem', color: '#166534', fontStyle: 'italic' }}>
-                          <strong>HOD Remarks:</strong> {app.hod_remarks}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 800, background: badgeBg, color: badgeColor, border: `1px solid ${badgeBorder}` }}>
+                              {statusLabel}
+                            </span>
+                            <button
+                              onClick={() => handleOpenViewModal(app)}
+                              className="btn btn-primary"
+                              style={{ padding: '5px 12px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                            >
+                              <Eye size={13} /> View Full Form
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
 
-
-
-                  {/* Principal & HR Final Performance Evaluation Card (When HOD Approved) */}
-                  {isAdminOrHR && app.status === 'HOD Approved' && (
-                    <div style={{ marginTop: '16px', background: '#f0f9ff', padding: '18px', borderRadius: '10px', border: '1.5px solid #0284c7', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h5 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ShieldCheck size={18} /> Principal & HR Final Performance Evaluation
-                        </h5>
-                        <span className="badge badge-success" style={{ background: '#0284c7', color: '#fff' }}>FORWARDED BY HOD</span>
-                      </div>
-
-                      <p style={{ fontSize: '0.88rem', color: '#334155', marginBottom: '14px', background: '#ffffff', padding: '10px 14px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                        <strong>HOD Evaluated Score:</strong> <span style={{ color: '#15803d', fontWeight: 800 }}>{getHodTotalScore(app) ?? 0} / 200</span>
-                        {app.hod_remarks && <span style={{ marginLeft: '12px', fontStyle: 'italic', color: '#475569' }}>— HOD Remarks: "{app.hod_remarks}"</span>}
-                      </p>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Final Part A Score (/60)</label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder={app.hod_part_a_score || app.part_a_score || '0'}
-                            value={finalScores[app.id]?.part_a ?? ''}
-                            onChange={(e) => setFinalScores(prev => ({
-                              ...prev,
-                              [app.id]: { ...(prev[app.id] || {}), part_a: e.target.value }
-                            }))}
-                          />
+                        {/* Score Summary Row */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+                          {[
+                            { label: 'Part A', val: app.hod_part_a_score ?? app.part_a_score, max: 60, bg: '#e0f2fe', color: '#0369a1' },
+                            { label: 'Part B', val: app.hod_part_b_score ?? app.part_b_score, max: 40, bg: '#fef3c7', color: '#92400e' },
+                            { label: 'Part C', val: app.hod_part_c_score ?? app.part_c_score, max: 80, bg: '#f0fdf4', color: '#166534' },
+                            { label: 'Part D', val: app.hod_part_d_score ?? app.part_d_score, max: 20, bg: '#f3e8ff', color: '#6b21a8' },
+                          ].map(({ label, val, max, bg, color }) => (
+                            <span key={label} style={{ background: bg, color, fontSize: '0.75rem', padding: '3px 10px', borderRadius: '4px', fontWeight: 700 }}>
+                              {label}: {val ?? 'N/A'}/{max}
+                            </span>
+                          ))}
+                          <span style={{ background: '#f1f5f9', color: '#15803d', fontSize: '0.75rem', padding: '3px 10px', borderRadius: '4px', fontWeight: 800 }}>
+                            Total: {hodTotal !== null ? `${hodTotal}/200` : 'N/A'}
+                          </span>
                         </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Final Part B Score (/40)</label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder={app.hod_part_b_score || app.part_b_score || '0'}
-                            value={finalScores[app.id]?.part_b ?? ''}
-                            onChange={(e) => setFinalScores(prev => ({
-                              ...prev,
-                              [app.id]: { ...(prev[app.id] || {}), part_b: e.target.value }
-                            }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Final Part C Score (/80)</label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder={app.hod_part_c_score || app.part_c_score || '0'}
-                            value={finalScores[app.id]?.part_c ?? ''}
-                            onChange={(e) => setFinalScores(prev => ({
-                              ...prev,
-                              [app.id]: { ...(prev[app.id] || {}), part_c: e.target.value }
-                            }))}
-                          />
-                        </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Final Part D Score (/20)</label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder={app.hod_part_d_score || app.part_d_score || '0'}
-                            value={finalScores[app.id]?.part_d ?? ''}
-                            onChange={(e) => setFinalScores(prev => ({
-                              ...prev,
-                              [app.id]: { ...(prev[app.id] || {}), part_d: e.target.value }
-                            }))}
-                          />
-                        </div>
-                      </div>
 
-                      <div style={{ marginBottom: '14px' }}>
-                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Executive Remarks / Recommendations (Principal & HR)</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Executive feedback, promotion recommendations, or final approval notes..."
-                          value={finalScores[app.id]?.remarks ?? ''}
-                          onChange={(e) => setFinalScores(prev => ({
-                            ...prev,
-                            [app.id]: { ...(prev[app.id] || {}), remarks: e.target.value }
-                          }))}
-                        />
+                        {/* Revision Reason or HOD Remarks */}
+                        {isRevision && app.reviewer_remarks && (
+                          <div style={{ marginTop: '10px', background: '#fff1f0', border: '1px solid #fca5a5', borderRadius: '6px', padding: '10px 14px', fontSize: '0.82rem', color: '#b91c1c' }}>
+                            <strong>🔄 Revision Reason:</strong> {app.reviewer_remarks}
+                          </div>
+                        )}
+                        {!isRevision && app.hod_remarks && (
+                          <div style={{ marginTop: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 14px', fontSize: '0.82rem', color: '#166534' }}>
+                            <strong>💬 HOD Remarks:</strong> {app.hod_remarks}
+                          </div>
+                        )}
                       </div>
-
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => handleFinalApproveSubmit(app, 'approve')}
-                          style={{ background: '#0284c7', borderColor: '#0284c7', fontSize: '0.88rem', padding: '9px 22px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <CheckCircle size={16} /> Final Approve FPI Form
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => handleFinalApproveSubmit(app, 'revision')}
-                          style={{ fontSize: '0.88rem', padding: '9px 18px', background: '#fff1f0', color: '#cf1322', borderColor: '#ffa39e', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <AlertCircle size={16} /> Request Revision
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Principal & HR Final Approval Summary (When Status is Final Approved) */}
-                  {app.status === 'Final Approved' && (
-                    <div style={{ marginTop: '16px', background: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #86efac' }}>
-                      <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#166534', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <ShieldCheck size={16} /> Principal & HR Final Executive Approval Confirmed
-                      </h5>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '0.85rem', marginBottom: '6px' }}>
-                        <div><strong>Final Total Score:</strong> <span style={{ color: '#15803d', fontWeight: 800 }}>{app.final_total_score || getHodTotalScore(app) || 'N/A'} / 200</span></div>
-                        <div><strong>Approved By:</strong> {app.final_approved_by || 'Principal / HR'}</div>
-                        <div><strong>Approved On:</strong> {app.final_approved_at ? new Date(app.final_approved_at).toLocaleDateString('en-GB') : 'Recently'}</div>
-                      </div>
-                      {(app.final_remarks || app.remarks) && (
-                        <div style={{ fontSize: '0.82rem', color: '#166534', fontStyle: 'italic', marginTop: '4px' }}>
-                          <strong>Executive Remarks:</strong> {app.final_remarks || app.remarks}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </div>
       )}
       </div>
