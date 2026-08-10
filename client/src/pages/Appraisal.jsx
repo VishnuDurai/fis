@@ -245,30 +245,53 @@ export default function Appraisal({ auth }) {
       return;
     }
 
-    if (app.status === 'Submitted' || (auth.role === 'dept_admin' || auth.isHod)) {
-      setHodScores({
-        hod_part_a_score: actionScores.part_a,
-        hod_part_b_score: actionScores.part_b,
-        hod_part_c_score: actionScores.part_c,
-        hod_part_d_score: actionScores.part_d,
-        hod_remarks: actionScores.remarks
-      });
-      await handleHodApproveSubmit(app.id, actionType);
-    } else {
-      setFinalScores(prev => ({
-        ...prev,
-        [app.id]: {
-          part_a: actionScores.part_a,
-          part_b: actionScores.part_b,
-          part_c: actionScores.part_c,
-          part_d: actionScores.part_d,
-          remarks: actionScores.remarks
-        }
-      }));
-      await handleFinalApproveSubmit({ ...app, id: app.id }, actionType);
+    if (actionType === 'approve' && (app.status === 'Submitted' || auth.role === 'dept_admin' || auth.isHod)) {
+      const facA = parseFloat(app.part_a_score) || 0;
+      const facB = parseFloat(app.part_b_score) || 0;
+      const facC = parseFloat(app.part_c_score) || 0;
+      const facD = parseFloat(app.part_d_score) || 0;
+
+      const hodA = actionScores.part_a !== '' ? parseFloat(actionScores.part_a) : facA;
+      const hodB = actionScores.part_b !== '' ? parseFloat(actionScores.part_b) : facB;
+      const hodC = actionScores.part_c !== '' ? parseFloat(actionScores.part_c) : facC;
+      const hodD = actionScores.part_d !== '' ? parseFloat(actionScores.part_d) : facD;
+
+      const isDeviated = hodA !== facA || hodB !== facB || hodC !== facC || hodD !== facD;
+      if (isDeviated && !actionScores.remarks.trim()) {
+        alert('Score deviation detected! Please enter the reason for score deviation before approving.');
+        return;
+      }
     }
-    setActionModalAppraisal(null);
-    setActionType(null);
+
+    try {
+      if (app.status === 'Submitted' || (auth.role === 'dept_admin' || auth.isHod)) {
+        const scoresToUse = {
+          hod_part_a_score: actionScores.part_a,
+          hod_part_b_score: actionScores.part_b,
+          hod_part_c_score: actionScores.part_c,
+          hod_part_d_score: actionScores.part_d,
+          hod_remarks: actionScores.remarks
+        };
+        setHodScores(scoresToUse);
+        await handleHodApproveSubmit(app.id, actionType, scoresToUse);
+      } else {
+        setFinalScores(prev => ({
+          ...prev,
+          [app.id]: {
+            part_a: actionScores.part_a,
+            part_b: actionScores.part_b,
+            part_c: actionScores.part_c,
+            part_d: actionScores.part_d,
+            remarks: actionScores.remarks
+          }
+        }));
+        await handleFinalApproveSubmit({ ...app, id: app.id }, actionType);
+      }
+      setActionModalAppraisal(null);
+      setActionType(null);
+    } catch (e) {
+      // Error handled in submit handler
+    }
   };
 
   // Filter pending appraisals for Table View across HOD, Principal, HR, and System Admin
@@ -1252,16 +1275,30 @@ export default function Appraisal({ auth }) {
     }
   };
 
-  const handleHodApproveSubmit = async (appId, action) => {
+  const handleHodApproveSubmit = async (appId, action, overrideScores = null) => {
     setMessage('');
     setError('');
     try {
       const targetApp = appraisals.find(a => a.id === appId) || {};
-      const partA = hodScores.hod_part_a_score !== undefined && hodScores.hod_part_a_score !== '' ? parseFloat(hodScores.hod_part_a_score) : (parseFloat(targetApp.part_a_score) || 0);
-      const partB = hodScores.hod_part_b_score !== undefined && hodScores.hod_part_b_score !== '' ? parseFloat(hodScores.hod_part_b_score) : (parseFloat(targetApp.part_b_score) || 0);
-      const partC = hodScores.hod_part_c_score !== undefined && hodScores.hod_part_c_score !== '' ? parseFloat(hodScores.hod_part_c_score) : (parseFloat(targetApp.part_c_score) || 0);
-      const partD = hodScores.hod_part_d_score !== undefined && hodScores.hod_part_d_score !== '' ? parseFloat(hodScores.hod_part_d_score) : (parseFloat(targetApp.part_d_score) || 0);
+      const activeScores = overrideScores || hodScores;
+
+      const facA = parseFloat(targetApp.part_a_score) || 0;
+      const facB = parseFloat(targetApp.part_b_score) || 0;
+      const facC = parseFloat(targetApp.part_c_score) || 0;
+      const facD = parseFloat(targetApp.part_d_score) || 0;
+
+      const partA = activeScores.hod_part_a_score !== undefined && activeScores.hod_part_a_score !== '' ? parseFloat(activeScores.hod_part_a_score) : facA;
+      const partB = activeScores.hod_part_b_score !== undefined && activeScores.hod_part_b_score !== '' ? parseFloat(activeScores.hod_part_b_score) : facB;
+      const partC = activeScores.hod_part_c_score !== undefined && activeScores.hod_part_c_score !== '' ? parseFloat(activeScores.hod_part_c_score) : facC;
+      const partD = activeScores.hod_part_d_score !== undefined && activeScores.hod_part_d_score !== '' ? parseFloat(activeScores.hod_part_d_score) : facD;
       const hodTotal = partA + partB + partC + partD;
+
+      const isDeviated = partA !== facA || partB !== facB || partC !== facC || partD !== facD;
+      const remarksText = (activeScores.hod_remarks || '').trim();
+
+      if (action === 'approve' && isDeviated && !remarksText) {
+        throw new Error('Score deviation detected: HOD score differs from Faculty score. Please provide a reason for score deviation before approving.');
+      }
 
       const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/${appId}/hod-approve`, {
         method: 'PUT',
@@ -1275,7 +1312,7 @@ export default function Appraisal({ auth }) {
           hod_part_c_score: partC,
           hod_part_d_score: partD,
           hod_total_score: hodTotal,
-          hod_remarks: hodScores.hod_remarks || '',
+          hod_remarks: remarksText,
           action
         })
       });
@@ -1285,6 +1322,7 @@ export default function Appraisal({ auth }) {
       fetchAppraisals();
     } catch (err) {
       setError(err.message);
+      throw err;
     }
   };
 
@@ -4017,35 +4055,74 @@ export default function Appraisal({ auth }) {
                   <div><strong>Current Status:</strong> {actionModalAppraisal.status}</div>
                 </div>
 
-                {actionType === 'approve' && (
-                  <div>
-                    <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '12px' }}>
-                      Confirm evaluation scores across parts (Part A, B, C, D) and add optional remarks:
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '12px' }}>
-                      <div>
-                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part A Score (/60)</label>
-                        <input type="number" className="form-control" value={actionScores.part_a} onChange={(e) => setActionScores(prev => ({ ...prev, part_a: e.target.value }))} />
+                {actionType === 'approve' && (() => {
+                  const facA = parseFloat(actionModalAppraisal.part_a_score) || 0;
+                  const facB = parseFloat(actionModalAppraisal.part_b_score) || 0;
+                  const facC = parseFloat(actionModalAppraisal.part_c_score) || 0;
+                  const facD = parseFloat(actionModalAppraisal.part_d_score) || 0;
+                  const facTotal = facA + facB + facC + facD;
+
+                  const curA = actionScores.part_a !== '' ? parseFloat(actionScores.part_a) : facA;
+                  const curB = actionScores.part_b !== '' ? parseFloat(actionScores.part_b) : facB;
+                  const curC = actionScores.part_c !== '' ? parseFloat(actionScores.part_c) : facC;
+                  const curD = actionScores.part_d !== '' ? parseFloat(actionScores.part_d) : facD;
+                  const curTotal = (isNaN(curA)?0:curA) + (isNaN(curB)?0:curB) + (isNaN(curC)?0:curC) + (isNaN(curD)?0:curD);
+
+                  const isDeviated = curA !== facA || curB !== facB || curC !== facC || curD !== facD;
+
+                  return (
+                    <div>
+                      {isDeviated && (
+                        <div style={{ background: '#fffbe6', border: '1.5px solid #ffe58f', padding: '12px 14px', borderRadius: '8px', marginBottom: '14px', color: '#92400e', fontSize: '0.84rem' }}>
+                          <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ⚠️ Score Deviation Detected:
+                          </div>
+                          <div style={{ marginTop: '4px' }}>
+                            Faculty Calculated Score: <strong>{facTotal}</strong> → Evaluated Score: <strong>{curTotal}</strong>
+                          </div>
+                          <div style={{ marginTop: '4px', fontStyle: 'italic', fontWeight: 700, color: '#b45309' }}>
+                            * Reason for score deviation is mandatory before approving.
+                          </div>
+                        </div>
+                      )}
+
+                      <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '12px' }}>
+                        Confirm evaluation scores across parts (Part A, B, C, D) and enter remarks / deviation reason:
+                      </p>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part A Score (/60)</label>
+                          <input type="number" className="form-control" value={actionScores.part_a} onChange={(e) => setActionScores(prev => ({ ...prev, part_a: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part B Score (/40)</label>
+                          <input type="number" className="form-control" value={actionScores.part_b} onChange={(e) => setActionScores(prev => ({ ...prev, part_b: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part C Score (/80)</label>
+                          <input type="number" className="form-control" value={actionScores.part_c} onChange={(e) => setActionScores(prev => ({ ...prev, part_c: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part D Score (/20)</label>
+                          <input type="number" className="form-control" value={actionScores.part_d} onChange={(e) => setActionScores(prev => ({ ...prev, part_d: e.target.value }))} />
+                        </div>
                       </div>
-                      <div>
-                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part B Score (/40)</label>
-                        <input type="number" className="form-control" value={actionScores.part_b} onChange={(e) => setActionScores(prev => ({ ...prev, part_b: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part C Score (/80)</label>
-                        <input type="number" className="form-control" value={actionScores.part_c} onChange={(e) => setActionScores(prev => ({ ...prev, part_c: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part D Score (/20)</label>
-                        <input type="number" className="form-control" value={actionScores.part_d} onChange={(e) => setActionScores(prev => ({ ...prev, part_d: e.target.value }))} />
+                      <div style={{ marginBottom: '16px' }}>
+                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: isDeviated ? '#b45309' : 'inherit' }}>
+                          {isDeviated ? 'Reason for Score Deviation (Mandatory) *' : 'Approval Remarks / Recommendations'}
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder={isDeviated ? "Specify reason for score adjustment (e.g. Adjusted Part C score due to unverified publication)..." : "e.g. Approved with distinction..."}
+                          value={actionScores.remarks}
+                          onChange={(e) => setActionScores(prev => ({ ...prev, remarks: e.target.value }))}
+                          style={{ borderColor: isDeviated && !actionScores.remarks.trim() ? '#d97706' : undefined }}
+                        />
                       </div>
                     </div>
-                    <div style={{ marginBottom: '16px' }}>
-                      <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Approval Remarks / Recommendations</label>
-                      <input type="text" className="form-control" placeholder="e.g. Approved with distinction..." value={actionScores.remarks} onChange={(e) => setActionScores(prev => ({ ...prev, remarks: e.target.value }))} />
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {actionType === 'revision' && (
                   <div style={{ marginBottom: '16px' }}>
@@ -4187,43 +4264,75 @@ export default function Appraisal({ auth }) {
                   )}
 
                   {/* HOD Action Card (For HOD & Dept Admins when Status is Submitted) */}
-                  {(auth.role === 'dept_admin' || auth.isHod) && app.status === 'Submitted' && (
-                    <div style={{ marginTop: '16px', background: '#fffbe6', padding: '16px', borderRadius: '8px', border: '1px solid #ffe58f' }}>
-                      <h5 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#873800', marginBottom: '12px' }}>
-                        HOD Verification & Evaluated Score Entry
-                      </h5>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part A Score (/60)</label>
-                          <input type="number" className="form-control" placeholder={app.part_a_score || '0'} value={hodScores.hod_part_a_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_a_score: e.target.value }))} />
+                  {(auth.role === 'dept_admin' || auth.isHod) && app.status === 'Submitted' && (() => {
+                    const facA = parseFloat(app.part_a_score) || 0;
+                    const facB = parseFloat(app.part_b_score) || 0;
+                    const facC = parseFloat(app.part_c_score) || 0;
+                    const facD = parseFloat(app.part_d_score) || 0;
+                    const facTotal = facA + facB + facC + facD;
+
+                    const curA = hodScores.hod_part_a_score !== '' ? parseFloat(hodScores.hod_part_a_score) : facA;
+                    const curB = hodScores.hod_part_b_score !== '' ? parseFloat(hodScores.hod_part_b_score) : facB;
+                    const curC = hodScores.hod_part_c_score !== '' ? parseFloat(hodScores.hod_part_c_score) : facC;
+                    const curD = hodScores.hod_part_d_score !== '' ? parseFloat(hodScores.hod_part_d_score) : facD;
+                    const curTotal = (isNaN(curA)?0:curA) + (isNaN(curB)?0:curB) + (isNaN(curC)?0:curC) + (isNaN(curD)?0:curD);
+
+                    const isDeviatedCard = curA !== facA || curB !== facB || curC !== facC || curD !== facD;
+
+                    return (
+                      <div style={{ marginTop: '16px', background: '#fffbe6', padding: '16px', borderRadius: '8px', border: '1px solid #ffe58f' }}>
+                        <h5 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#873800', marginBottom: '12px' }}>
+                          HOD Verification & Evaluated Score Entry
+                        </h5>
+
+                        {isDeviatedCard && (
+                          <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '10px 14px', borderRadius: '6px', marginBottom: '12px', color: '#92400e', fontSize: '0.82rem' }}>
+                            <strong>⚠️ Score Deviation Detected:</strong> Faculty Score ({facTotal}) vs HOD Evaluated Score ({curTotal}). Reason for deviation is mandatory before approving.
+                          </div>
+                        )}
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part A Score (/60)</label>
+                            <input type="number" className="form-control" placeholder={app.part_a_score || '0'} value={hodScores.hod_part_a_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_a_score: e.target.value }))} />
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part B Score (/40)</label>
+                            <input type="number" className="form-control" placeholder={app.part_b_score || '0'} value={hodScores.hod_part_b_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_b_score: e.target.value }))} />
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part C Score (/80)</label>
+                            <input type="number" className="form-control" placeholder={app.part_c_score || '0'} value={hodScores.hod_part_c_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_c_score: e.target.value }))} />
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part D Score (/20)</label>
+                            <input type="number" className="form-control" placeholder={app.part_d_score || '0'} value={hodScores.hod_part_d_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_d_score: e.target.value }))} />
+                          </div>
                         </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part B Score (/40)</label>
-                          <input type="number" className="form-control" placeholder={app.part_b_score || '0'} value={hodScores.hod_part_b_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_b_score: e.target.value }))} />
+                        <div style={{ marginBottom: '12px' }}>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, color: isDeviatedCard ? '#b45309' : 'inherit' }}>
+                            {isDeviatedCard ? 'Reason for Score Deviation (Mandatory) *' : 'HOD Deviation Remarks / Feedback'}
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder={isDeviatedCard ? "Reason for score deviation (e.g. Adjusted Part C score due to unverified publication)..." : "Remarks in case of score adjustment..."}
+                            value={hodScores.hod_remarks}
+                            onChange={(e) => setHodScores(prev => ({ ...prev, hod_remarks: e.target.value }))}
+                            style={{ borderColor: isDeviatedCard && !hodScores.hod_remarks.trim() ? '#d97706' : undefined }}
+                          />
                         </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part C Score (/80)</label>
-                          <input type="number" className="form-control" placeholder={app.part_c_score || '0'} value={hodScores.hod_part_c_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_c_score: e.target.value }))} />
-                        </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Part D Score (/20)</label>
-                          <input type="number" className="form-control" placeholder={app.part_d_score || '0'} value={hodScores.hod_part_d_score} onChange={(e) => setHodScores(prev => ({ ...prev, hod_part_d_score: e.target.value }))} />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button className="btn btn-primary" onClick={() => handleHodApproveSubmit(app.id, 'approve')} style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
+                            Approve & Forward to Principal/HR
+                          </button>
+                          <button className="btn btn-secondary" onClick={() => handleHodApproveSubmit(app.id, 'revision')} style={{ fontSize: '0.85rem', padding: '8px 16px', background: '#fff1f0', color: '#cf1322', borderColor: '#ffa39e' }}>
+                            Request Revision
+                          </button>
                         </div>
                       </div>
-                      <div style={{ marginBottom: '12px' }}>
-                        <label className="form-label" style={{ fontSize: '0.78rem' }}>HOD Deviation Remarks / Feedback</label>
-                        <input type="text" className="form-control" placeholder="Remarks in case of score adjustment..." value={hodScores.hod_remarks} onChange={(e) => setHodScores(prev => ({ ...prev, hod_remarks: e.target.value }))} />
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button className="btn btn-primary" onClick={() => handleHodApproveSubmit(app.id, 'approve')} style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
-                          Approve & Forward to Principal/HR
-                        </button>
-                        <button className="btn btn-secondary" onClick={() => handleHodApproveSubmit(app.id, 'revision')} style={{ fontSize: '0.85rem', padding: '8px 16px', background: '#fff1f0', color: '#cf1322', borderColor: '#ffa39e' }}>
-                          Request Revision
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Principal & HR Final Performance Evaluation Card (When HOD Approved) */}
                   {isAdminOrHR && app.status === 'HOD Approved' && (
