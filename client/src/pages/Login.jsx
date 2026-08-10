@@ -212,9 +212,7 @@ export default function Login({ setAuth }) {
               height: '84px', 
               width: 'auto', 
               marginBottom: '16px', 
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 6px 16px rgba(15, 88, 59, 0.22))',
-              transition: 'transform 0.3s ease'
+              objectFit: 'contain'
             }} 
           />
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f331f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>

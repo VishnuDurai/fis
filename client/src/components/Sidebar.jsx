@@ -361,7 +361,7 @@ export default function Sidebar({ role, logout, auth }) {
     <aside className="sidebar">
       <div style={{ padding: '20px 20px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'hsla(var(--bg-card), 0.95)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/logo.png" alt="SREC logo" style={{ height: '46px', width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 3px 8px rgba(15, 88, 59, 0.2))' }} />
+          <img src="/logo.png" alt="SREC logo" style={{ height: '46px', width: 'auto', objectFit: 'contain' }} />
           <h3 style={{ fontSize: '1.1rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
             SREC FIS <span className="version-badge-anim">V3.0</span>
           </h3>
