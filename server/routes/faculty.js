@@ -22,17 +22,13 @@ export const getHodDepartments = (user) => {
                           (desg.includes('head') && (desg.includes('i year') || desg.includes('first year') || desg.includes('s&h')));
 
   if (isFirstYearHead || ['science and humanities', 'g.e - s&h', 'first year', 's&h'].includes(dept.toLowerCase())) {
-    const list = [
+    return [
       'Physics', 'PHY',
       'Chemistry', 'CHEM',
       'English', 'ENG', 'English (Tamil Discipline)',
       'Maths', 'MATHS', 'Mathematics',
       'Science and Humanities', 'G.E - S&H', 'First Year', 'S&H'
     ];
-    if (dept && !list.map(l => l.toLowerCase()).includes(dept.toLowerCase())) {
-      list.push(dept);
-    }
-    return list;
   }
   return [dept];
 };

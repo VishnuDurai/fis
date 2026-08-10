@@ -170,6 +170,28 @@ export default function Responsibilities({ auth }) {
     .catch(err => console.error(err));
   }, [auth]);
 
+  const desgLower = (auth.designation || '').toLowerCase();
+  const deptLower = (auth.department || auth.dept || '').toLowerCase();
+  const isFirstYearHead = desgLower.includes('head (i year') || 
+                          desgLower.includes('head - i year') || 
+                          desgLower.includes('head (first year') || 
+                          desgLower.includes('i year programme') ||
+                          desgLower.includes('first year programme') ||
+                          ['science and humanities', 'g.e - s&h', 'first year', 's&h'].includes(deptLower) ||
+                          (desgLower.includes('head') && (desgLower.includes('i year') || desgLower.includes('first year') || desgLower.includes('s&h')));
+
+  const displayedDepartments = useMemo(() => {
+    if (isFirstYearHead) {
+      const allowedAcronyms = ['ENG', 'MATHS', 'PHY', 'CHEM'];
+      const allowedNames = ['English', 'Maths', 'Physics', 'Chemistry'];
+      return departments.filter(d => 
+        allowedAcronyms.includes((d.acronym || '').trim().toUpperCase()) ||
+        allowedNames.includes((d.name || '').trim())
+      );
+    }
+    return departments;
+  }, [departments, isFirstYearHead]);
+
   // Options for SearchableSelect (Name and Designation without ID)
   const facultyOptions = deptFaculty
     .filter(fac => !selectedDepartment || (fac.Department || '').trim().toLowerCase() === selectedDepartment.trim().toLowerCase())
@@ -363,7 +385,7 @@ export default function Responsibilities({ auth }) {
                 style={{ maxWidth: '240px', fontWeight: 600, fontSize: '0.88rem' }}
               >
                 <option value="">-- All Departments --</option>
-                {departments.map(dept => (
+                {displayedDepartments.map(dept => (
                   <option key={dept.id || dept.acronym} value={dept.acronym || dept.name}>
                     {dept.name} ({dept.acronym})
                   </option>
