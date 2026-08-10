@@ -2075,7 +2075,6 @@ export function getAcademicYearFromDateStr(dateStr) {
       }
     }
   }
-
   if (year === null || isNaN(year)) return null;
 
   if (month >= 5) {
@@ -2095,11 +2094,11 @@ export function matchesTargetAcademicYear(row, targetAy) {
     return recAy === cleanTarget;
   }
 
-  // 2. Comprehensive check of date/month/year fields across all activity tables
+  // 2. Comprehensive check of event/activity dates FIRST, then record timestamps LAST
   const dateFields = [
-    row.month_pub, row.date_con, row.dateofpublication, row.year,
-    row.from_date, row.eventdate, row.date, row.to_date,
-    row.registered_date, row.sanctioned_date, row.created_at, row.launch_date
+    row.from_date, row.eventdate, row.date_con, row.dateofpublication,
+    row.month_pub, row.to_date, row.sanctioned_date, row.registered_date,
+    row.launch_date, row.year, row.date, row.created_at
   ];
 
   let hasValidDate = false;
@@ -2159,12 +2158,13 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const qual = academicRows[0]?.Qualification || '';
     const isRecognizedSupervisor = supervisorRows.length > 0;
 
-    const templateRows = await getRows('SELECT * FROM appraisal_template', []);
+    // Fetch rubric template for max marks & fixed marks
+    const templateRows = await new Promise((resolve) => {
+      db.all('SELECT * FROM appraisal_template', [], (err, rows) => resolve(rows || []));
+    });
     const templateMap = {};
     templateRows.forEach(row => {
-      if (row.criteria_code) {
-        templateMap[row.criteria_code] = row;
-      }
+      if (row.criteria_code) templateMap[row.criteria_code] = row;
     });
 
     const getCriteriaRule = (code, defaultFixed, defaultMax) => {
@@ -2197,16 +2197,15 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     let rawB3 = 0;
     interactions.forEach(item => {
       let days = 1;
-      if (item.from_date && item.to_date) {
-        const d1 = new Date(item.from_date);
-        const d2 = new Date(item.to_date);
-        const diffTime = Math.abs(d2 - d1);
-        days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      } else if (item.duration) {
-        const dur = item.duration.toLowerCase();
+      const d1 = getAcademicYearFromDateStr(item.from_date) ? new Date(item.from_date) : null;
+      const d2 = getAcademicYearFromDateStr(item.to_date) ? new Date(item.to_date) : null;
+      if (d1 && d2 && d2 >= d1) {
+        days = Math.max(1, Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+      } else if (item.duration || item.duration_weeks) {
+        const dur = String(item.duration || item.duration_weeks).toLowerCase();
         if (dur.includes('5') || dur.includes('week') || dur.includes('6') || dur.includes('7')) days = 5;
       }
-      rawB3 += days >= 5 ? ruleB3.fixedMark : (ruleB3.fixedMark * 0.8);
+      rawB3 += days >= 5 ? ruleB3.fixedMark : 2.0;
     });
     const scoreB3 = Math.min(ruleB3.maxMark, rawB3);
     scoreB += scoreB3;

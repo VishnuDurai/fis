@@ -4611,7 +4611,7 @@ export default function Appraisal({ auth }) {
                       <thead>
                         <tr style={{ background: '#f1f5f9', color: '#334155' }}>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Event</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Name of the Event / Topic</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Nature of work</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organizer</th>
                           <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s) [DD/MM/YY]</th>
@@ -4621,16 +4621,22 @@ export default function Appraisal({ auth }) {
                       <tbody>
                         {(!fpiDetails?.resource || fpiDetails.resource.length === 0) ? (
                           <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No resource person activities logged for {viewingAppraisal?.academic_year || academicYear}</td></tr>
-                        ) : fpiDetails.resource.map((r, i) => (
-                          <tr key={i}>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.title, r.eventname, r.event_title, r.event_name, r.programme_name, r.topic) || (r.organizer ? `${getVal(r.actedas, r.role) || 'Resource Person'} @ ${r.organizer}` : 'Guest Session / Resource Activity')}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.actedas, r.natureofwork, r.role, r.work_type) || 'Resource Person'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{getVal(r.organizer, r.orgby, r.org, r.conducting_body) || 'External Institution'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.eventdate || (r.from_date ? (r.to_date ? `${r.from_date} to ${r.to_date}` : r.from_date) : (getVal(r.date) || 'N/A'))}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2 Pts</td>
-                          </tr>
-                        ))}
+                        ) : fpiDetails.resource.map((r, i) => {
+                          const eventTitle = getVal(r.title, r.topic, r.eventname, r.event_title, r.event_name, r.programme_name, r.type) || (r.organizer ? `${getVal(r.actedas, r.role) || 'Resource Person'} @ ${r.organizer}` : 'Guest Session / Resource Activity');
+                          const roleWork = getVal(r.actedas, r.natureofwork, r.role, r.work_type) || 'Resource Person / Speaker';
+                          const orgName = getVal(r.organizer, r.orgby, r.org, r.conducting_body) || 'External Institution';
+                          const dateStr = r.eventdate || (r.from_date ? ((r.to_date && r.to_date !== r.from_date) ? `${r.from_date} to ${r.to_date}` : r.from_date) : (getVal(r.date) || 'N/A'));
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{eventTitle}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{roleWork}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{orgName}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{dateStr}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>2 Pts</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
@@ -4662,20 +4668,29 @@ export default function Appraisal({ auth }) {
                         {(!fpiDetails?.interactions || fpiDetails.interactions.length === 0) ? (
                           <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No FDP/workshop participation logged in portal</td></tr>
                         ) : fpiDetails.interactions.map((it, i) => {
+                          const eventType = getVal(it.type, it.event_type, it.category) || 'FDP / Workshop';
+                          const titleStr = getVal(it.title, it.course_name, it.topic, it.programme_name) || 'N/A';
+                          const orgStr = getVal(it.organizer, it.organisation, it.org, it.conducting_body) || 'N/A';
                           let days = 1;
                           if (it.from_date && it.to_date) {
-                            const d1 = new Date(it.from_date);
-                            const d2 = new Date(it.to_date);
-                            days = Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+                            const d1 = getAcademicYearFromDateStr(it.from_date) ? new Date(it.from_date) : null;
+                            const d2 = getAcademicYearFromDateStr(it.to_date) ? new Date(it.to_date) : null;
+                            if (d1 && d2 && d2 >= d1) {
+                              days = Math.max(1, Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+                            }
+                          } else if (it.duration || it.duration_weeks) {
+                            const dur = String(it.duration || it.duration_weeks).toLowerCase();
+                            if (dur.includes('5') || dur.includes('week') || dur.includes('6') || dur.includes('7')) days = 5;
                           }
+                          const dateStr = it.from_date ? ((it.to_date && it.to_date !== it.from_date) ? `${it.from_date} to ${it.to_date}` : it.from_date) : (getVal(it.date) || 'N/A');
                           return (
                             <tr key={i}>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.type || 'FDP / Workshop'}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.title || 'N/A'}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.organizer || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{eventType}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{titleStr}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{orgStr}</td>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{days}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.from_date ? (it.to_date ? `${it.from_date} to ${it.to_date}` : it.from_date) : (it.date || 'N/A')}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{dateStr}</td>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{days >= 5 ? '2.5 Pts' : '2 Pts'}</td>
                             </tr>
                           );
@@ -4748,20 +4763,26 @@ export default function Appraisal({ auth }) {
                         {(!fpiDetails?.events || fpiDetails.events.length === 0) ? (
                           <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No organized events logged in portal</td></tr>
                         ) : fpiDetails.events.map((ev, i) => {
+                          const eventTitle = getVal(ev.title, ev.event_name, ev.type, ev.programme_name, ev.name) || 'Organized Event / Program';
+                          const roleStr = getVal(ev.role, ev.actedas, ev.organizer) || 'Coordinator';
+                          const sponsorStr = getVal(ev.sponsership, ev.sponsor, ev.funding) || 'Self / College';
                           let days = 1;
                           if (ev.from_date && ev.to_date) {
-                            const d1 = new Date(ev.from_date);
-                            const d2 = new Date(ev.to_date);
-                            days = Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+                            const d1 = getAcademicYearFromDateStr(ev.from_date) ? new Date(ev.from_date) : null;
+                            const d2 = getAcademicYearFromDateStr(ev.to_date) ? new Date(ev.to_date) : null;
+                            if (d1 && d2 && d2 >= d1) {
+                              days = Math.max(1, Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+                            }
                           }
+                          const dateStr = ev.from_date ? ((ev.to_date && ev.to_date !== ev.from_date) ? `${ev.from_date} to ${ev.to_date}` : ev.from_date) : (getVal(ev.eventdate, ev.date_con, ev.date) || 'N/A');
                           return (
                             <tr key={i}>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.title || 'N/A'}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.role || ev.organizer || 'Coordinator'}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.sponsership || 'SREC'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{eventTitle}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{roleStr}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sponsorStr}</td>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{days}</td>
-                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{ev.from_date ? (ev.to_date ? `${ev.from_date} to ${ev.to_date}` : ev.from_date) : (ev.date || 'N/A')}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{dateStr}</td>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>4 Pts</td>
                             </tr>
                           );
