@@ -245,6 +245,25 @@ export default function Appraisal({ auth }) {
       return;
     }
 
+    // For revision: if HOD entered deviated scores, enforce that remarks are filled (already checked above)
+    if (actionType === 'revision' && (app.status === 'Submitted' || auth.role === 'dept_admin' || auth.isHod)) {
+      const facA = parseFloat(app.part_a_score) || 0;
+      const facB = parseFloat(app.part_b_score) || 0;
+      const facC = parseFloat(app.part_c_score) || 0;
+      const facD = parseFloat(app.part_d_score) || 0;
+
+      const hodA = actionScores.part_a !== '' ? parseFloat(actionScores.part_a) : facA;
+      const hodB = actionScores.part_b !== '' ? parseFloat(actionScores.part_b) : facB;
+      const hodC = actionScores.part_c !== '' ? parseFloat(actionScores.part_c) : facC;
+      const hodD = actionScores.part_d !== '' ? parseFloat(actionScores.part_d) : facD;
+
+      const isDeviated = hodA !== facA || hodB !== facB || hodC !== facC || hodD !== facD;
+      if (isDeviated && !actionScores.remarks.trim()) {
+        alert('Score deviation detected! Please enter the reason for score deviation before sending revision request.');
+        return;
+      }
+    }
+
     if (actionType === 'approve' && (app.status === 'Submitted' || auth.role === 'dept_admin' || auth.isHod)) {
       const facA = parseFloat(app.part_a_score) || 0;
       const facB = parseFloat(app.part_b_score) || 0;
@@ -4124,20 +4143,112 @@ export default function Appraisal({ auth }) {
                   );
                 })()}
 
-                {actionType === 'revision' && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#991b1b' }}>
-                      Reason for Requested Revision (Mandatory feedback for faculty) *
-                    </label>
-                    <textarea
-                      className="form-control"
-                      rows={3}
-                      placeholder="Specify required corrections or missing documents (e.g. Please upload publication proof for Part C)..."
-                      value={actionScores.remarks}
-                      onChange={(e) => setActionScores(prev => ({ ...prev, remarks: e.target.value }))}
-                    />
-                  </div>
-                )}
+                {actionType === 'revision' && (() => {
+                  const facA = parseFloat(actionModalAppraisal.part_a_score) || 0;
+                  const facB = parseFloat(actionModalAppraisal.part_b_score) || 0;
+                  const facC = parseFloat(actionModalAppraisal.part_c_score) || 0;
+                  const facD = parseFloat(actionModalAppraisal.part_d_score) || 0;
+                  const facTotal = facA + facB + facC + facD;
+
+                  const curA = actionScores.part_a !== '' ? parseFloat(actionScores.part_a) : facA;
+                  const curB = actionScores.part_b !== '' ? parseFloat(actionScores.part_b) : facB;
+                  const curC = actionScores.part_c !== '' ? parseFloat(actionScores.part_c) : facC;
+                  const curD = actionScores.part_d !== '' ? parseFloat(actionScores.part_d) : facD;
+                  const curTotal = (isNaN(curA)?0:curA)+(isNaN(curB)?0:curB)+(isNaN(curC)?0:curC)+(isNaN(curD)?0:curD);
+
+                  const isDeviated = curA !== facA || curB !== facB || curC !== facC || curD !== facD;
+
+                  return (
+                    <div>
+                      <p style={{ fontSize: '0.84rem', color: '#475569', marginBottom: '12px' }}>
+                        Optionally enter HOD-evaluated scores per part. If scores differ from faculty entries, a deviation reason will be recorded.
+                      </p>
+
+                      {isDeviated && (
+                        <div style={{ background: '#fffbe6', border: '1.5px solid #ffe58f', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', color: '#92400e', fontSize: '0.83rem' }}>
+                          <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ⚠️ Score Deviation Detected
+                          </div>
+                          <div style={{ marginTop: '4px' }}>
+                            Faculty Score: <strong>{facTotal}</strong> → HOD Evaluated Score: <strong>{curTotal}</strong>
+                          </div>
+                          <div style={{ marginTop: '4px', fontStyle: 'italic', color: '#b45309', fontWeight: 700 }}>
+                            * Reason for deviation is mandatory below.
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                            Part A Score (/60) <span style={{ color: '#64748b', fontWeight: 400 }}>— Faculty: {facA}</span>
+                          </label>
+                          <input
+                            type="number" min="0" max="60"
+                            className="form-control"
+                            placeholder={String(facA)}
+                            value={actionScores.part_a}
+                            onChange={(e) => setActionScores(prev => ({ ...prev, part_a: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                            Part B Score (/40) <span style={{ color: '#64748b', fontWeight: 400 }}>— Faculty: {facB}</span>
+                          </label>
+                          <input
+                            type="number" min="0" max="40"
+                            className="form-control"
+                            placeholder={String(facB)}
+                            value={actionScores.part_b}
+                            onChange={(e) => setActionScores(prev => ({ ...prev, part_b: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                            Part C Score (/80) <span style={{ color: '#64748b', fontWeight: 400 }}>— Faculty: {facC}</span>
+                          </label>
+                          <input
+                            type="number" min="0" max="80"
+                            className="form-control"
+                            placeholder={String(facC)}
+                            value={actionScores.part_c}
+                            onChange={(e) => setActionScores(prev => ({ ...prev, part_c: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                            Part D Score (/20) <span style={{ color: '#64748b', fontWeight: 400 }}>— Faculty: {facD}</span>
+                          </label>
+                          <input
+                            type="number" min="0" max="20"
+                            className="form-control"
+                            placeholder={String(facD)}
+                            value={actionScores.part_d}
+                            onChange={(e) => setActionScores(prev => ({ ...prev, part_d: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#991b1b' }}>
+                          {isDeviated
+                            ? 'Reason for Score Deviation & Revision Request (Mandatory) *'
+                            : 'Reason for Requested Revision (Mandatory feedback for faculty) *'}
+                        </label>
+                        <textarea
+                          className="form-control"
+                          rows={3}
+                          placeholder={isDeviated
+                            ? "Explain the score adjustment and what corrections are needed (e.g. Reduced Part C score — publication proof missing)..."
+                            : "Specify required corrections or missing documents (e.g. Please upload publication proof for Part C)..."}
+                          value={actionScores.remarks}
+                          onChange={(e) => setActionScores(prev => ({ ...prev, remarks: e.target.value }))}
+                          style={{ borderColor: !actionScores.remarks.trim() ? '#dc2626' : undefined }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                   <button type="button" className="btn btn-secondary" onClick={() => { setActionModalAppraisal(null); setActionType(null); }}>
