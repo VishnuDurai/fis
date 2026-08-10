@@ -2089,31 +2089,36 @@ export function matchesTargetAcademicYear(row, targetAy) {
   const cleanTarget = targetAy.replace(/\s+/g, '').trim();
 
   // 1. Explicit academic_year column on record
-  if (row.academic_year && String(row.academic_year).trim()) {
+  if (row.academic_year && String(row.academic_year).trim() && String(row.academic_year).trim().toLowerCase() !== 'n/a') {
     const recAy = String(row.academic_year).replace(/\s+/g, '').trim();
     return recAy === cleanTarget;
   }
 
-  // 2. Comprehensive check of event/activity dates FIRST, then record timestamps LAST
-  const dateFields = [
+  // 2. Primary event date fields (when the event actually occurred)
+  const primaryDateFields = [
     row.from_date, row.eventdate, row.date_con, row.dateofpublication,
     row.month_pub, row.to_date, row.sanctioned_date, row.registered_date,
-    row.launch_date, row.year, row.date, row.created_at
+    row.launch_date, row.year
   ];
 
-  let hasValidDate = false;
-  for (const d of dateFields) {
+  for (const d of primaryDateFields) {
     if (d && String(d).trim().toLowerCase() !== 'n/a' && String(d).trim() !== '') {
-      hasValidDate = true;
       const rowAy = getAcademicYearFromDateStr(d);
-      if (rowAy && rowAy === cleanTarget) {
-        return true;
+      if (rowAy) {
+        return rowAy === cleanTarget;
       }
     }
   }
 
-  if (hasValidDate) {
-    return false;
+  // 3. Fallback entry/system timestamp fields ONLY if no primary event date exists
+  const fallbackDateFields = [row.date, row.created_at];
+  for (const d of fallbackDateFields) {
+    if (d && String(d).trim().toLowerCase() !== 'n/a' && String(d).trim() !== '') {
+      const rowAy = getAcademicYearFromDateStr(d);
+      if (rowAy) {
+        return rowAy === cleanTarget;
+      }
+    }
   }
 
   return false;
