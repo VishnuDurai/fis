@@ -2020,10 +2020,15 @@ router.put('/appraisal/:id', authenticateToken, (req, res) => {
 });
 
 // Helper to parse date string into Academic Year (e.g. '2025-2026')
-function getAcademicYearFromDateStr(dateStr) {
+export function getAcademicYearFromDateStr(dateStr) {
   if (!dateStr) return null;
   const str = String(dateStr).trim();
   if (!str || str.toLowerCase() === 'n/a') return null;
+
+  // Direct Academic Year format like "2025-2026" or "2025 - 2026"
+  if (/^\d{4}\s*-\s*\d{4}$/.test(str)) {
+    return str.replace(/\s+/g, '').trim();
+  }
 
   let year = null;
   let month = null;
@@ -2044,10 +2049,30 @@ function getAcademicYearFromDateStr(dateStr) {
     year = parseInt(str, 10);
     month = 6;
   } else {
-    const d = new Date(str);
-    if (!isNaN(d.getTime())) {
-      year = d.getFullYear();
-      month = d.getMonth();
+    // Try matching month name & 4-digit year like "October 2025", "Feb 2026", "2025/10"
+    const mYear = str.match(/\b(20\d{2})\b/);
+    if (mYear) {
+      year = parseInt(mYear[1], 10);
+      const lower = str.toLowerCase();
+      if (lower.includes('jan')) month = 0;
+      else if (lower.includes('feb')) month = 1;
+      else if (lower.includes('mar')) month = 2;
+      else if (lower.includes('apr')) month = 3;
+      else if (lower.includes('may')) month = 4;
+      else if (lower.includes('jun')) month = 5;
+      else if (lower.includes('jul')) month = 6;
+      else if (lower.includes('aug')) month = 7;
+      else if (lower.includes('sep')) month = 8;
+      else if (lower.includes('oct')) month = 9;
+      else if (lower.includes('nov')) month = 10;
+      else if (lower.includes('dec')) month = 11;
+      else month = 6;
+    } else {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        year = d.getFullYear();
+        month = d.getMonth();
+      }
     }
   }
 
@@ -2060,23 +2085,26 @@ function getAcademicYearFromDateStr(dateStr) {
   }
 }
 
-function matchesTargetAcademicYear(row, targetAy) {
+export function matchesTargetAcademicYear(row, targetAy) {
   if (!targetAy || !targetAy.trim()) return true;
   const cleanTarget = targetAy.replace(/\s+/g, '').trim();
 
-  if (row.academic_year) {
+  // 1. Explicit academic_year column on record
+  if (row.academic_year && String(row.academic_year).trim()) {
     const recAy = String(row.academic_year).replace(/\s+/g, '').trim();
-    if (recAy === cleanTarget) return true;
+    return recAy === cleanTarget;
   }
 
+  // 2. Comprehensive check of date/month/year fields across all activity tables
   const dateFields = [
-    row.from_date, row.eventdate, row.date, row.dateofpublication,
-    row.to_date, row.registered_date, row.sanctioned_date, row.created_at
+    row.month_pub, row.date_con, row.dateofpublication, row.year,
+    row.from_date, row.eventdate, row.date, row.to_date,
+    row.registered_date, row.sanctioned_date, row.created_at, row.launch_date
   ];
 
   let hasValidDate = false;
   for (const d of dateFields) {
-    if (d && String(d).trim().toLowerCase() !== 'n/a') {
+    if (d && String(d).trim().toLowerCase() !== 'n/a' && String(d).trim() !== '') {
       hasValidDate = true;
       const rowAy = getAcademicYearFromDateStr(d);
       if (rowAy && rowAy === cleanTarget) {
@@ -2085,8 +2113,8 @@ function matchesTargetAcademicYear(row, targetAy) {
     }
   }
 
-  if (!hasValidDate && !row.academic_year) {
-    return true;
+  if (hasValidDate) {
+    return false;
   }
 
   return false;

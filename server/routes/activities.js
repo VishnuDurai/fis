@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import db from '../db.js';
 import { authenticateToken } from './auth.js';
+import { matchesTargetAcademicYear } from './faculty.js';
 
 import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
@@ -218,11 +219,16 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
 
     db.all('SELECT * FROM departments', [], (dErr, deptsList) => {
       fetchAllDeptHistory((historyMap) => {
-        const processedRows = (rows || []).map(row => {
+        let processedRows = (rows || []).map(row => {
           const rowDate = row.date_con || row.awa_date || row.from_date || row.data_of_exam || row.sanctioned_date || row.dateofpublication || row.generation || row.date || row.created_at;
           const resolvedDept = getStaffDeptAtDate(row.staff_id, rowDate, row.Department, historyMap);
           return { ...row, Department: resolvedDept };
         });
+
+        const targetAy = req.query.academicYear || req.query.academic_year;
+        if (targetAy) {
+          processedRows = processedRows.filter(r => matchesTargetAcademicYear(r, targetAy));
+        }
 
         if (isDeptAdmin) {
           const targetDept = (req.user.department || '').trim();

@@ -606,42 +606,43 @@ export default function Appraisal({ auth }) {
 
   const fetchFpiSummary = async () => {
     try {
-      fetch(`${API_BASE_URL}/api/activities/interactions?staffId=${auth.staffId}`, {
+      const ayQuery = academicYear ? `&academicYear=${encodeURIComponent(academicYear)}` : '';
+      fetch(`${API_BASE_URL}/api/activities/interactions?staffId=${auth.staffId}${ayQuery}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setInteractionsList(data))
       .catch(err => console.error(err));
 
-      fetch(`${API_BASE_URL}/api/activities/responsibilities?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/responsibilities?staffId=${auth.staffId}${ayQuery}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setResponsibilitiesList(data))
       .catch(err => console.error(err));
 
-      fetch(`${API_BASE_URL}/api/activities/publications?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/publications?staffId=${auth.staffId}${ayQuery}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setPublicationsCount(data.length))
       .catch(err => console.error(err));
 
-      fetch(`${API_BASE_URL}/api/activities/books?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/books?staffId=${auth.staffId}${ayQuery}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setBooksCount(data.length))
       .catch(err => console.error(err));
 
-      fetch(`${API_BASE_URL}/api/activities/ipr?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/ipr?staffId=${auth.staffId}${ayQuery}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
       .then(data => setPatentsCount(data.length))
       .catch(err => console.error(err));
 
-      fetch(`${API_BASE_URL}/api/activities/funding?staffId=${auth.staffId}`, {
+      fetch(`${API_BASE_URL}/api/activities/funding?staffId=${auth.staffId}${ayQuery}`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       })
       .then(r => r.ok ? r.json() : [])
