@@ -275,6 +275,29 @@ export default function Appraisal({ auth }) {
     }, 100);
   };
 
+  const handleStartNewForm = () => {
+    setEditingAppraisalId(null);
+    setAcademicYear(getCurrentAcademicYear());
+    setCoursesTaught('');
+    setSelfAppraisalScore('');
+    setGoalsNextYear('');
+    setA1Rows([{ class_name: '', course: '', ict_tool: '', score: '' }]);
+    setA2Rows([{ class_name: '', course: '', title: '', platform: '', launch_date: '', link: '', score: '' }]);
+    setA3Rows([{ class_name: '', course: '', experiment: '', score: '' }]);
+    setA4Rows([{ class_name: '', course: '', mid_score: '', end_score: '', avg_score: '' }]);
+    setA5Rows([{ class_name: '', course: '', odd_pass: '', even_pass: '', avg_pass: '' }]);
+    setA6Rows([{ course_name: '', industry: '', duration: '', score: '' }]);
+    setA7Rows([{ competition: '', team_members: '', project_title: '', position: '', score: '' }]);
+    setB4Rows([{ course_name: '', academic_year: getCurrentAcademicYear(), details: '', score: '' }]);
+    setB7Rows([{ name: '', company: '', duration: '', score: '' }]);
+    setC3Rows([{ activity_name: '', event_type: '', location: '', date: '', score: '' }]);
+    setViewingAppraisal(null);
+    setShowAddForm(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    }, 100);
+  };
+
   // Automatically sync academic_year in b4Rows whenever top-level academicYear changes
   useEffect(() => {
     if (academicYear) {
@@ -2247,6 +2270,40 @@ export default function Appraisal({ auth }) {
                 const myAppraisal = appraisals.find(a => a.staff_id === auth.staffId) || lastSubmittedAppraisal;
                 return (
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (showAddForm && !editingAppraisalId) {
+                          setShowAddForm(false);
+                        } else {
+                          handleStartNewForm();
+                        }
+                      }}
+                      style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      {showAddForm && !editingAppraisalId ? <X size={16} /> : <Plus size={16} />}
+                      {showAddForm && !editingAppraisalId ? 'Close Form' : 'Fill New FPI Form'}
+                    </button>
+
+                    {myAppraisal && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          if (showAddForm && editingAppraisalId) {
+                            setShowAddForm(false);
+                            setEditingAppraisalId(null);
+                          } else {
+                            handleStartEdit(myAppraisal);
+                          }
+                        }}
+                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#f0fdf4', color: '#166534', border: '1.5px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Edit size={16} /> {showAddForm && editingAppraisalId ? 'Close Edit' : 'Edit FPI Form'}
+                      </button>
+                    )}
+
                     {myAppraisal && (
                       <button
                         type="button"
@@ -2257,25 +2314,6 @@ export default function Appraisal({ auth }) {
                         <Eye size={16} /> View Filled Appraisal Form
                       </button>
                     )}
-
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => {
-                        if (showAddForm) {
-                          setShowAddForm(false);
-                          setEditingAppraisalId(null);
-                        } else if (myAppraisal) {
-                          handleStartEdit(myAppraisal);
-                        } else {
-                          setShowAddForm(true);
-                        }
-                      }}
-                      style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      {showAddForm ? <X size={16} /> : myAppraisal ? <Edit size={16} /> : <Plus size={16} />}
-                      {showAddForm ? 'Close Form' : myAppraisal ? 'Edit FPI Form' : 'Fill FPI Form'}
-                    </button>
                   </div>
                 );
               })()}
