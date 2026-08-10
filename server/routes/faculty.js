@@ -1432,7 +1432,7 @@ const sendAppraisalStatusEmail = (appraisalId, status, details = {}) => {
 
 // 11b. PUT HOD Appraisal Evaluation & Approval
 router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
-  const isHod = req.user.isHod || req.user.role === 'dept_admin';
+  const isHod = req.user.isHod || req.user.role === 'dept_admin' || req.user.role === 'admin';
   if (!isHod) {
     return res.status(403).json({ error: 'Access denied: Only active Head of Department (HOD) or Department Admin can evaluate HOD appraisals.' });
   }

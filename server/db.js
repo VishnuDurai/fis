@@ -779,6 +779,31 @@ const createTables = async () => {
     }
   } catch (e) {}
 
+  // Seed sample pending appraisal forms if needed for testing and review
+  try {
+    const [subRows] = await pool.query("SELECT COUNT(*) as count FROM staff_appraisal WHERE status = 'Submitted'");
+    if (subRows[0].count === 0) {
+      await pool.query(`
+        INSERT INTO staff_appraisal 
+          (staff_id, academic_year, self_appraisal_score, part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score, publications_count, books_count, patents_count, grants_amount, status, submitted_at)
+        VALUES 
+          ('TE0014', '2025-2026', '165 / 200', '50', '35', '60', '20', '165', 3, 1, 1, '₹ 2,50,000', 'Submitted', CURRENT_TIMESTAMP),
+          ('TE0015', '2025-2026', '145 / 200', '45', '30', '50', '20', '145', 2, 0, 0, '₹ 1,00,000', 'Submitted', CURRENT_TIMESTAMP)
+      `);
+    }
+    const [hodRows] = await pool.query("SELECT COUNT(*) as count FROM staff_appraisal WHERE status = 'HOD Approved'");
+    if (hodRows[0].count === 0) {
+      await pool.query(`
+        INSERT INTO staff_appraisal 
+          (staff_id, academic_year, self_appraisal_score, part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score, hod_part_a_score, hod_part_b_score, hod_part_c_score, hod_part_d_score, hod_total_score, hod_remarks, status, submitted_at, hod_approved_at)
+        VALUES 
+          ('TE0011', '2025-2026', '180 / 200', '55', '35', '70', '20', '180', '55', '35', '70', '20', '180', 'Excellent performance in teaching, research, and institutional activities.', 'HOD Approved', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+    }
+  } catch (e) {
+    console.error('Seed pending appraisals error:', e.message);
+  }
+
   // Auto-generate/update Database_Schema.docx Word document
   exec('python3 ../scripts/generate_schema_doc.py', (err) => {
     if (!err) {

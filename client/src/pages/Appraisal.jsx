@@ -207,6 +207,100 @@ export default function Appraisal({ auth }) {
   const [draftSavedAt, setDraftSavedAt] = useState(null);
   const [draftId, setDraftId] = useState(null);
 
+  // Interactive Approval & Revision Request Modal State for Pending Forms Table
+  const [actionModalAppraisal, setActionModalAppraisal] = useState(null);
+  const [actionType, setActionType] = useState(null); // 'approve' | 'revision'
+  const [actionScores, setActionScores] = useState({ part_a: '', part_b: '', part_c: '', part_d: '', remarks: '' });
+
+  const handleOpenApproveModal = (app) => {
+    setActionModalAppraisal(app);
+    setActionType('approve');
+    setActionScores({
+      part_a: app.hod_part_a_score || app.part_a_score || '',
+      part_b: app.hod_part_b_score || app.part_b_score || '',
+      part_c: app.hod_part_c_score || app.part_c_score || '',
+      part_d: app.hod_part_d_score || app.part_d_score || '',
+      remarks: app.hod_remarks || app.final_remarks || ''
+    });
+  };
+
+  const handleOpenRevisionModal = (app) => {
+    setActionModalAppraisal(app);
+    setActionType('revision');
+    setActionScores({
+      part_a: app.hod_part_a_score || app.part_a_score || '',
+      part_b: app.hod_part_b_score || app.part_b_score || '',
+      part_c: app.hod_part_c_score || app.part_c_score || '',
+      part_d: app.hod_part_d_score || app.part_d_score || '',
+      remarks: ''
+    });
+  };
+
+  const handleConfirmActionSubmit = async () => {
+    if (!actionModalAppraisal || !actionType) return;
+    const app = actionModalAppraisal;
+    
+    if (actionType === 'revision' && !actionScores.remarks.trim()) {
+      alert('Please enter revision remarks explaining the reason for requested revision.');
+      return;
+    }
+
+    if (app.status === 'Submitted' || (auth.role === 'dept_admin' || auth.isHod)) {
+      setHodScores({
+        hod_part_a_score: actionScores.part_a,
+        hod_part_b_score: actionScores.part_b,
+        hod_part_c_score: actionScores.part_c,
+        hod_part_d_score: actionScores.part_d,
+        hod_remarks: actionScores.remarks
+      });
+      await handleHodApproveSubmit(app.id, actionType);
+    } else {
+      setFinalScores(prev => ({
+        ...prev,
+        [app.id]: {
+          part_a: actionScores.part_a,
+          part_b: actionScores.part_b,
+          part_c: actionScores.part_c,
+          part_d: actionScores.part_d,
+          remarks: actionScores.remarks
+        }
+      }));
+      await handleFinalApproveSubmit({ ...app, id: app.id }, actionType);
+    }
+    setActionModalAppraisal(null);
+    setActionType(null);
+  };
+
+  // Filter pending appraisals for Table View across HOD, Principal, HR, and System Admin
+  const pendingAppraisalsForTable = useMemo(() => {
+    return appraisals.filter(app => {
+      let isPending = false;
+      if (auth.role === 'admin') {
+        isPending = app.status === 'Submitted' || app.status === 'HOD Approved';
+      } else if (isAdminOrHR) {
+        isPending = app.status === 'HOD Approved';
+      } else if (isDeptAdmin) {
+        isPending = app.status === 'Submitted';
+      }
+      
+      if (!isPending) return false;
+
+      if (selectedDeptFilter && app.Department && app.Department !== selectedDeptFilter) {
+        return false;
+      }
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchName = (app.staff_name || app.Name || '').toLowerCase().includes(q);
+        const matchId = (app.staff_id || '').toLowerCase().includes(q);
+        const matchDept = (app.Department || '').toLowerCase().includes(q);
+        const matchDesig = (app.Designation || '').toLowerCase().includes(q);
+        if (!matchName && !matchId && !matchDept && !matchDesig) return false;
+      }
+
+      return true;
+    });
+  }, [appraisals, auth, isAdminOrHR, isDeptAdmin, selectedDeptFilter, searchQuery]);
+
   const getVal = (...args) => {
     for (const a of args) {
       if (a !== undefined && a !== null) {
@@ -3768,6 +3862,218 @@ export default function Appraisal({ auth }) {
                       Clear Search
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PENDING APPRAISAL FORMS REVIEW TABLE (HOD, PRINCIPAL, SYSTEM ADMIN PORTALS) */}
+          {(isAdminOrHR || isDeptAdmin || auth.role === 'admin') && (
+            <div className="card" style={{ marginBottom: '28px', padding: '20px', borderRadius: '12px', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileCheck size={20} style={{ color: 'hsl(var(--primary))' }} />
+                    Appraisal Forms Pending Review ({pendingAppraisalsForTable.length})
+                  </h4>
+                  <p style={{ fontSize: '0.83rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                    {auth.role === 'admin'
+                      ? 'System Admin Portal: Review, evaluate scores across parts, view full appraisal forms, approve, or request revisions.'
+                      : isAdminOrHR
+                      ? 'Principal & HR Portal: Review forwarded forms, evaluate total marks across parts, approve, or request revisions.'
+                      : 'HOD Portal: Review department appraisal forms, evaluate total marks across parts, approve, or request revisions.'}
+                  </p>
+                </div>
+              </div>
+
+              {pendingAppraisalsForTable.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', color: '#64748b', fontSize: '0.9rem' }}>
+                  ✨ No appraisal forms are currently pending review matching your criteria.
+                </div>
+              ) : (
+                <div className="table-container" style={{ overflowX: 'auto' }}>
+                  <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
+                        <th style={{ padding: '12px 14px', fontWeight: 800 }}>Staff ID</th>
+                        <th style={{ padding: '12px 14px', fontWeight: 800 }}>Faculty Name</th>
+                        <th style={{ padding: '12px 14px', fontWeight: 800 }}>Total Marks Across Parts</th>
+                        <th style={{ padding: '12px 14px', fontWeight: 800, textAlign: 'center' }}>View Full Form</th>
+                        <th style={{ padding: '12px 14px', fontWeight: 800, textAlign: 'center' }}>Approve</th>
+                        <th style={{ padding: '12px 14px', fontWeight: 800, textAlign: 'center' }}>Request Revision</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingAppraisalsForTable.map((app) => {
+                        const partA = app.hod_part_a_score !== null && app.hod_part_a_score !== undefined ? app.hod_part_a_score : (app.part_a_score || 0);
+                        const partB = app.hod_part_b_score !== null && app.hod_part_b_score !== undefined ? app.hod_part_b_score : (app.part_b_score || 0);
+                        const partC = app.hod_part_c_score !== null && app.hod_part_c_score !== undefined ? app.hod_part_c_score : (app.part_c_score || 0);
+                        const partD = app.hod_part_d_score !== null && app.hod_part_d_score !== undefined ? app.hod_part_d_score : (app.part_d_score || 0);
+                        const calculatedTotal = (parseFloat(partA) || 0) + (parseFloat(partB) || 0) + (parseFloat(partC) || 0) + (parseFloat(partD) || 0);
+                        const totalScore = app.hod_total_score || app.final_total_score || app.total_fpi_score || calculatedTotal;
+
+                        return (
+                          <tr key={app.id} style={{ borderBottom: '1px solid #e2e8f0', background: app.status === 'HOD Approved' ? '#f0f9ff' : '#ffffff' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a', verticalAlign: 'middle' }}>
+                              {app.staff_id}
+                            </td>
+                            <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
+                                {app.staff_name || app.Name || 'Faculty Member'}
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                {app.Designation || 'Faculty'} — {app.Department || 'N/A'}
+                              </div>
+                              <span className="badge" style={{
+                                marginTop: '4px',
+                                display: 'inline-block',
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                background: app.status === 'HOD Approved' ? '#e0f2fe' : '#fef3c7',
+                                color: app.status === 'HOD Approved' ? '#0369a1' : '#92400e',
+                                fontWeight: 700
+                              }}>
+                                {app.status === 'HOD Approved' ? '⏳ Pending Executive Approval' : '⏳ Pending HOD Review'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                                <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                  Part A: {partA}/60
+                                </span>
+                                <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                  Part B: {partB}/40
+                                </span>
+                                <span style={{ background: '#f0fdf4', color: '#166534', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                  Part C: {partC}/80
+                                </span>
+                                <span style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                  Part D: {partD}/20
+                                </span>
+                              </div>
+                              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#15803d' }}>
+                                Total Marks: {totalScore} / 200
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => handleOpenViewModal(app)}
+                                style={{ padding: '7px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, borderRadius: '6px' }}
+                              >
+                                <Eye size={15} /> View Full Form
+                              </button>
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <button
+                                type="button"
+                                className="btn btn-success"
+                                onClick={() => handleOpenApproveModal(app)}
+                                style={{ padding: '7px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, background: '#16a34a', borderColor: '#16a34a', color: '#ffffff', borderRadius: '6px' }}
+                              >
+                                <CheckCircle size={15} /> Approve
+                              </button>
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => handleOpenRevisionModal(app)}
+                                style={{ padding: '7px 14px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, background: '#fff1f0', color: '#cf1322', borderColor: '#ffa39e', borderRadius: '6px' }}
+                              >
+                                <AlertCircle size={15} /> Request Revision
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ACTION CONFIRMATION MODAL FOR APPROVE / REVISION REQUEST */}
+          {actionModalAppraisal && actionType && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+              <div className="card" style={{ maxWidth: '540px', width: '100%', padding: '24px', borderRadius: '12px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: actionType === 'approve' ? '#15803d' : '#b91c1c', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {actionType === 'approve' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                    {actionType === 'approve' ? 'Approve Appraisal Form' : 'Request Appraisal Form Revision'}
+                  </h4>
+                  <button onClick={() => { setActionModalAppraisal(null); setActionType(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                  <div><strong>Staff ID:</strong> {actionModalAppraisal.staff_id}</div>
+                  <div><strong>Faculty Name:</strong> {actionModalAppraisal.staff_name || actionModalAppraisal.Name || 'N/A'}</div>
+                  <div><strong>Department:</strong> {actionModalAppraisal.Department || 'N/A'}</div>
+                  <div><strong>Current Status:</strong> {actionModalAppraisal.status}</div>
+                </div>
+
+                {actionType === 'approve' && (
+                  <div>
+                    <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '12px' }}>
+                      Confirm evaluation scores across parts (Part A, B, C, D) and add optional remarks:
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part A Score (/60)</label>
+                        <input type="number" className="form-control" value={actionScores.part_a} onChange={(e) => setActionScores(prev => ({ ...prev, part_a: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part B Score (/40)</label>
+                        <input type="number" className="form-control" value={actionScores.part_b} onChange={(e) => setActionScores(prev => ({ ...prev, part_b: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part C Score (/80)</label>
+                        <input type="number" className="form-control" value={actionScores.part_c} onChange={(e) => setActionScores(prev => ({ ...prev, part_c: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Part D Score (/20)</label>
+                        <input type="number" className="form-control" value={actionScores.part_d} onChange={(e) => setActionScores(prev => ({ ...prev, part_d: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>Approval Remarks / Recommendations</label>
+                      <input type="text" className="form-control" placeholder="e.g. Approved with distinction..." value={actionScores.remarks} onChange={(e) => setActionScores(prev => ({ ...prev, remarks: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+
+                {actionType === 'revision' && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#991b1b' }}>
+                      Reason for Requested Revision (Mandatory feedback for faculty) *
+                    </label>
+                    <textarea
+                      className="form-control"
+                      rows={3}
+                      placeholder="Specify required corrections or missing documents (e.g. Please upload publication proof for Part C)..."
+                      value={actionScores.remarks}
+                      onChange={(e) => setActionScores(prev => ({ ...prev, remarks: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => { setActionModalAppraisal(null); setActionType(null); }}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${actionType === 'approve' ? 'btn-success' : 'btn-danger'}`}
+                    onClick={handleConfirmActionSubmit}
+                    style={{ fontWeight: 800, padding: '8px 20px', background: actionType === 'approve' ? '#16a34a' : '#dc2626', borderColor: actionType === 'approve' ? '#16a34a' : '#dc2626', color: '#fff' }}
+                  >
+                    {actionType === 'approve' ? 'Confirm Approval' : 'Send Revision Request'}
+                  </button>
                 </div>
               </div>
             </div>
