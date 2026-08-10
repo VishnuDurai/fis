@@ -5839,7 +5839,7 @@ export default function Appraisal({ auth }) {
                 const hSigned = viewingAppraisal.hod_signed_at;
                 const pSigned = viewingAppraisal.principal_signed_at;
                 const isFaculty = auth.staffId === viewingAppraisal.staff_id;
-                const isHodOrAdmin = isAdminOrHR || auth.role === 'hod';
+                const isHodOrAdmin = isAdminOrHR || auth.role === 'hod' || auth.isHod || (auth.designation || '').toLowerCase().includes('hod') || (auth.designation || '').toLowerCase().includes('head');
                 const isPrincipal = auth.role === 'principal' || auth.designation?.toLowerCase().includes('principal');
                 const fmtDate = (iso) => {
                   if (!iso) return '';

@@ -9,6 +9,34 @@ import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } fro
 
 const router = express.Router();
 
+export const getHodDepartments = (user) => {
+  if (!user) return [];
+  const dept = (user.department || '').trim();
+  const desg = (user.designation || '').trim().toLowerCase();
+
+  const isFirstYearHead = desg.includes('head (i year') || 
+                          desg.includes('head - i year') || 
+                          desg.includes('head (first year') || 
+                          desg.includes('i year programme') ||
+                          desg.includes('first year programme') ||
+                          (desg.includes('head') && (desg.includes('i year') || desg.includes('first year') || desg.includes('s&h')));
+
+  if (isFirstYearHead || ['science and humanities', 'g.e - s&h', 'first year', 's&h'].includes(dept.toLowerCase())) {
+    const list = [
+      'Physics', 'PHY',
+      'Chemistry', 'CHEM',
+      'English', 'ENG', 'English (Tamil Discipline)',
+      'Maths', 'MATHS', 'Mathematics',
+      'Science and Humanities', 'G.E - S&H', 'First Year', 'S&H'
+    ];
+    if (dept && !list.map(l => l.toLowerCase()).includes(dept.toLowerCase())) {
+      list.push(dept);
+    }
+    return list;
+  }
+  return [dept];
+};
+
 // 0. GET Faculty Personal Stats
 router.get('/stats', authenticateToken, (req, res) => {
   const staffId = req.query.staffId || req.user.staffId;
@@ -160,39 +188,30 @@ router.get('/personal', authenticateToken, (req, res) => {
       sendEnriched(rows);
     });
   } else if (isDeptAdmin || isHod) {
-    let dept = (req.user.department || '').trim();
+    const targetDepts = getHodDepartments(req.user);
+    const lowerDepts = targetDepts.map(d => d.toLowerCase());
+    const placeholders = lowerDepts.map(() => '?').join(',');
 
-    const fetchDeptFaculty = (departmentName) => {
-      db.all(`
-        SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
-               a.prev_exp_academic_years, a.prev_exp_academic_months, 
-               a.prev_exp_industry_years, a.prev_exp_industry_months, 
-               a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
-               a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
-        FROM staff_personal p
-        JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
-        WHERE TRIM(LOWER(a.Department)) IN (
-          SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-          UNION
-          SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-          UNION
-          SELECT TRIM(LOWER(?))
-        )
-        ORDER BY p.staff_name ASC
-      `, [departmentName, departmentName, departmentName, departmentName, departmentName], (err, rows) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        sendEnriched(rows);
-      });
-    };
-
-    if (!dept) {
-      db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [req.user.staffId], (err, row) => {
-        dept = row ? (row.Department || '').trim() : '';
-        fetchDeptFaculty(dept);
-      });
-    } else {
-      fetchDeptFaculty(dept);
-    }
+    db.all(`
+      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.prev_exp_academic_years, a.prev_exp_academic_months, 
+             a.prev_exp_industry_years, a.prev_exp_industry_months, 
+             a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+      FROM staff_personal p
+      JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      WHERE LOWER(TRIM(a.Department)) IN (${placeholders})
+         OR LOWER(TRIM(a.Department)) IN (
+           SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+         )
+         OR LOWER(TRIM(a.Department)) IN (
+           SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+         )
+      ORDER BY p.staff_name ASC
+    `, [...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      sendEnriched(rows);
+    });
   } else if (isAdmin) {
     db.all(`
       SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
@@ -1159,7 +1178,6 @@ router.post('/appraisal/template', authenticateToken, async (req, res) => {
 router.get('/appraisals/pending-counts', authenticateToken, (req, res) => {
   const isDeptAdmin = req.user.role === 'dept_admin' || req.user.isHod;
   const isInstAdmin = ['admin', 'principal', 'hr'].includes(req.user.role) || req.user.isInstitutionalAdmin;
-  const dept = (req.user.department || '').trim();
 
   let pendingHodCount = 0;
   let pendingPrincipalHrCount = 0;
@@ -1169,23 +1187,26 @@ router.get('/appraisals/pending-counts', authenticateToken, (req, res) => {
       pendingPrincipalHrCount = pRow.count || 0;
     }
 
-    if (isDeptAdmin && dept) {
+    if (isDeptAdmin) {
+      const targetDepts = getHodDepartments(req.user);
+      const lowerDepts = targetDepts.map(d => d.toLowerCase());
+      const placeholders = lowerDepts.map(() => '?').join(',');
+
       db.get(`
         SELECT COUNT(*) as count
         FROM staff_appraisal sa
         JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
         WHERE sa.status = 'Submitted'
           AND (
-            TRIM(LOWER(a.Department)) = TRIM(LOWER(?))
-            OR LOWER(a.Department) LIKE CONCAT('%', LOWER(?), '%')
-            OR LOWER(?) LIKE CONCAT('%', LOWER(a.Department), '%')
-            OR TRIM(LOWER(a.Department)) IN (
-              SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-              UNION
-              SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
+            LOWER(TRIM(a.Department)) IN (${placeholders})
+            OR LOWER(TRIM(a.Department)) IN (
+              SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+            )
+            OR LOWER(TRIM(a.Department)) IN (
+              SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
             )
           )
-      `, [dept, dept, dept, dept, dept, dept, dept], (hErr, hRow) => {
+      `, [...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts], (hErr, hRow) => {
         if (!hErr && hRow) {
           pendingHodCount = hRow.count || 0;
         }
@@ -1260,22 +1281,27 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       res.json((rows || []).map(sanitizeAppraisalRow));
     });
   } else if (isDeptAdmin) {
-    const dept = (req.user.department || '').trim();
+    const targetDepts = getHodDepartments(req.user);
+    const lowerDepts = targetDepts.map(d => d.toLowerCase());
+    const placeholders = lowerDepts.map(() => '?').join(',');
+
     db.all(`
       SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
       FROM staff_appraisal sa
       JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(p.staff_id))
-      WHERE TRIM(LOWER(a.Department)) IN (
-        SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-        UNION
-        SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-        UNION
-        SELECT TRIM(LOWER(?))
+      WHERE (
+        LOWER(TRIM(a.Department)) IN (${placeholders})
+        OR LOWER(TRIM(a.Department)) IN (
+          SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+        )
+        OR LOWER(TRIM(a.Department)) IN (
+          SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+        )
       )
       AND sa.status != 'Draft'
       ORDER BY sa.id DESC
-    `, [dept, dept, dept, dept, dept], (err, rows) => {
+    `, [...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
       res.json((rows || []).map(sanitizeAppraisalRow));
     });
@@ -2629,38 +2655,29 @@ router.get('/responsibilities', authenticateToken, (req, res) => {
       res.json(rows);
     });
   } else if (isDeptAdmin || isHod) {
-    let dept = (req.user.department || '').trim();
+    const targetDepts = getHodDepartments(req.user);
+    const lowerDepts = targetDepts.map(d => d.toLowerCase());
+    const placeholders = lowerDepts.map(() => '?').join(',');
 
-    const fetchDeptResponsibilities = (departmentName) => {
-      db.all(`
-        SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, COALESCE(a.Department, r.department) as Department, a.Designation
-        FROM staff_responsibilities r
-        LEFT JOIN staff_academics a ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(a.staff_id))
-        LEFT JOIN staff_personal p ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(p.staff_id))
-        WHERE TRIM(LOWER(a.Department)) IN (
-          SELECT TRIM(LOWER(name)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-          UNION
-          SELECT TRIM(LOWER(acronym)) FROM departments WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR TRIM(LOWER(acronym)) = TRIM(LOWER(?))
-          UNION
-          SELECT TRIM(LOWER(?))
-        ) 
-        OR TRIM(LOWER(r.department)) = TRIM(LOWER(?))
-        OR LOWER(TRIM(r.assigned_by)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))
-        ORDER BY r.id DESC
-      `, [departmentName, departmentName, departmentName, departmentName, departmentName, departmentName, req.user.staffId], (err, rows) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        res.json(rows);
-      });
-    };
-
-    if (!dept) {
-      db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [req.user.staffId], (err, row) => {
-        dept = row ? (row.Department || '').trim() : '';
-        fetchDeptResponsibilities(dept);
-      });
-    } else {
-      fetchDeptResponsibilities(dept);
-    }
+    db.all(`
+      SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, COALESCE(a.Department, r.department) as Department, a.Designation
+      FROM staff_responsibilities r
+      LEFT JOIN staff_academics a ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_personal p ON LOWER(TRIM(r.staff_id)) = LOWER(TRIM(p.staff_id))
+      WHERE LOWER(TRIM(a.Department)) IN (${placeholders})
+         OR LOWER(TRIM(r.department)) IN (${placeholders})
+         OR LOWER(TRIM(a.Department)) IN (
+           SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+         )
+         OR LOWER(TRIM(a.Department)) IN (
+           SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
+         )
+         OR LOWER(TRIM(r.assigned_by)) IN (SELECT LOWER(TRIM(staff_name)) FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)))
+      ORDER BY r.id DESC
+    `, [...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts, ...lowerDepts, req.user.staffId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+      res.json(rows);
+    });
   } else if (isAdmin) {
     db.all(`
       SELECT r.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name, r.staff_id) as staff_name, a.Department, a.Designation
@@ -2739,14 +2756,10 @@ router.post('/responsibility', authenticateToken, (req, res) => {
   }
 
   function resolveDeptAndInsert(finalStaffId) {
-    if (req.user.department) {
-      doInsert(finalStaffId, req.user.department);
-    } else {
-      db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [req.user.staffId], (err, row) => {
-        const userDept = row ? (row.Department || 'N/A') : 'N/A';
-        doInsert(finalStaffId, userDept);
-      });
-    }
+    db.get('SELECT Department FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [finalStaffId], (err, row) => {
+      const targetDept = (row && row.Department) ? row.Department : (req.user.department || 'N/A');
+      doInsert(finalStaffId, targetDept);
+    });
   }
 });
 

@@ -351,7 +351,7 @@ export default function Responsibilities({ auth }) {
       {/* Real-time Search Filter Bar */}
       <div className="card" style={{ marginBottom: '24px', padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          {auth.role === 'admin' && (
+          {(auth.role === 'admin' || isHOD) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
                 Filter Department:
