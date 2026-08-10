@@ -207,8 +207,15 @@ export default function Login({ setAuth }) {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <img 
             src="/logo.png" 
-            alt="SREC Logo" 
-            style={{ height: '70px', marginBottom: '16px', objectFit: 'contain' }}
+            alt="SREC College Crest Logo" 
+            style={{ 
+              height: '84px', 
+              width: 'auto', 
+              marginBottom: '16px', 
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 6px 16px rgba(15, 88, 59, 0.22))',
+              transition: 'transform 0.3s ease'
+            }} 
           />
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f331f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             SREC FIS <span className="version-badge-anim" style={{ fontSize: '0.85rem' }}>V3.0</span>
