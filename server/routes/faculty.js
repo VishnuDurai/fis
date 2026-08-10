@@ -91,7 +91,7 @@ router.get('/cv-data', authenticateToken, (req, res) => {
   db.get('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
     db.get('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (aErr, academics) => {
       db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (eErr, education) => {
-        db.all('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (pubErr, publications) => {
+        db.all('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [staffId], (pubErr, publications) => {
           db.all('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (bErr, books) => {
             db.all('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (fErr, funding) => {
               db.all('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (iprErr, ipr) => {
@@ -2137,19 +2137,19 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
       });
     };
 
-    const publications = await getRows('SELECT * FROM staff_publication WHERE staff_id = ?');
-    const books = await getRows('SELECT * FROM staff_book_published WHERE staff_id = ?');
-    const resource = await getRows('SELECT * FROM staff_resource WHERE staff_id = ?');
-    const awards = await getRows('SELECT * FROM staff_award WHERE staff_id = ?');
-    const funding = await getRows('SELECT * FROM staff_funding WHERE staff_id = ?');
-    const ipr = await getRows('SELECT * FROM staff_ipr WHERE staff_id = ?');
-    const certs = await getRows('SELECT * FROM staff_certificate WHERE staff_id = ?');
-    const events = await getRows('SELECT * FROM staff_event_organized WHERE staff_id = ?');
-    const interactions = await getRows('SELECT * FROM staff_interaction WHERE staff_id = ?');
-    const scholars = await getRows('SELECT * FROM staff_scholars WHERE staff_id = ?');
-    const members = await getRows('SELECT * FROM staff_member WHERE staff_id = ?');
-    const seedMoney = await getRows('SELECT * FROM staff_seed_money WHERE staff_id = ?');
-    const responsibilities = await getRows('SELECT * FROM staff_responsibilities WHERE staff_id = ?');
+    const publications = await getRows('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const books = await getRows('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const resource = await getRows('SELECT * FROM staff_resource WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const awards = await getRows('SELECT * FROM staff_award WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const funding = await getRows('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const ipr = await getRows('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const certs = await getRows('SELECT * FROM staff_certificate WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const events = await getRows('SELECT * FROM staff_event_organized WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const interactions = await getRows('SELECT * FROM staff_interaction WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const scholars = await getRows('SELECT * FROM staff_scholars WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const members = await getRows('SELECT * FROM staff_member WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const seedMoney = await getRows('SELECT * FROM staff_seed_money WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const responsibilities = await getRows('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
 
     const supervisorRows = await getRows('SELECT * FROM staff_supervisor WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const academicRows = await getRows('SELECT Qualification, Designation FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
