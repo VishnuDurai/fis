@@ -116,7 +116,20 @@ export default function DynamicPagesAdmin({ auth }) {
     }
   };
 
-  const handleSelectSysPage = (pageKey) => {
+  const handleSelectSysPage = async (pageKey) => {
+    setSelectedSysPageKey(pageKey);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/system-page-configs/${pageKey}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (res.ok) {
+        const config = await res.json();
+        loadSysPageConfig(config);
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+    }
     const found = sysConfigs.find(c => c.page_key === pageKey);
     if (found) {
       loadSysPageConfig(found);

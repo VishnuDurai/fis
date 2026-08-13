@@ -19,6 +19,12 @@ const requireAuth = (req, res, next) => {
 };
 
 router.use(requireAuth);
+router.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 // Standard Default Page Configurations for all 19 System Pages
 export const DEFAULT_PAGE_CONFIGS = {
