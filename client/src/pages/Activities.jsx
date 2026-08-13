@@ -1070,8 +1070,19 @@ export default function Activities({ auth }) {
           <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>Create Entry</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
-              {config.fields
+              {(sysPageConfig && Array.isArray(sysPageConfig.fields) && sysPageConfig.fields.length > 0
+                ? sysPageConfig.fields.map(sf => {
+                    const baseF = (config.fields || []).find(bf => bf.name === sf.name) || {};
+                    return {
+                      ...baseF,
+                      ...sf,
+                      options: sf.options ? (Array.isArray(sf.options) ? sf.options : sf.options.split(',').map(s => s.trim())) : baseF.options
+                    };
+                  })
+                : config.fields
+              )
                 .filter(f => {
+                  if (f.status === 'hidden') return false;
                   if (type === 'publications') {
                     const selectedCat = formData.type_pub || 'Journal';
                     if (sysPageConfig && sysPageConfig.publication_type_constraints && sysPageConfig.publication_type_constraints[selectedCat]) {

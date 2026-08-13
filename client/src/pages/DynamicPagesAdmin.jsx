@@ -677,7 +677,7 @@ export default function DynamicPagesAdmin({ auth }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {sysFields.map((f, idx) => (
-                <div key={f.name || idx} style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1.5fr 40px', gap: '12px', alignItems: 'center' }}>
+                <div key={f.name || idx} style={{ background: (f.status === 'hidden') ? '#f1f5f9' : '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '1.8fr 1.2fr 1.2fr 1.2fr 1.5fr 40px', gap: '12px', alignItems: 'center', opacity: (f.status === 'hidden') ? 0.75 : 1 }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Field Label</label>
                     <input
@@ -705,16 +705,36 @@ export default function DynamicPagesAdmin({ auth }) {
                       <option value="text">Text</option>
                       <option value="number">Number</option>
                       <option value="date">Date</option>
+                      <option value="month">Month</option>
                       <option value="select">Dropdown Select</option>
                       <option value="multiselect">Multi-Select</option>
                       <option value="textarea">Textarea</option>
                       <option value="file">File Upload</option>
+                      <option value="email">Email</option>
+                      <option value="tel">Phone</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Visibility (Show/Hide)</label>
+                    <select
+                      className="form-control"
+                      style={{ fontWeight: 700, color: (f.status === 'hidden') ? '#64748b' : '#16a34a' }}
+                      value={f.status || 'active'}
+                      onChange={(e) => {
+                        const updated = [...sysFields];
+                        updated[idx].status = e.target.value;
+                        setSysFields(updated);
+                      }}
+                    >
+                      <option value="active">🟢 Visible (Show)</option>
+                      <option value="hidden">⚪ Hidden (Hide)</option>
                     </select>
                   </div>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Mandatory?</label>
                     <select
                       className="form-control"
+                      style={{ fontWeight: 700, color: f.required ? '#dc2626' : '#d97706' }}
                       value={f.required ? 'true' : 'false'}
                       onChange={(e) => {
                         const updated = [...sysFields];
@@ -722,8 +742,8 @@ export default function DynamicPagesAdmin({ auth }) {
                         setSysFields(updated);
                       }}
                     >
-                      <option value="true">Yes (Required)</option>
-                      <option value="false">No (Optional)</option>
+                      <option value="true">🔴 Required</option>
+                      <option value="false">🟡 Optional</option>
                     </select>
                   </div>
                   <div>
