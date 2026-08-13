@@ -2,7 +2,7 @@ import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Award, Users, Calendar, GraduationCap, Briefcase, ShieldAlert, FileText, CheckCircle2, Star, Layers, BarChart2
+  BookOpen, Award, Users, Calendar, GraduationCap, Briefcase, ShieldAlert, FileText, CheckCircle2, Star, Layers, BarChart2, FileCheck
 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 
@@ -587,26 +587,74 @@ export default function Home({ auth }) {
             </div>
           )}
 
-          {/* Quick Actions (Admin / Dept Admin) */}
-          {(auth.role === 'admin' || auth.role === 'dept_admin') && (
+          {/* Admin Controls */}
+          {(auth.role === 'admin' || auth.role === 'dept_admin' || auth.isHod || auth.isInstitutionalAdmin || (auth.designation || '').toLowerCase().includes('hod') || (auth.designation || '').toLowerCase().includes('head')) && (
             <div className="card" style={{ marginTop: '32px' }}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '16px' }}>Quick Operations</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-                <button className="btn btn-primary" onClick={() => navigate('/admin/faculty')}>
-                  <Users size={16} />
-                  Manage Faculty Profiles
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldAlert size={20} style={{ color: 'hsl(var(--primary))' }} />
+                    Admin Controls
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                    Quick access to administrative management modules, user permissions, dynamic page builders, and system actions.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                {(auth.role === 'admin' || auth.role === 'dept_admin') && (
+                  <button className="btn btn-primary" onClick={() => navigate('/admin/faculty')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
+                    <Users size={16} />
+                    Manage Faculty Profiles
+                  </button>
+                )}
+
                 {auth.role === 'admin' && (
                   <>
-                    <button className="btn btn-secondary" onClick={() => navigate('/admin/dept-admins')}>
+                    <button className="btn btn-secondary" onClick={() => navigate('/admin/dept-admins')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
                       <ShieldAlert size={16} />
                       Manage Dept Admins
                     </button>
-                    <button className="btn btn-secondary" onClick={() => navigate('/admin/system-admins')}>
+
+                    <button className="btn btn-secondary" onClick={() => navigate('/admin/system-admins')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
                       <ShieldAlert size={16} />
                       Manage System Admins
                     </button>
+
+                    <button className="btn btn-secondary" onClick={() => navigate('/admin/dynamic-pages')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
+                      <Layers size={16} />
+                      Dynamic Page Builder
+                    </button>
                   </>
+                )}
+
+                {(auth.role === 'admin' || auth.isInstitutionalAdmin || (auth.designation || '').toLowerCase().includes('principal') || (auth.designation || '').toLowerCase().includes('hr')) && (
+                  <button className="btn btn-secondary" onClick={() => navigate('/admin/clubs')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
+                    <Award size={16} />
+                    Clubs &amp; Incharges
+                  </button>
+                )}
+
+                {(auth.role === 'admin' || auth.role === 'dept_admin' || auth.isHod || (auth.designation || '').toLowerCase().includes('hod')) && (
+                  <button className="btn btn-secondary" onClick={() => navigate('/responsibilities')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
+                    <FileText size={16} />
+                    Assign Responsibilities
+                  </button>
+                )}
+
+                {(auth.role === 'admin' || auth.role === 'dept_admin' || auth.isHod || auth.isSupervisorEligible) && (
+                  <button className="btn btn-secondary" onClick={() => navigate('/appraisal')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
+                    <FileCheck size={16} />
+                    Appraisals Review
+                  </button>
+                )}
+
+                {(auth.role === 'admin' || auth.role === 'dept_admin') && (
+                  <button className="btn btn-secondary" onClick={() => navigate('/reports')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
+                    <BarChart2 size={16} />
+                    Reports &amp; Dossiers
+                  </button>
                 )}
               </div>
             </div>
