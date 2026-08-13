@@ -568,6 +568,18 @@ const createTables = async () => {
       to_dept VARCHAR(255) NOT NULL,
       transfer_date DATE NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // 37. system_page_configs
+    `CREATE TABLE IF NOT EXISTS system_page_configs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      page_key VARCHAR(100) UNIQUE NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      category VARCHAR(100) DEFAULT 'activity',
+      portals TEXT,
+      icon VARCHAR(100) DEFAULT 'FileText',
+      fields LONGTEXT,
+      publication_type_constraints LONGTEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`
   ];
 

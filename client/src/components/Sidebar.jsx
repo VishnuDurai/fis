@@ -23,6 +23,7 @@ const DYNAMIC_ICONS_MAP = {
 export default function Sidebar({ role, logout, auth }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [systemPageConfigs, setSystemPageConfigs] = useState([]);
   const [dynamicPages, setDynamicPages] = useState([]);
   const [pendingAppraisalsCount, setPendingAppraisalsCount] = useState(0);
 
@@ -30,9 +31,10 @@ export default function Sidebar({ role, logout, auth }) {
     if (auth && auth.token) {
       Promise.all([
         fetch(`${API_BASE_URL}/api/dynamic-pages`, { headers: { 'Authorization': `Bearer ${auth.token}` } }),
-        fetch(`${API_BASE_URL}/api/faculty/appraisals/pending-counts`, { headers: { 'Authorization': `Bearer ${auth.token}` } })
+        fetch(`${API_BASE_URL}/api/faculty/appraisals/pending-counts`, { headers: { 'Authorization': `Bearer ${auth.token}` } }),
+        fetch(`${API_BASE_URL}/api/system-page-configs`, { headers: { 'Authorization': `Bearer ${auth.token}` } })
       ])
-        .then(async ([pRes, cRes]) => {
+        .then(async ([pRes, cRes, sRes]) => {
           if (pRes.ok) {
             const data = await pRes.json();
             if (Array.isArray(data)) setDynamicPages(data);
@@ -40,6 +42,10 @@ export default function Sidebar({ role, logout, auth }) {
           if (cRes.ok) {
             const data = await cRes.json();
             if (data && typeof data.userPendingCount === 'number') setPendingAppraisalsCount(data.userPendingCount);
+          }
+          if (sRes && sRes.ok) {
+            const data = await sRes.json();
+            if (Array.isArray(data)) setSystemPageConfigs(data);
           }
         })
         .catch(err => console.error(err));

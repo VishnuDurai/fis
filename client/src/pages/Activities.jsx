@@ -648,6 +648,17 @@ export default function Activities({ auth }) {
   const [syncingCitations, setSyncingCitations] = useState(false);
   const [topPerformers, setTopPerformers] = useState(null);
 
+  const [sysPageConfig, setSysPageConfig] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/system-page-configs/${type}`, {
+      headers: { 'Authorization': `Bearer ${auth.token}` }
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setSysPageConfig(data); })
+      .catch(err => console.error('SysPageConfig fetch error:', err));
+  }, [type, auth]);
+
   const buildCitationMetricsUrl = () => {
     if (selectedFaculty) {
       return `${API_BASE_URL}/api/faculty/fetch-citation-metrics?staffId=${encodeURIComponent(selectedFaculty)}`;
@@ -1062,9 +1073,17 @@ export default function Activities({ auth }) {
               {config.fields
                 .filter(f => {
                   if (type === 'publications') {
-                    const isConf = (formData.type_pub || 'Journal') === 'Conference';
-                    if (f.journalOnly && isConf) return false;
-                    if (f.confOnly && !isConf) return false;
+                    const selectedCat = formData.type_pub || 'Journal';
+                    if (sysPageConfig && sysPageConfig.publication_type_constraints && sysPageConfig.publication_type_constraints[selectedCat]) {
+                      const catRules = sysPageConfig.publication_type_constraints[selectedCat];
+                      if (catRules.hiddenFields && catRules.hiddenFields.includes(f.name)) {
+                        return false;
+                      }
+                    } else {
+                      const isConf = selectedCat === 'Conference';
+                      if (f.journalOnly && isConf) return false;
+                      if (f.confOnly && !isConf) return false;
+                    }
                   }
                   return true;
                 })
@@ -1072,6 +1091,19 @@ export default function Activities({ auth }) {
                   let fieldLabel = f.label;
                   let selectOptions = f.options;
                   let fieldPlaceholder = `Enter ${f.label.toLowerCase()}`;
+                  let isRequired = f.required;
+
+                  if (type === 'publications') {
+                    const selectedCat = formData.type_pub || 'Journal';
+                    if (sysPageConfig && sysPageConfig.publication_type_constraints && sysPageConfig.publication_type_constraints[selectedCat]) {
+                      const catRules = sysPageConfig.publication_type_constraints[selectedCat];
+                      if (catRules.requiredFields && catRules.requiredFields.includes(f.name)) {
+                        isRequired = true;
+                      } else if (catRules.optionalFields && catRules.optionalFields.includes(f.name)) {
+                        isRequired = false;
+                      }
+                    }
+                  }
 
                   if (type === 'ipr') {
                     const isCopyright = (formData.ip_type || 'Patent') === 'Copyright';
@@ -1090,14 +1122,14 @@ export default function Activities({ auth }) {
                   return (
                   <div className="form-group" key={idx} style={{ gridColumn: f.type === 'textarea' ? 'span 2' : 'span 1' }}>
                     <label className="form-label">
-                      {fieldLabel} {!f.readOnly && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
+                      {fieldLabel} {isRequired && !f.readOnly && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
                     </label>
                     {f.name === 'club' && auth?.myClubs && auth.myClubs.length > 0 ? (
                       <select 
                         className="form-control" 
                         value={formData[f.name]} 
                         onChange={(e) => handleInputChange(f.name, e.target.value)}
-                        required={f.required}
+                        required={isRequired}
                       >
                         {auth.myClubs.map((clubName, i) => (
                           <option key={i} value={clubName}>{clubName}</option>
@@ -1115,7 +1147,7 @@ export default function Activities({ auth }) {
                         className="form-control" 
                         value={formData[f.name]} 
                         onChange={(e) => handleInputChange(f.name, e.target.value)}
-                        required={f.required}
+                        required={isRequired}
                       >
                         {(selectOptions || f.options).map((opt, i) => (
                           <option key={i} value={opt}>{opt}</option>
@@ -1127,7 +1159,7 @@ export default function Activities({ auth }) {
                         placeholder={fieldPlaceholder}
                         value={formData[f.name]} 
                         onChange={(e) => handleInputChange(f.name, e.target.value)}
-                        required={f.required}
+                        required={isRequired}
                         style={{ minHeight: '80px' }}
                       />
                     ) : f.name === 'sup_name' && formData['supervisor_type'] === 'Internal' ? (
@@ -1135,7 +1167,7 @@ export default function Activities({ auth }) {
                         className="form-control"
                         value={formData[f.name]}
                         onChange={(e) => handleInputChange(f.name, e.target.value)}
-                        required={f.required}
+                        required={isRequired}
                       >
                         <option value="">-- Select Internal Supervisor --</option>
                         {allFacultySupervisors.map((fac, idx) => (
@@ -1153,7 +1185,7 @@ export default function Activities({ auth }) {
                         value={formData[f.name]} 
                         onChange={(e) => handleInputChange(f.name, e.target.value)}
                         list={f.list}
-                        required={f.required}
+                        required={isRequired}
                         readOnly={f.readOnly}
                         style={f.readOnly ? { background: '#f1f5f9', cursor: 'not-allowed', fontWeight: 600, color: '#475569' } : {}}
                       />

@@ -107,12 +107,15 @@ app.use('/SREC', requireFileAuth, (req, res, next) => {
 app.use('/SREC', requireFileAuth, express.static(SREC_ROOT));
 app.use('/uploads', requireFileAuth, express.static(path.join(__dirname, 'uploads')));
 
+import systemPageConfigsRouter from './routes/systemPageConfigs.js';
+
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/faculty', facultyRouter);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/dynamic-pages', dynamicPagesRouter);
+app.use('/api/system-page-configs', systemPageConfigsRouter);
 
 import JSZip from 'jszip';
 

@@ -3728,6 +3728,493 @@ export default function Appraisal({ auth }) {
         </form>
       )}
 
+      {/* FPI APPRAISAL STATUS INFOGRAPHIC — Faculty Journey Pipeline */}
+      {!isAdminOrHR && (!isDeptAdmin || hodTab === 'my_appraisal') && !showAddForm && (() => {
+        const myAppraisal = appraisals.find(a => a.staff_id === auth.staffId) || appraisals[0] || null;
+        const currentStatus = myAppraisal?.status || null;
+
+        // Stage definitions for the FPI journey
+        const stages = [
+          {
+            id: 'draft',
+            label: 'Form Preparation',
+            sublabel: 'Fill & Review',
+            icon: '📝',
+            activeStatuses: [],
+            completedStatuses: ['Submitted', 'HOD Revision Requested', 'HOD Approved', 'Revision Requested', 'Final Approved'],
+            activeColor: '#f59e0b',
+            completedColor: '#16a34a',
+            pendingColor: '#cbd5e1',
+            description: 'Prepare and verify all FPI sections (Parts A–D) with auto-mapped portal data.',
+          },
+          {
+            id: 'submitted',
+            label: 'Faculty Submitted',
+            sublabel: 'Awaiting HOD',
+            icon: '📤',
+            activeStatuses: ['Submitted'],
+            completedStatuses: ['HOD Revision Requested', 'HOD Approved', 'Revision Requested', 'Final Approved'],
+            activeColor: '#2563eb',
+            completedColor: '#16a34a',
+            pendingColor: '#cbd5e1',
+            description: 'Form submitted by faculty. Awaiting HOD department evaluation.',
+          },
+          {
+            id: 'hod_review',
+            label: 'HOD Evaluation',
+            sublabel: 'Dept Head Review',
+            icon: '🔍',
+            activeStatuses: ['HOD Revision Requested'],
+            completedStatuses: ['HOD Approved', 'Revision Requested', 'Final Approved'],
+            activeColor: '#dc2626',
+            completedColor: '#16a34a',
+            pendingColor: '#cbd5e1',
+            description: 'HOD reviews and evaluates each appraisal section score.',
+            isRevisionStage: true,
+          },
+          {
+            id: 'hod_approved',
+            label: 'HOD Approved',
+            sublabel: 'Forwarded to Principal',
+            icon: '✅',
+            activeStatuses: ['HOD Approved'],
+            completedStatuses: ['Revision Requested', 'Final Approved'],
+            activeColor: '#0284c7',
+            completedColor: '#16a34a',
+            pendingColor: '#cbd5e1',
+            description: 'HOD approved and forwarded to Principal / HR for final review.',
+          },
+          {
+            id: 'principal_review',
+            label: 'Principal / HR Review',
+            sublabel: 'Final Evaluation',
+            icon: '🏛️',
+            activeStatuses: ['Revision Requested'],
+            completedStatuses: ['Final Approved'],
+            activeColor: '#dc2626',
+            completedColor: '#16a34a',
+            pendingColor: '#cbd5e1',
+            description: 'Principal or HR conducts the final appraisal review.',
+            isRevisionStage: true,
+          },
+          {
+            id: 'final_approved',
+            label: 'Final Approved',
+            sublabel: 'Appraisal Complete',
+            icon: '🎖️',
+            activeStatuses: [],
+            completedStatuses: ['Final Approved'],
+            activeColor: '#15803d',
+            completedColor: '#15803d',
+            pendingColor: '#cbd5e1',
+            description: 'Appraisal cycle complete. Performance ratings are finalised.',
+          },
+        ];
+
+        const getStageState = (stage) => {
+          if (!currentStatus) {
+            return stage.id === 'draft' ? 'active' : 'pending';
+          }
+          if (stage.completedStatuses.includes(currentStatus)) return 'completed';
+          if (stage.activeStatuses.includes(currentStatus)) return 'active';
+          // For draft stage: if status exists, it's completed
+          if (stage.id === 'draft' && currentStatus) return 'completed';
+          return 'pending';
+        };
+
+        const isRevisionActive = currentStatus === 'HOD Revision Requested' || currentStatus === 'Revision Requested';
+        const isFinalApproved = currentStatus === 'Final Approved';
+        const submittedAt = myAppraisal?.submitted_at;
+        const hodApprovedAt = myAppraisal?.hod_approved_at;
+        const finalApprovedAt = myAppraisal?.final_approved_at;
+
+        return (
+          <div style={{ marginBottom: '24px' }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0369a1 100%)',
+              borderRadius: '14px 14px 0 0',
+              padding: '18px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.4rem', backdropFilter: 'blur(4px)',
+                  border: '1.5px solid rgba(255,255,255,0.2)'
+                }}>📋</div>
+                <div>
+                  <div style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '0.3px' }}>
+                    FPI Appraisal Form — Submission Status
+                  </div>
+                  <div style={{ color: '#93c5fd', fontSize: '0.8rem', marginTop: '2px' }}>
+                    Faculty Performance Index · Academic Year {myAppraisal?.academic_year || 'Current'}
+                  </div>
+                </div>
+              </div>
+              <div style={{
+                background: isFinalApproved ? '#16a34a' : isRevisionActive ? '#dc2626' : currentStatus ? '#0284c7' : '#475569',
+                color: '#ffffff', padding: '6px 16px', borderRadius: '20px',
+                fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.5px',
+                border: '1.5px solid rgba(255,255,255,0.3)',
+                display: 'flex', alignItems: 'center', gap: '6px'
+              }}>
+                <span style={{
+                  width: '8px', height: '8px', borderRadius: '50%',
+                  background: '#ffffff',
+                  display: 'inline-block',
+                  animation: !isFinalApproved ? 'pulse 1.5s infinite' : 'none'
+                }} />
+                {isFinalApproved ? '🎖️ Final Approved' :
+                  isRevisionActive ? '🔄 Revision Requested' :
+                  currentStatus === 'HOD Approved' ? '⏳ Pending Principal/HR' :
+                  currentStatus === 'Submitted' ? '📤 Submitted — Pending HOD' :
+                  '✏️ Form Not Yet Submitted'}
+              </div>
+            </div>
+
+            {/* Stage Pipeline */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderTop: 'none',
+              borderRadius: '0 0 14px 14px',
+              padding: '28px 24px 20px',
+              overflow: 'hidden'
+            }}>
+              {/* Revision Alert Banner */}
+              {isRevisionActive && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fff1f2, #ffe4e6)',
+                  border: '1.5px solid #fca5a5',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>🔄</span>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#991b1b', fontSize: '0.92rem', marginBottom: '4px' }}>
+                      {currentStatus === 'HOD Revision Requested' ? 'HOD Has Requested Revisions' : 'Principal / HR Has Requested Revisions'}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#b91c1c' }}>
+                      {(myAppraisal?.hod_remarks || myAppraisal?.final_remarks || myAppraisal?.reviewer_remarks || myAppraisal?.remarks)
+                        ? `Reason: ${myAppraisal?.hod_remarks || myAppraisal?.final_remarks || myAppraisal?.reviewer_remarks || myAppraisal?.remarks}`
+                        : 'Please review and resubmit your FPI appraisal form addressing the requested corrections.'}
+                    </div>
+                    {!showAddForm && (
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(myAppraisal)}
+                        style={{
+                          marginTop: '10px',
+                          background: '#dc2626', color: '#ffffff',
+                          border: 'none', borderRadius: '6px',
+                          padding: '6px 14px', fontSize: '0.8rem', fontWeight: 800,
+                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        ✏️ Edit & Resubmit Form
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Final Approved Success Banner */}
+              {isFinalApproved && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>🎉</span>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#15803d', fontSize: '0.92rem', marginBottom: '4px' }}>
+                      Appraisal Successfully Completed — Final Approved!
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#166534' }}>
+                      {myAppraisal?.final_remarks
+                        ? `Remarks: ${myAppraisal.final_remarks}`
+                        : 'Your FPI appraisal for this academic year has been evaluated and finalised.'}
+                      {finalApprovedAt && (
+                        <span style={{ marginLeft: '10px', color: '#4ade80', fontWeight: 600 }}>
+                          · {new Date(finalApprovedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Stage Steps */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${stages.length}, 1fr)`,
+                gap: '0',
+                position: 'relative',
+              }}>
+                {/* Connector line background */}
+                <div style={{
+                  position: 'absolute',
+                  top: '26px',
+                  left: '8%',
+                  right: '8%',
+                  height: '3px',
+                  background: '#e2e8f0',
+                  zIndex: 0,
+                  borderRadius: '2px'
+                }} />
+
+                {/* Filled connector based on progress */}
+                <div style={{
+                  position: 'absolute',
+                  top: '26px',
+                  left: '8%',
+                  height: '3px',
+                  background: 'linear-gradient(90deg, #16a34a, #0284c7)',
+                  zIndex: 1,
+                  borderRadius: '2px',
+                  width: (() => {
+                    const completedCount = stages.filter(s => getStageState(s) === 'completed').length;
+                    const totalGap = 100 - 16; // left: 8%, right: 8%
+                    const stepWidth = totalGap / (stages.length - 1);
+                    return `${stepWidth * Math.max(0, completedCount - 0.5)}%`;
+                  })(),
+                  transition: 'width 0.8s ease'
+                }} />
+
+                {stages.map((stage, idx) => {
+                  const state = getStageState(stage);
+                  const isCompleted = state === 'completed';
+                  const isActive = state === 'active';
+                  const isPending = state === 'pending';
+
+                  const circleColor = isCompleted ? '#16a34a' :
+                    isActive ? stage.activeColor : '#e2e8f0';
+                  const textColor = isCompleted ? '#15803d' :
+                    isActive ? stage.activeColor : '#94a3b8';
+                  const borderStyle = isActive ? `2.5px solid ${stage.activeColor}` :
+                    isCompleted ? '2.5px solid #16a34a' : '2px solid #e2e8f0';
+
+                  return (
+                    <div key={stage.id} style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      position: 'relative', zIndex: 2, padding: '0 4px'
+                    }}>
+                      {/* Circle */}
+                      <div style={{
+                        width: '52px', height: '52px', borderRadius: '50%',
+                        background: isCompleted ? 'linear-gradient(135deg, #16a34a, #4ade80)' :
+                          isActive ? `linear-gradient(135deg, ${stage.activeColor}, ${stage.activeColor}dd)` :
+                          '#f8fafc',
+                        border: borderStyle,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.35rem',
+                        boxShadow: isActive ? `0 0 0 4px ${stage.activeColor}30, 0 4px 12px ${stage.activeColor}40` :
+                          isCompleted ? '0 2px 8px rgba(22,163,74,0.25)' : 'none',
+                        animation: isActive ? 'stagePulse 2s infinite' : 'none',
+                        transition: 'all 0.4s ease',
+                        cursor: 'default',
+                        flexShrink: 0
+                      }}>
+                        {isCompleted ? '✓' : stage.icon}
+                      </div>
+
+                      {/* Label */}
+                      <div style={{
+                        marginTop: '10px', textAlign: 'center',
+                        fontWeight: isActive || isCompleted ? 800 : 500,
+                        fontSize: '0.72rem', color: textColor, lineHeight: 1.3,
+                        maxWidth: '90px'
+                      }}>
+                        {stage.label}
+                      </div>
+                      <div style={{
+                        fontSize: '0.65rem', color: isActive ? stage.activeColor : '#94a3b8',
+                        textAlign: 'center', marginTop: '2px', fontWeight: isActive ? 700 : 400,
+                        maxWidth: '90px', lineHeight: 1.2
+                      }}>
+                        {isActive && stage.isRevisionStage ? '⚠️ Action Required' : stage.sublabel}
+                      </div>
+
+                      {/* Active pulse badge */}
+                      {isActive && (
+                        <div style={{
+                          marginTop: '6px',
+                          background: `${stage.activeColor}15`,
+                          color: stage.activeColor,
+                          border: `1px solid ${stage.activeColor}50`,
+                          borderRadius: '10px', fontSize: '0.6rem', padding: '2px 7px',
+                          fontWeight: 800, letterSpacing: '0.3px'
+                        }}>
+                          CURRENT
+                        </div>
+                      )}
+                      {isCompleted && (
+                        <div style={{
+                          marginTop: '6px',
+                          background: '#f0fdf4', color: '#16a34a',
+                          border: '1px solid #86efac',
+                          borderRadius: '10px', fontSize: '0.6rem', padding: '2px 7px',
+                          fontWeight: 700
+                        }}>
+                          DONE ✓
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Description Strip for Active Stage */}
+              {(() => {
+                const activeStage = stages.find(s => getStageState(s) === 'active');
+                const label = activeStage ? activeStage.description : (
+                  !currentStatus ? stages[0].description : null
+                );
+                const color = activeStage ? activeStage.activeColor : '#475569';
+                if (!label) return null;
+                return (
+                  <div style={{
+                    marginTop: '20px',
+                    background: `${color}10`,
+                    border: `1px solid ${color}30`,
+                    borderRadius: '8px',
+                    padding: '10px 16px',
+                    fontSize: '0.8rem',
+                    color: color,
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span>ℹ️</span>
+                    <span>{label}</span>
+                    {submittedAt && currentStatus === 'Submitted' && (
+                      <span style={{ marginLeft: 'auto', fontSize: '0.72rem', opacity: 0.8, fontWeight: 500 }}>
+                        Submitted: {new Date(submittedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                    {hodApprovedAt && currentStatus === 'HOD Approved' && (
+                      <span style={{ marginLeft: 'auto', fontSize: '0.72rem', opacity: 0.8, fontWeight: 500 }}>
+                        HOD Approved: {new Date(hodApprovedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Score Summary Row (if appraisal data exists) */}
+              {myAppraisal && currentStatus && currentStatus !== 'Draft' && (
+                <div style={{
+                  marginTop: '16px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginRight: '4px', alignSelf: 'center' }}>Your Scores:</span>
+                  {[
+                    { label: 'Part A', val: myAppraisal.part_a_score, max: 60, bg: '#dbeafe', color: '#1d4ed8' },
+                    { label: 'Part B', val: myAppraisal.part_b_score, max: 40, bg: '#fef3c7', color: '#92400e' },
+                    { label: 'Part C', val: myAppraisal.part_c_score, max: 80, bg: '#dcfce7', color: '#15803d' },
+                    { label: 'Part D', val: myAppraisal.part_d_score, max: 20, bg: '#f3e8ff', color: '#6b21a8' },
+                  ].map(({ label, val, max, bg, color }) => (
+                    <span key={label} style={{
+                      background: bg, color, fontSize: '0.73rem',
+                      padding: '3px 10px', borderRadius: '5px', fontWeight: 700
+                    }}>
+                      {label}: {val ?? '—'}/{max}
+                    </span>
+                  ))}
+                  {(myAppraisal.hod_total_score || (
+                    (parseFloat(myAppraisal.hod_part_a_score)||0) +
+                    (parseFloat(myAppraisal.hod_part_b_score)||0) +
+                    (parseFloat(myAppraisal.hod_part_c_score)||0) +
+                    (parseFloat(myAppraisal.hod_part_d_score)||0)
+                  ) > 0) && (
+                    <span style={{
+                      background: '#e0f2fe', color: '#0369a1',
+                      fontSize: '0.73rem', padding: '3px 10px',
+                      borderRadius: '5px', fontWeight: 800,
+                      borderLeft: '2px solid #0369a1', marginLeft: '4px'
+                    }}>
+                      HOD Total: {myAppraisal.hod_total_score || (
+                        (parseFloat(myAppraisal.hod_part_a_score)||0) +
+                        (parseFloat(myAppraisal.hod_part_b_score)||0) +
+                        (parseFloat(myAppraisal.hod_part_c_score)||0) +
+                        (parseFloat(myAppraisal.hod_part_d_score)||0)
+                      )}/200
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* No form yet CTA */}
+              {!currentStatus && (
+                <div style={{
+                  marginTop: '20px', textAlign: 'center',
+                  padding: '16px',
+                  background: '#fffbeb',
+                  borderRadius: '10px',
+                  border: '1.5px dashed #fbbf24'
+                }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>📋</div>
+                  <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.88rem', marginBottom: '6px' }}>
+                    You haven't submitted your FPI Appraisal Form yet
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#b45309', marginBottom: '12px' }}>
+                    Complete and submit your Faculty Performance Index form to begin the appraisal review cycle.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStartNewForm}
+                    style={{
+                      background: '#d97706', color: '#ffffff', border: 'none',
+                      borderRadius: '7px', padding: '8px 20px',
+                      fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: '6px'
+                    }}
+                  >
+                    📝 Start FPI Form Now
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Inject keyframes */}
+            <style>{`
+              @keyframes stagePulse {
+                0% { box-shadow: 0 0 0 0px rgba(37,99,235,0.4); }
+                50% { box-shadow: 0 0 0 8px rgba(37,99,235,0.1); }
+                100% { box-shadow: 0 0 0 0px rgba(37,99,235,0.0); }
+              }
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.4; }
+              }
+            `}</style>
+          </div>
+        );
+      })()}
+
       {/* AUTOMATED FPI SUMMARY CARD FOR FACULTY */}
       {!isAdminOrHR && (!isDeptAdmin || hodTab === 'my_appraisal') && !showAddForm && (
         <div className="card" style={{ marginBottom: '24px', border: '1.5px solid #0284c7', background: '#f0f9ff' }}>
