@@ -282,13 +282,13 @@ export const DEFAULT_PAGE_CONFIGS = {
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'User',
     fields: [
-      { name: 'name', label: 'Full Name', type: 'text', required: true, status: 'active' },
-      { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'], required: true, status: 'active' },
       { name: 'dob', label: 'Date of Birth', type: 'date', required: true, status: 'active' },
-      { name: 'mobile', label: 'Mobile Phone', type: 'tel', required: true, status: 'active' },
-      { name: 'email', label: 'Personal Email', type: 'email', required: true, status: 'active' },
-      { name: 'community', label: 'Community Category', type: 'select', options: ['OC', 'BC', 'MBC', 'DNC', 'SC', 'ST'], required: false, status: 'active' },
-      { name: 'address', label: 'Permanent Address', type: 'textarea', required: false, status: 'active' }
+      { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'], required: true, status: 'active' },
+      { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, status: 'active' },
+      { name: 'email', label: 'Email ID', type: 'email', required: true, status: 'active' },
+      { name: 'pan', label: 'PAN Card Number', type: 'text', required: true, status: 'active' },
+      { name: 'aadhar', label: 'Aadhaar Number', type: 'text', required: true, status: 'active' },
+      { name: 'address', label: 'Contact Address', type: 'textarea', required: true, status: 'active' }
     ]
   },
   academic: {
@@ -298,11 +298,16 @@ export const DEFAULT_PAGE_CONFIGS = {
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'BookOpen',
     fields: [
-      { name: 'doj', label: 'Date of Joining', type: 'date', required: true, status: 'active' },
-      { name: 'designation', label: 'Current Designation', type: 'text', required: true, status: 'active' },
-      { name: 'department', label: 'Department', type: 'text', required: true, status: 'active' },
-      { name: 'experience_years', label: 'Prior Teaching Experience (Years)', type: 'number', required: false, status: 'active' },
-      { name: 'industry_exp', label: 'Industry Experience (Years)', type: 'number', required: false, status: 'active' }
+      { name: 'aicte_id', label: 'AICTE Faculty ID', type: 'text', required: true, status: 'active' },
+      { name: 'anna_univ_id', label: 'Anna University ID', type: 'text', required: true, status: 'active' },
+      { name: 'apaar_id', label: 'APAAR ID', type: 'text', required: true, status: 'active' },
+      { name: 'orcid_id', label: 'ORCID ID', type: 'text', required: false, status: 'active' },
+      { name: 'scholar_id', label: 'Google Scholar Profile ID', type: 'text', required: false, status: 'active' },
+      { name: 'scopus_id', label: 'Scopus Author ID', type: 'text', required: false, status: 'active' },
+      { name: 'wos_id', label: 'Web of Science Researcher ID', type: 'text', required: false, status: 'active' },
+      { name: 'doj', label: 'Date of Joining', type: 'date', required: false, status: 'active' },
+      { name: 'designation', label: 'Current Designation', type: 'text', required: false, status: 'active' },
+      { name: 'department', label: 'Department', type: 'text', required: false, status: 'active' }
     ]
   },
   documents: {
@@ -312,9 +317,11 @@ export const DEFAULT_PAGE_CONFIGS = {
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'FileText',
     fields: [
-      { name: 'aadhar_no', label: 'Aadhar Number', type: 'text', required: false, status: 'active' },
-      { name: 'pan_no', label: 'PAN Card Number', type: 'text', required: false, status: 'active' },
-      { name: 'passport_no', label: 'Passport Number', type: 'text', required: false, status: 'active' }
+      { name: 'pan_file', label: 'PAN Card Proof Document', type: 'file', required: true, status: 'active' },
+      { name: 'aadhar_file', label: 'Aadhaar Card Proof Document', type: 'file', required: true, status: 'active' },
+      { name: 'appointment_order_file', label: 'Appointment Order Proof Document', type: 'file', required: true, status: 'active' },
+      { name: 'joining_report_file', label: 'Joining Report Proof Document', type: 'file', required: true, status: 'active' },
+      { name: 'passport_file', label: 'Passport Proof Document', type: 'file', required: false, status: 'active' }
     ]
   },
   education: {
@@ -324,11 +331,14 @@ export const DEFAULT_PAGE_CONFIGS = {
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'GraduationCap',
     fields: [
-      { name: 'degree', label: 'Degree Name (UG/PG/PhD)', type: 'text', required: true, status: 'active' },
-      { name: 'specialization', label: 'Specialization / Major Branch', type: 'text', required: true, status: 'active' },
-      { name: 'institution', label: 'College / Institute Name', type: 'text', required: true, status: 'active' },
-      { name: 'university', label: 'University / Board Name', type: 'text', required: true, status: 'active' },
-      { name: 'year_passing', label: 'Year of Passing', type: 'number', required: true, status: 'active' }
+      { name: 'category', label: 'Degree Category', type: 'select', options: ['SSLC', 'HSC', 'Diploma', 'UG', 'PG', 'Ph.D', 'PostDoc'], required: true, status: 'active' },
+      { name: 'degree', label: 'Degree Name (e.g. B.E, B.Tech, M.E, Ph.D)', type: 'text', required: true, status: 'active' },
+      { name: 'specialization', label: 'Specialization / Branch', type: 'text', required: true, status: 'active' },
+      { name: 'institute', label: 'College / Institute Name', type: 'text', required: true, status: 'active' },
+      { name: 'board', label: 'University / Board Name', type: 'text', required: true, status: 'active' },
+      { name: 'year', label: 'Year of Passing', type: 'number', required: true, status: 'active' },
+      { name: 'percentage', label: 'Marks Percentage / CGPA', type: 'text', required: true, status: 'active' },
+      { name: 'file', label: 'Educational Certificate Proof', type: 'file', required: false, status: 'active' }
     ]
   },
   responsibilities: {
@@ -338,10 +348,10 @@ export const DEFAULT_PAGE_CONFIGS = {
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'FileText',
     fields: [
-      { name: 'responsibility_name', label: 'Responsibility Title / Role', type: 'text', required: true, status: 'active' },
-      { name: 'level', label: 'Level (Departmental / Institutional)', type: 'select', options: ['Department Level', 'Institutional Level'], required: true, status: 'active' },
-      { name: 'start_date', label: 'Start Date', type: 'date', required: true, status: 'active' },
-      { name: 'status', label: 'Current Status', type: 'select', options: ['Active', 'Completed'], required: true, status: 'active' }
+      { name: 'responsibilityLevel', label: 'Responsibility Level', type: 'select', options: ['Department Level', 'Institutional Level'], required: true, status: 'active' },
+      { name: 'responsibilityText', label: 'Assigned Responsibility Title / Scope', type: 'textarea', required: true, status: 'active' },
+      { name: 'academicYear', label: 'Academic Year', type: 'select', options: ['2025-2026', '2024-2025', '2023-2024', '2022-2023'], required: true, status: 'active' },
+      { name: 'selectedStaffId', label: 'Faculty Staff Member', type: 'select', required: true, status: 'active' }
     ]
   }
 };
