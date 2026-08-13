@@ -459,8 +459,9 @@ router.post('/personal/upload-doc', authenticateToken, docUpload.single('file'),
   const { docType } = req.body;
   const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
 
-  const validDocTypes = ['pan_file', 'aadhar_file', 'appointment_order_file', 'joining_report_file'];
-  if (!validDocTypes.includes(docType)) {
+  const validDocTypes = ['pan_file', 'aadhar_file', 'appointment_order_file', 'joining_report_file', 'passport_file'];
+  const isValidDoc = validDocTypes.includes(docType) || (typeof docType === 'string' && /^[a-zA-Z0-9_]+_file$/.test(docType));
+  if (!isValidDoc) {
     return res.status(400).json({ error: 'Invalid document type requested.' });
   }
 

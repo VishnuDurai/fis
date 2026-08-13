@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Dropzone from '../components/Dropzone';
 import ReportButtons from '../components/ReportButtons';
@@ -10,26 +10,19 @@ export default function OfficialDocuments({ auth }) {
     pan_file: '',
     aadhar_file: '',
     appointment_order_file: '',
-    joining_report_file: ''
+    joining_report_file: '',
+    passport_file: ''
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   // Selected files for saving
-  const [selectedFiles, setSelectedFiles] = useState({
-    pan_file: null,
-    aadhar_file: null,
-    appointment_order_file: null,
-    joining_report_file: null
-  });
+  const [selectedFiles, setSelectedFiles] = useState({});
+  const [savingDoc, setSavingDoc] = useState({});
 
-  const [savingDoc, setSavingDoc] = useState({
-    pan_file: false,
-    aadhar_file: false,
-    appointment_order_file: false,
-    joining_report_file: false
-  });
+  // System Page Config for Dynamic Field Visibility
+  const [sysPageConfig, setSysPageConfig] = useState(null);
 
   // Admin / Dept Admin State
   const [departments, setDepartments] = useState([]);
@@ -37,9 +30,49 @@ export default function OfficialDocuments({ auth }) {
   const [personalList, setPersonalList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const defaultDocCards = [
+    { key: 'pan_file', label: 'PAN Card Proof Document', subLabel: 'Upload PAN card copy (PDF / Image)' },
+    { key: 'aadhar_file', label: 'Aadhaar Card Proof Document', subLabel: 'Upload Aadhaar card copy (PDF / Image)' },
+    { key: 'appointment_order_file', label: 'Appointment Order Proof Document', subLabel: 'Upload Appointment Order (PDF / Image)' },
+    { key: 'joining_report_file', label: 'Joining Report Proof Document', subLabel: 'Upload Joining Report (PDF / Image)' },
+    { key: 'passport_file', label: 'Passport Proof Document', subLabel: 'Upload Passport copy (PDF / Image)' }
+  ];
+
   useEffect(() => {
     fetchDetails();
+    fetch(`${API_BASE_URL}/api/system-page-configs/documents`, {
+      headers: { 'Authorization': `Bearer ${auth.token}` }
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setSysPageConfig(data); })
+      .catch(err => console.error('SysPageConfig fetch error:', err));
   }, [auth]);
+
+  const activeDocCards = useMemo(() => {
+    const sysFields = sysPageConfig?.fields || [];
+    if (sysFields.length === 0) return defaultDocCards;
+
+    const result = [];
+    sysFields.forEach(sf => {
+      if (sf.status === 'hidden') return;
+      const matched = defaultDocCards.find(d => d.key === sf.name);
+      if (matched) {
+        result.push({
+          ...matched,
+          label: sf.label || matched.label,
+          required: sf.required
+        });
+      } else {
+        result.push({
+          key: sf.name,
+          label: sf.label,
+          subLabel: `Upload ${sf.label} copy (PDF / Image)`,
+          required: sf.required
+        });
+      }
+    });
+    return result;
+  }, [sysPageConfig]);
 
   const fetchDetails = async () => {
     setLoading(true);
@@ -103,14 +136,10 @@ export default function OfficialDocuments({ auth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to upload and save document proof');
 
-      const labelMap = {
-        pan_file: 'PAN Card Proof',
-        aadhar_file: 'Aadhaar Card Proof',
-        appointment_order_file: 'Appointment Order Proof',
-        joining_report_file: 'Joining Report Proof'
-      };
+      const cardMatch = activeDocCards.find(c => c.key === docType);
+      const cardLabel = cardMatch ? cardMatch.label : 'Document';
 
-      setMessage(`${labelMap[docType] || 'Document'} saved and uploaded successfully!`);
+      setMessage(`${cardLabel} saved and uploaded successfully!`);
       setPersonal(prev => ({ ...prev, [docType]: data.fileName }));
       setSelectedFiles(prev => ({ ...prev, [docType]: null }));
       window.dispatchEvent(new Event('srec_profile_updated'));
@@ -185,7 +214,7 @@ export default function OfficialDocuments({ auth }) {
                   Faculty Official Proof Documents Status
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
-                  View and download official identity cards, appointment orders, and joining reports uploaded by department faculty.
+                  View and download official identity cards, appointment orders, joining reports, and passport proofs uploaded by department faculty.
                 </p>
               </div>
 
@@ -226,16 +255,13 @@ export default function OfficialDocuments({ auth }) {
                 <ReportButtons 
                   pageTitle="Official Proof Documents Directory" 
                   departmentName={auth.role === 'admin' ? selectedDepartment : (auth.department || auth.dept || '')} 
-                  headers={['Staff ID', 'Staff Name', 'Designation', 'Department', 'PAN Proof', 'Aadhaar Proof', 'Appointment Order', 'Joining Report']} 
+                  headers={['Staff ID', 'Staff Name', 'Designation', 'Department', ...activeDocCards.map(c => c.label)]} 
                   rows={searchedPersonalList.map(f => [
                     f.staff_id,
                     f.staff_name,
                     f.Designation || 'N/A',
                     f.Department || 'N/A',
-                    f.pan_file ? 'Uploaded' : 'Not Uploaded',
-                    f.aadhar_file ? 'Uploaded' : 'Not Uploaded',
-                    f.appointment_order_file ? 'Uploaded' : 'Not Uploaded',
-                    f.joining_report_file ? 'Uploaded' : 'Not Uploaded'
+                    ...activeDocCards.map(c => f[c.key] ? 'Uploaded' : 'Not Uploaded')
                   ])} 
                   auth={auth}
                 />
@@ -248,98 +274,55 @@ export default function OfficialDocuments({ auth }) {
           </div>
 
           {/* Directory Table */}
-          <div className="card" style={{ padding: '24px' }}>
+          <div className="card" style={{ padding: '0', overflow: 'hidden', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>Loading official documents status...</div>
+              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading faculty official documents directory...</div>
             ) : (
-              <div className="table-container">
-                <table style={{ width: '100%', fontSize: '0.88rem' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ width: '100%', margin: 0, borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr>
-                      <th>Staff ID</th>
-                      <th>Faculty Name</th>
-                      <th>Designation</th>
-                      <th>Department</th>
-                      <th>PAN Card Proof</th>
-                      <th>Aadhaar Card Proof</th>
-                      <th>Appointment Order</th>
-                      <th>Joining Report</th>
+                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '14px 18px', textTransform: 'uppercase', fontSize: '0.78rem', color: '#475569', fontWeight: 800 }}>Staff Info</th>
+                      <th style={{ padding: '14px 18px', textTransform: 'uppercase', fontSize: '0.78rem', color: '#475569', fontWeight: 800 }}>Department</th>
+                      {activeDocCards.map(c => (
+                        <th key={c.key} style={{ padding: '14px 18px', textTransform: 'uppercase', fontSize: '0.78rem', color: '#475569', fontWeight: 800 }}>{c.label}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {searchedPersonalList.length === 0 ? (
                       <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b', fontWeight: 500 }}>
-                          No faculty document records match your search filter.
+                        <td colSpan={2 + activeDocCards.length} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                          No matching faculty records found.
                         </td>
                       </tr>
                     ) : (
-                      searchedPersonalList.map((f) => (
-                        <tr key={f.staff_id}>
-                          <td style={{ fontWeight: 700, color: 'hsl(var(--primary))' }}>{f.staff_id}</td>
-                          <td style={{ fontWeight: 700, color: '#0f172a' }}>{f.staff_name}</td>
-                          <td><span className="badge badge-success">{f.Designation || 'N/A'}</span></td>
-                          <td><span className="badge badge-secondary">{f.Department || 'N/A'}</span></td>
-                          <td>
-                            {f.pan_file ? (
-                              <a
-                                href={`${API_BASE_URL}/uploads/document/${f.pan_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-secondary"
-                                style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                              >
-                                <Download size={14} /> View File
-                              </a>
-                            ) : (
-                              <span className="badge badge-secondary" style={{ opacity: 0.75 }}>Not Uploaded</span>
-                            )}
+                      searchedPersonalList.map((f, idx) => (
+                        <tr key={f.staff_id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px 18px' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{f.staff_name}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{f.staff_id} • {f.Designation || 'Faculty'}</div>
                           </td>
-                          <td>
-                            {f.aadhar_file ? (
-                              <a
-                                href={`${API_BASE_URL}/uploads/document/${f.aadhar_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-secondary"
-                                style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                              >
-                                <Download size={14} /> View File
-                              </a>
-                            ) : (
-                              <span className="badge badge-secondary" style={{ opacity: 0.75 }}>Not Uploaded</span>
-                            )}
+                          <td style={{ padding: '14px 18px', fontWeight: 600, color: '#334155' }}>
+                            {f.Department || 'N/A'}
                           </td>
-                          <td>
-                            {f.appointment_order_file ? (
-                              <a
-                                href={`${API_BASE_URL}/uploads/document/${f.appointment_order_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-secondary"
-                                style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                              >
-                                <Download size={14} /> View File
-                              </a>
-                            ) : (
-                              <span className="badge badge-secondary" style={{ opacity: 0.75 }}>Not Uploaded</span>
-                            )}
-                          </td>
-                          <td>
-                            {f.joining_report_file ? (
-                              <a
-                                href={`${API_BASE_URL}/uploads/document/${f.joining_report_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-secondary"
-                                style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                              >
-                                <Download size={14} /> View File
-                              </a>
-                            ) : (
-                              <span className="badge badge-secondary" style={{ opacity: 0.75 }}>Not Uploaded</span>
-                            )}
-                          </td>
+                          {activeDocCards.map(c => (
+                            <td key={c.key} style={{ padding: '14px 18px' }}>
+                              {f[c.key] ? (
+                                <a
+                                  href={`${API_BASE_URL}/uploads/document/${f[c.key]}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="btn btn-secondary"
+                                  style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                                >
+                                  <Download size={14} /> View File
+                                </a>
+                              ) : (
+                                <span className="badge badge-secondary" style={{ opacity: 0.75 }}>Not Uploaded</span>
+                              )}
+                            </td>
+                          ))}
                         </tr>
                       ))
                     )}
@@ -355,181 +338,66 @@ export default function OfficialDocuments({ auth }) {
           <div style={{ marginBottom: '24px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FileText size={22} style={{ color: 'hsl(var(--primary))' }} />
-              Official Identity & Employment Proof Documents
+              Official Identity &amp; Employment Proof Documents
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
-              Upload and save your official identity cards, appointment orders, and joining reports.
+              Upload and save your official identity cards, appointment orders, joining reports, and passport proofs.
             </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
-            {/* 1. PAN Card Proof */}
-            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>PAN Card Proof</span>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Upload PAN card copy (PDF / Image)</span>
+            {activeDocCards.map(card => {
+              const docKey = card.key;
+              const fileVal = personal ? personal[docKey] : '';
+              const isSelected = Boolean(selectedFiles[docKey]);
+              const isSaving = Boolean(savingDoc[docKey]);
+
+              return (
+                <div key={docKey} style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {card.label}
+                        {card.required && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{card.subLabel}</span>
+                    </div>
+                    {fileVal ? (
+                      <a
+                        href={`${API_BASE_URL}/uploads/document/${fileVal}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary"
+                        style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+                      >
+                        <Download size={15} /> View Saved File
+                      </a>
+                    ) : (
+                      <span className="badge badge-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>Not Uploaded</span>
+                    )}
+                  </div>
+                  
+                  <Dropzone
+                    onFileSelect={(f) => handleFileSelect(f, docKey)}
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    label={`Upload / Change ${card.label}`}
+                  />
+
+                  {isSelected && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleSaveDoc(docKey)}
+                      disabled={isSaving}
+                      style={{ fontWeight: 700, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      <Upload size={16} />
+                      {isSaving ? 'Saving Document...' : `Save & Upload ${card.label}`}
+                    </button>
+                  )}
                 </div>
-                {personal.pan_file ? (
-                  <a
-                    href={`${API_BASE_URL}/uploads/document/${personal.pan_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
-                  >
-                    <Download size={15} /> View Saved File
-                  </a>
-                ) : (
-                  <span className="badge badge-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>Not Uploaded</span>
-                )}
-              </div>
-              
-              <Dropzone
-                onFileSelect={(f) => handleFileSelect(f, 'pan_file')}
-                accept=".pdf,.png,.jpg,.jpeg"
-                label="Upload / Change PAN Card Proof"
-              />
-
-              {selectedFiles.pan_file && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => handleSaveDoc('pan_file')}
-                  disabled={savingDoc.pan_file}
-                  style={{ fontWeight: 700, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <Upload size={16} />
-                  {savingDoc.pan_file ? 'Saving Document...' : 'Save & Upload PAN Card'}
-                </button>
-              )}
-            </div>
-
-            {/* 2. Aadhaar Card Proof */}
-            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>Aadhaar Card Proof</span>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Upload Aadhaar card copy (PDF / Image)</span>
-                </div>
-                {personal.aadhar_file ? (
-                  <a
-                    href={`${API_BASE_URL}/uploads/document/${personal.aadhar_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
-                  >
-                    <Download size={15} /> View Saved File
-                  </a>
-                ) : (
-                  <span className="badge badge-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>Not Uploaded</span>
-                )}
-              </div>
-
-              <Dropzone
-                onFileSelect={(f) => handleFileSelect(f, 'aadhar_file')}
-                accept=".pdf,.png,.jpg,.jpeg"
-                label="Upload / Change Aadhaar Card Proof"
-              />
-
-              {selectedFiles.aadhar_file && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => handleSaveDoc('aadhar_file')}
-                  disabled={savingDoc.aadhar_file}
-                  style={{ fontWeight: 700, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <Upload size={16} />
-                  {savingDoc.aadhar_file ? 'Saving Document...' : 'Save & Upload Aadhaar Card'}
-                </button>
-              )}
-            </div>
-
-            {/* 3. Appointment Order Proof */}
-            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>Appointment Order Proof</span>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Upload Appointment Order (PDF / Image)</span>
-                </div>
-                {personal.appointment_order_file ? (
-                  <a
-                    href={`${API_BASE_URL}/uploads/document/${personal.appointment_order_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
-                  >
-                    <Download size={15} /> View Saved File
-                  </a>
-                ) : (
-                  <span className="badge badge-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>Not Uploaded</span>
-                )}
-              </div>
-
-              <Dropzone
-                onFileSelect={(f) => handleFileSelect(f, 'appointment_order_file')}
-                accept=".pdf,.png,.jpg,.jpeg"
-                label="Upload / Change Appointment Order"
-              />
-
-              {selectedFiles.appointment_order_file && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => handleSaveDoc('appointment_order_file')}
-                  disabled={savingDoc.appointment_order_file}
-                  style={{ fontWeight: 700, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <Upload size={16} />
-                  {savingDoc.appointment_order_file ? 'Saving Document...' : 'Save & Upload Appointment Order'}
-                </button>
-              )}
-            </div>
-
-            {/* 4. Joining Report Proof */}
-            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>Joining Report Proof</span>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Upload Joining Report (PDF / Image)</span>
-                </div>
-                {personal.joining_report_file ? (
-                  <a
-                    href={`${API_BASE_URL}/uploads/document/${personal.joining_report_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
-                  >
-                    <Download size={15} /> View Saved File
-                  </a>
-                ) : (
-                  <span className="badge badge-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>Not Uploaded</span>
-                )}
-              </div>
-
-              <Dropzone
-                onFileSelect={(f) => handleFileSelect(f, 'joining_report_file')}
-                accept=".pdf,.png,.jpg,.jpeg"
-                label="Upload / Change Joining Report"
-              />
-
-              {selectedFiles.joining_report_file && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => handleSaveDoc('joining_report_file')}
-                  disabled={savingDoc.joining_report_file}
-                  style={{ fontWeight: 700, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <Upload size={16} />
-                  {savingDoc.joining_report_file ? 'Saving Document...' : 'Save & Upload Joining Report'}
-                </button>
-              )}
-            </div>
+              );
+            })}
           </div>
 
           {/* Save All Button Footer */}

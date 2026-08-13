@@ -105,7 +105,8 @@ const createTables = async () => {
       pan_file TEXT,
       aadhar_file TEXT,
       appointment_order_file TEXT,
-      joining_report_file TEXT
+      joining_report_file TEXT,
+      passport_file TEXT
     )`,
     // 5. staff_academics
     `CREATE TABLE IF NOT EXISTS staff_academics (
@@ -610,6 +611,14 @@ const createTables = async () => {
     'ALTER TABLE staff_appraisal ADD COLUMN principal_signed_ip VARCHAR(100) DEFAULT NULL'
   ];
   for (const alterQuery of extraCols) {
+    try { await pool.query(alterQuery); } catch (e) {}
+  }
+
+  // Safe column migration for staff_personal
+  const personalCols = [
+    'ALTER TABLE staff_personal ADD COLUMN passport_file TEXT'
+  ];
+  for (const alterQuery of personalCols) {
     try { await pool.query(alterQuery); } catch (e) {}
   }
 
