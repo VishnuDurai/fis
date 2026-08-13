@@ -213,72 +213,141 @@ export default function DynamicPage({ auth }) {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               {dynamicFields.map(f => (
-                <div key={f.id} style={f.type === 'textarea' ? { gridColumn: 'span 2' } : {}}>
+                <div key={f.id} style={['textarea', 'radio', 'multiselect', 'range', 'color', 'rating'].includes(f.type) ? { gridColumn: 'span 2' } : {}}>
                   <label className="form-label" style={{ fontWeight: 700 }}>
                     {f.label} {f.required && <span style={{ color: 'hsl(var(--danger))' }}>*</span>}
                   </label>
 
+                  {/* ── Text & Input ── */}
                   {f.type === 'text' && (
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      value={formData[f.id] || ''} 
-                      onChange={(e) => handleInputChange(f.id, e.target.value)} 
-                      required={f.required} 
-                    />
+                    <input type="text" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'textarea' && (
+                    <textarea className="form-control" rows="3" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required}></textarea>
+                  )}
+                  {f.type === 'email' && (
+                    <input type="email" className="form-control" placeholder="name@example.com" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'tel' && (
+                    <input type="tel" className="form-control" placeholder="+91 XXXXX XXXXX" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'url' && (
+                    <input type="url" className="form-control" placeholder="https://example.com" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'password' && (
+                    <input type="password" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
                   )}
 
+                  {/* ── Numeric ── */}
                   {f.type === 'number' && (
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      value={formData[f.id] || ''} 
-                      onChange={(e) => handleInputChange(f.id, e.target.value)} 
-                      required={f.required} 
-                    />
+                    <input type="number" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'range' && (
+                    <div>
+                      <input type="range" min="0" max="100" className="form-control" style={{ padding: '6px 0', cursor: 'pointer' }} value={formData[f.id] || 50} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Value: {formData[f.id] || 50}</span>
+                    </div>
                   )}
 
+                  {/* ── Date & Time ── */}
                   {f.type === 'date' && (
-                    <input 
-                      type="date" 
-                      className="form-control" 
-                      value={formData[f.id] || ''} 
-                      onChange={(e) => handleInputChange(f.id, e.target.value)} 
-                      required={f.required} 
-                    />
+                    <input type="date" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'time' && (
+                    <input type="time" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'datetime-local' && (
+                    <input type="datetime-local" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'month' && (
+                    <input type="month" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                  )}
+                  {f.type === 'week' && (
+                    <input type="week" className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
                   )}
 
+                  {/* ── Choice ── */}
                   {f.type === 'select' && (
-                    <select 
-                      className="form-control" 
-                      value={formData[f.id] || ''} 
-                      onChange={(e) => handleInputChange(f.id, e.target.value)} 
-                      required={f.required}
-                    >
+                    <select className="form-control" value={formData[f.id] || ''} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required}>
                       <option value="">-- Select {f.label} --</option>
                       {(f.options || '').split(',').map(opt => (
                         <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
                       ))}
                     </select>
                   )}
-
-                  {f.type === 'textarea' && (
-                    <textarea 
-                      className="form-control" 
-                      rows="3" 
-                      value={formData[f.id] || ''} 
-                      onChange={(e) => handleInputChange(f.id, e.target.value)} 
-                      required={f.required}
-                    ></textarea>
+                  {f.type === 'radio' && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingTop: '4px' }}>
+                      {(f.options || '').split(',').map(opt => (
+                        <label key={opt.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 500 }}>
+                          <input
+                            type="radio"
+                            name={`radio_${f.id}`}
+                            value={opt.trim()}
+                            checked={formData[f.id] === opt.trim()}
+                            onChange={() => handleInputChange(f.id, opt.trim())}
+                            required={f.required}
+                          />
+                          {opt.trim()}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {f.type === 'checkbox' && (
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '4px', fontWeight: 500 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!formData[f.id]}
+                        onChange={(e) => handleInputChange(f.id, e.target.checked ? 'Yes' : 'No')}
+                      />
+                      {formData[f.id] === 'Yes' ? 'Yes' : 'No'}
+                    </label>
+                  )}
+                  {f.type === 'multiselect' && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
+                      {(f.options || '').split(',').map(opt => {
+                        const selected = (formData[f.id] || '').split(',').map(s => s.trim()).filter(Boolean);
+                        const isChecked = selected.includes(opt.trim());
+                        return (
+                          <label key={opt.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 500 }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const updated = isChecked
+                                  ? selected.filter(s => s !== opt.trim())
+                                  : [...selected, opt.trim()];
+                                handleInputChange(f.id, updated.join(', '));
+                              }}
+                            />
+                            {opt.trim()}
+                          </label>
+                        );
+                      })}
+                    </div>
                   )}
 
+                  {/* ── Special ── */}
                   {f.type === 'file' && (
-                    <input 
-                      type="file" 
-                      className="form-control" 
-                      onChange={(e) => setFileAttachment(e.target.files[0])} 
-                      required={f.required} 
-                    />
+                    <input type="file" className="form-control" onChange={(e) => setFileAttachment(e.target.files[0])} required={f.required} />
+                  )}
+                  {f.type === 'color' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input type="color" style={{ width: '48px', height: '40px', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '2px', cursor: 'pointer' }} value={formData[f.id] || '#3b82f6'} onChange={(e) => handleInputChange(f.id, e.target.value)} required={f.required} />
+                      <span style={{ fontSize: '0.9rem', color: '#64748b', fontFamily: 'monospace' }}>{formData[f.id] || '#3b82f6'}</span>
+                    </div>
+                  )}
+                  {f.type === 'rating' && (
+                    <div style={{ display: 'flex', gap: '6px', paddingTop: '4px' }}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => handleInputChange(f.id, String(star))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.8rem', lineHeight: 1, color: Number(formData[f.id] || 0) >= star ? '#f59e0b' : '#d1d5db', transition: 'color 0.15s' }}
+                        >★</button>
+                      ))}
+                      {formData[f.id] && <span style={{ alignSelf: 'center', fontSize: '0.85rem', color: '#64748b' }}>{formData[f.id]} / 5</span>}
+                    </div>
                   )}
                 </div>
               ))}

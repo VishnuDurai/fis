@@ -442,12 +442,36 @@ export default function DynamicPagesAdmin({ auth }) {
                       <div>
                         <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Field Type</label>
                         <select className="form-control" value={f.type} onChange={(e) => handleFieldChange(idx, 'type', e.target.value)}>
-                          <option value="text">Single-line Text</option>
-                          <option value="number">Numeric Value</option>
-                          <option value="date">Date Picker</option>
-                          <option value="select">Dropdown Select</option>
-                          <option value="textarea">Multi-line Textarea</option>
-                          <option value="file">File Attachment Upload</option>
+                          <optgroup label="── Text & Input ──">
+                            <option value="text">Single-line Text</option>
+                            <option value="textarea">Multi-line Textarea</option>
+                            <option value="email">Email Address</option>
+                            <option value="tel">Phone Number</option>
+                            <option value="url">Website URL</option>
+                            <option value="password">Password</option>
+                          </optgroup>
+                          <optgroup label="── Numeric ──">
+                            <option value="number">Numeric Value</option>
+                            <option value="range">Range / Slider</option>
+                          </optgroup>
+                          <optgroup label="── Date & Time ──">
+                            <option value="date">Date Picker</option>
+                            <option value="time">Time Picker</option>
+                            <option value="datetime-local">Date &amp; Time Picker</option>
+                            <option value="month">Month Picker</option>
+                            <option value="week">Week Picker</option>
+                          </optgroup>
+                          <optgroup label="── Choice ──">
+                            <option value="select">Dropdown Select</option>
+                            <option value="radio">Radio Buttons</option>
+                            <option value="checkbox">Checkbox (Yes / No)</option>
+                            <option value="multiselect">Multi-Select Checkboxes</option>
+                          </optgroup>
+                          <optgroup label="── Special ──">
+                            <option value="file">File Attachment Upload</option>
+                            <option value="color">Color Picker</option>
+                            <option value="rating">Star Rating (1–5)</option>
+                          </optgroup>
                         </select>
                       </div>
                       <div>
@@ -463,7 +487,7 @@ export default function DynamicPagesAdmin({ auth }) {
                           type="text" 
                           className="form-control" 
                           placeholder="Option 1, Option 2"
-                          disabled={f.type !== 'select'}
+                          disabled={f.type !== 'select' && f.type !== 'radio' && f.type !== 'multiselect'}
                           value={f.options || ''} 
                           onChange={(e) => handleFieldChange(idx, 'options', e.target.value)}
                         />
