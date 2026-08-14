@@ -128,34 +128,41 @@ export const DEFAULT_PAGE_CONFIGS = {
   },
   funding: {
     page_key: 'funding',
-    title: 'Research Funding',
-    category: 'activity',
+    title: 'Research Funding & Grants',
+    category: 'rnd',
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'FileText',
     fields: [
-      { name: 'title', label: 'Project Title', type: 'text', required: true, status: 'active' },
-      { name: 'grant_category', label: 'Grant Category', type: 'select', options: ['Research Project', 'Workshop/Seminar/Conference'], required: true, status: 'active' },
+      { name: 'title', label: 'Project / Event Title', type: 'text', required: true, status: 'active' },
+      { name: 'grant_category', label: 'Grant Category', type: 'select', options: ['Research Project', 'Workshops/Seminars/FDPs/Conferences'], required: true, status: 'active' },
+      { name: 'project_type', label: 'Project / Event Type', type: 'select', options: ['Major Project', 'Minor Project', 'Student Project', 'Workshop', 'Seminar', 'STTP', 'FDP', 'Conference'], required: false, status: 'active' },
       { name: 'faculty_role', label: 'Faculty Role', type: 'select', options: ['PI', 'Co-PI'], required: true, status: 'active' },
-      { name: 'copiname', label: 'Co-PI Staff Name', type: 'text', required: true, status: 'active' },
-      { name: 'copiid', label: 'Co-PI Staff ID', type: 'text', required: true, status: 'active' },
+      { name: 'copiname', label: 'Co-PI Staff Name(s)', type: 'text', required: false, status: 'active' },
+      { name: 'copiid', label: 'Co-PI Staff ID(s)', type: 'text', required: false, status: 'active' },
       { name: 'fa', label: 'Funding Agency Name', type: 'text', required: true, status: 'active' },
-      { name: 'status', label: 'Current Status', type: 'select', options: ['Applied', 'Sanctioned', 'Ongoing', 'Completed'], required: true, status: 'active' },
-      { name: 'amount', label: 'Sanctioned Amount (INR)', type: 'number', required: true, status: 'active' },
-      { name: 'referenceno', label: 'Agency Order Reference', type: 'text', required: true, status: 'active' }
+      { name: 'amount', label: 'Grant Amount (INR)', type: 'number', required: true, status: 'active' },
+      { name: 'from_date', label: 'Duration From Date', type: 'date', required: false, status: 'active' },
+      { name: 'to_date', label: 'Duration To Date', type: 'date', required: false, status: 'active' },
+      { name: 'referenceno', label: 'Grant No & Order Date', type: 'text', required: false, status: 'active' },
+      { name: 'status', label: 'Current Status', type: 'select', options: ['Sanctioned', 'Received', 'Applied', 'Ongoing', 'Completed'], required: true, status: 'active' }
     ]
   },
   seed_money: {
     page_key: 'seed_money',
-    title: 'Seed Money for Research',
-    category: 'activity',
+    title: 'Funded Consultancy Projects & Seed Money for Research',
+    category: 'rnd',
     portals: ['admin', 'dept_admin', 'faculty'],
     icon: 'FileText',
     fields: [
-      { name: 'title', label: 'Research Project Title', type: 'text', required: true, status: 'active' },
-      { name: 'faculty_role', label: 'Faculty Role', type: 'select', options: ['PI', 'Co-PI'], required: true, status: 'active' },
-      { name: 'sanctioned_date', label: 'Sanctioned Date', type: 'date', required: true, status: 'active' },
-      { name: 'duration', label: 'Duration (e.g. 1 Year)', type: 'text', required: true, status: 'active' },
-      { name: 'amount', label: 'Amount Sanctioned (INR)', type: 'number', required: true, status: 'active' }
+      { name: 'entry_type', label: 'Category Type', type: 'select', options: ['Seed Money for Research', 'Consultancy'], required: true, status: 'active' },
+      { name: 'title', label: 'Project Title / Nature of Consultation', type: 'text', required: true, status: 'active' },
+      { name: 'client_type', label: 'Client / Sponsoring Agency', type: 'select', options: ['Internal / SREC Seed Fund', 'Industry', 'Agency / Sponsoring Body', 'Individual', 'Others'], required: false, status: 'active' },
+      { name: 'consultants', label: 'Name of Faculty Members Involved / Consultants', type: 'text', required: false, status: 'active' },
+      { name: 'faculty_role', label: 'Faculty Role', type: 'select', options: ['PI', 'Co-PI', 'Consultant', 'Principal Consultant'], required: true, status: 'active' },
+      { name: 'sanctioned_date', label: 'Sanctioned Date', type: 'date', required: false, status: 'active' },
+      { name: 'duration', label: 'Duration (e.g. 6 Months / 1 Year)', type: 'text', required: false, status: 'active' },
+      { name: 'amount', label: 'Amount (INR - Only Through College Account)', type: 'number', required: true, status: 'active' },
+      { name: 'status', label: 'Current Status', type: 'select', options: ['Received', 'Sanctioned', 'Applied', 'Ongoing', 'Completed'], required: true, status: 'active' }
     ]
   },
   ipr: {

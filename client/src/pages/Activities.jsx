@@ -1081,17 +1081,26 @@ export default function Activities({ auth }) {
           <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>Create Entry</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
-              {(sysPageConfig && Array.isArray(sysPageConfig.fields) && sysPageConfig.fields.length > 0
-                ? sysPageConfig.fields.map(sf => {
+              {(() => {
+                let list = config.fields || [];
+                if (sysPageConfig && Array.isArray(sysPageConfig.fields) && sysPageConfig.fields.length > 0) {
+                  const mapped = sysPageConfig.fields.map(sf => {
                     const baseF = (config.fields || []).find(bf => bf.name === sf.name) || {};
                     return {
                       ...baseF,
                       ...sf,
                       options: sf.options ? (Array.isArray(sf.options) ? sf.options : sf.options.split(',').map(s => s.trim())) : baseF.options
                     };
-                  })
-                : config.fields
-              )
+                  });
+                  (config.fields || []).forEach(bf => {
+                    if (!mapped.some(m => m.name === bf.name)) {
+                      mapped.push(bf);
+                    }
+                  });
+                  list = mapped;
+                }
+                return list;
+              })()
                 .filter(f => {
                   if (f.status === 'hidden') return false;
                   if (type === 'publications') {
