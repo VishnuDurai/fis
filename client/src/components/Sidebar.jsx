@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, User, BookOpen, GraduationCap, Award, FileText,
@@ -27,7 +27,7 @@ export default function Sidebar({ role, logout, auth }) {
   const [dynamicPages, setDynamicPages] = useState([]);
   const [pendingAppraisalsCount, setPendingAppraisalsCount] = useState(0);
 
-  useEffect(() => {
+  const fetchMenuData = useCallback(() => {
     if (auth && auth.token) {
       Promise.all([
         fetch(`${API_BASE_URL}/api/dynamic-pages`, { headers: { 'Authorization': `Bearer ${auth.token}` } }),
@@ -35,11 +35,11 @@ export default function Sidebar({ role, logout, auth }) {
         fetch(`${API_BASE_URL}/api/system-page-configs`, { headers: { 'Authorization': `Bearer ${auth.token}` } })
       ])
         .then(async ([pRes, cRes, sRes]) => {
-          if (pRes.ok) {
+          if (pRes && pRes.ok) {
             const data = await pRes.json();
             if (Array.isArray(data)) setDynamicPages(data);
           }
-          if (cRes.ok) {
+          if (cRes && cRes.ok) {
             const data = await cRes.json();
             if (data && typeof data.userPendingCount === 'number') setPendingAppraisalsCount(data.userPendingCount);
           }
@@ -48,9 +48,19 @@ export default function Sidebar({ role, logout, auth }) {
             if (Array.isArray(data)) setSystemPageConfigs(data);
           }
         })
-        .catch(err => console.error(err));
+        .catch(err => console.error('Sidebar fetch error:', err));
     }
   }, [auth]);
+
+  useEffect(() => {
+    fetchMenuData();
+    window.addEventListener('srec_dynamic_pages_updated', fetchMenuData);
+    window.addEventListener('focus', fetchMenuData);
+    return () => {
+      window.removeEventListener('srec_dynamic_pages_updated', fetchMenuData);
+      window.removeEventListener('focus', fetchMenuData);
+    };
+  }, [fetchMenuData]);
 
   const handleLogout = () => {
     logout();
@@ -64,9 +74,10 @@ export default function Sidebar({ role, logout, auth }) {
   const isInstAdminUser = auth?.isInstitutionalAdmin || (auth?.designation || '').toLowerCase().includes('principal') || (auth?.designation || '').toLowerCase().includes('hr');
   const isClubCoord = auth?.isClubCoordinator || (auth?.myClubs && auth.myClubs.length > 0);
 
-  // Define section groups without 1,2,3 or a,b,c indexing
+  // Define menu structure across all 3 portals
   const getMenuStructure = () => {
     let baseMenu = [];
+
     if (role === 'admin') {
       baseMenu = [
         {
@@ -109,12 +120,11 @@ export default function Sidebar({ role, logout, auth }) {
           isSingle: false,
           icon: <Activity size={18} />,
           items: [
-            { to: '/activities/interaction', label: 'Interaction Details', icon: <Users size={16} /> },
+            { to: '/activities/interactions', label: 'Interaction Details', icon: <Users size={16} /> },
             { to: '/activities/resource', label: 'Resource Person', icon: <Award size={16} /> },
             { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap size={16} /> },
             { to: '/activities/awards', label: 'Awards Received', icon: <Award size={16} /> },
-            { to: '/activities/competitive_exams', label: 'Exams Passed', icon: <FileText size={16} /> },
-            { to: '/activities/events', label: 'Event Organized', icon: <FileText size={16} /> },
+            { to: '/activities/events', label: 'Events Organized', icon: <FileText size={16} /> },
             { to: '/activities/clubs', label: 'Clubs Activity Organized', icon: <Award size={16} /> },
             { to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap size={16} /> },
             { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> },
@@ -133,17 +143,15 @@ export default function Sidebar({ role, logout, auth }) {
           icon: <FileCheck size={18} />
         },
         {
-          id: 'dynamic-pages-admin',
-          title: 'Dynamic Page Builder',
+          id: 'reports',
+          title: 'Reports and Dossier',
           isSingle: true,
-          to: '/admin/dynamic-pages',
-          icon: <Layers size={18} />
+          to: '/reports',
+          icon: <FileText size={18} />
         }
       ];
-    }
-
-    if (role === 'dept_admin') {
-      return [
+    } else if (role === 'dept_admin') {
+      baseMenu = [
         {
           id: 'dashboard',
           title: 'Dashboard',
@@ -211,119 +219,153 @@ export default function Sidebar({ role, logout, auth }) {
           icon: <FileText size={18} />
         }
       ];
-    }
-
-    // REGULAR FACULTY PORTAL MENU
-    const academicsSubItems = [
-      { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen size={16} /> },
-      { to: '/profile/documents', label: 'Official Documents', icon: <FileText size={16} /> },
-      { to: '/profile/education', label: 'Education Details', icon: <GraduationCap size={16} /> },
-      { to: '/activities/memberships', label: 'Memberships', icon: <Users size={16} /> },
-      { to: '/responsibilities', label: isHod ? 'Assign Responsibilities' : 'Assigned Responsibilities', icon: <FileText size={16} /> }
-    ];
-
-    if (isInstAdminUser) {
-      academicsSubItems.push({ to: '/admin/clubs', label: 'Assign Club Coordinators', icon: <Award size={16} /> });
-    }
-
-    const activitySubItems = [
-      { to: '/activities/interactions', label: 'Interaction Details', icon: <Users size={16} /> },
-      { to: '/activities/resource', label: 'Resource Person', icon: <Users size={16} /> },
-      { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap size={16} /> },
-      { to: '/activities/awards', label: 'Awards Received', icon: <Award size={16} /> },
-      { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 size={16} /> }
-    ];
-
-    if (isClubCoord) {
-      activitySubItems.push({ to: '/activities/clubs', label: 'Clubs', icon: <Award size={16} /> });
-    }
-
-    const rndSubItems = [];
-    if (!isDoctorateOrPhd) {
-      rndSubItems.push({ to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap size={16} /> });
     } else {
-      rndSubItems.push({ to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> });
+      // REGULAR FACULTY PORTAL MENU
+      const academicsSubItems = [
+        { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen size={16} /> },
+        { to: '/profile/documents', label: 'Official Documents', icon: <FileText size={16} /> },
+        { to: '/profile/education', label: 'Education Details', icon: <GraduationCap size={16} /> },
+        { to: '/activities/memberships', label: 'Memberships', icon: <Users size={16} /> },
+        { to: '/responsibilities', label: isHod ? 'Assign Responsibilities' : 'Assigned Responsibilities', icon: <FileText size={16} /> }
+      ];
+
+      if (isInstAdminUser) {
+        academicsSubItems.push({ to: '/admin/clubs', label: 'Assign Club Coordinators', icon: <Award size={16} /> });
+      }
+
+      const activitySubItems = [
+        { to: '/activities/interactions', label: 'Interaction Details', icon: <Users size={16} /> },
+        { to: '/activities/resource', label: 'Resource Person', icon: <Users size={16} /> },
+        { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap size={16} /> },
+        { to: '/activities/awards', label: 'Awards Received', icon: <Award size={16} /> },
+        { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 size={16} /> }
+      ];
+
+      if (isClubCoord) {
+        activitySubItems.push({ to: '/activities/clubs', label: 'Clubs', icon: <Award size={16} /> });
+      }
+
+      const rndSubItems = [];
+      if (!isDoctorateOrPhd) {
+        rndSubItems.push({ to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap size={16} /> });
+      } else {
+        rndSubItems.push({ to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> });
+      }
+
+      rndSubItems.push(
+        { to: '/activities/funding', label: 'Research Funding', icon: <FileText size={16} /> },
+        { to: '/activities/seed_money', label: 'Seed Money for Research', icon: <FileText size={16} /> },
+        { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
+        { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
+        { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
+      );
+
+      baseMenu = [
+        {
+          id: 'dashboard',
+          title: 'Dashboard',
+          isSingle: true,
+          to: '/dashboard',
+          icon: <Home size={18} />
+        },
+        {
+          id: 'personal',
+          title: 'Personal',
+          isSingle: true,
+          to: '/profile/personal',
+          icon: <User size={18} />
+        },
+        {
+          id: 'academics',
+          title: 'Academics',
+          isSingle: false,
+          icon: <BookOpen size={18} />,
+          items: academicsSubItems
+        },
+        {
+          id: 'activity',
+          title: 'Faculty Activity',
+          isSingle: false,
+          icon: <Activity size={18} />,
+          items: activitySubItems
+        },
+        {
+          id: 'rnd',
+          title: 'R&D',
+          isSingle: false,
+          icon: <Beaker size={18} />,
+          items: rndSubItems
+        },
+        {
+          id: 'appraisal',
+          title: 'Appraisal Form',
+          isSingle: true,
+          to: '/appraisal',
+          icon: <FileCheck size={18} />
+        },
+        {
+          id: 'reports',
+          title: 'Reports and Dossier',
+          isSingle: true,
+          to: '/reports',
+          icon: <FileText size={18} />
+        }
+      ];
     }
 
-    rndSubItems.push(
-      { to: '/activities/funding', label: 'Research Funding', icon: <FileText size={16} /> },
-      { to: '/activities/seed_money', label: 'Seed Money for Research', icon: <FileText size={16} /> },
-      { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
-      { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
-      { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
-    );
-
-    return [
-      {
-        id: 'dashboard',
-        title: 'Dashboard',
-        isSingle: true,
-        to: '/dashboard',
-        icon: <Home size={18} />
-      },
-      {
-        id: 'personal',
-        title: 'Personal',
-        isSingle: true,
-        to: '/profile/personal',
-        icon: <User size={18} />
-      },
-      {
-        id: 'academics',
-        title: 'Academics',
-        isSingle: false,
-        icon: <BookOpen size={18} />,
-        items: academicsSubItems
-      },
-      {
-        id: 'activity',
-        title: 'Faculty Activity',
-        isSingle: false,
-        icon: <Activity size={18} />,
-        items: activitySubItems
-      },
-      {
-        id: 'rnd',
-        title: 'R&D',
-        isSingle: false,
-        icon: <Beaker size={18} />,
-        items: rndSubItems
-      },
-      {
-        id: 'appraisal',
-        title: 'Appraisal Form',
-        isSingle: true,
-        to: '/appraisal',
-        icon: <FileCheck size={18} />
-      },
-      {
-        id: 'reports',
-        title: 'Reports and Dossier',
-        isSingle: true,
-        to: '/reports',
-        icon: <FileText size={18} />
+    // INJECT CUSTOM DYNAMIC PAGES INTO NAVIGATION TREE
+    const userRole = role || 'faculty';
+    const allowedDynamicPages = (dynamicPages || []).filter(p => {
+      let pPortals = p.portals;
+      if (typeof pPortals === 'string') {
+        try { pPortals = JSON.parse(pPortals); } catch (e) { pPortals = []; }
       }
-    ];
-
-    // Inject custom dynamic pages into navigation tree based on portal permissions
-    const allowedDynamicPages = dynamicPages.filter(p => p.portals && p.portals.includes(role));
+      if (!Array.isArray(pPortals) || pPortals.length === 0) return true;
+      return pPortals.includes(userRole);
+    });
 
     allowedDynamicPages.forEach(p => {
       const pIcon = DYNAMIC_ICONS_MAP[p.icon] || <FileText size={16} />;
       const subItem = { to: `/custom/${p.slug}`, label: p.title, icon: pIcon };
+      const cat = (p.category || '').toLowerCase().trim();
 
-      if (p.category === 'personal') {
-        const targetSec = baseMenu.find(s => s.id === 'personal');
-        if (targetSec && targetSec.items) targetSec.items.push(subItem);
-      } else if (p.category === 'academic') {
-        const targetSec = baseMenu.find(s => s.id === 'academics');
-        if (targetSec && targetSec.items) targetSec.items.push(subItem);
-      } else if (p.category === 'activity') {
-        const targetSec = baseMenu.find(s => s.id === 'activity');
-        if (targetSec && targetSec.items) targetSec.items.push(subItem);
-      } else if (p.category === 'reports') {
-        const targetSec = baseMenu.find(s => s.id === 'reports');
-        if (targetSec && targetSec.items) targetSec.items.push(subItem);
+      if (cat === 'personal') {
+        const sec = baseMenu.find(s => s.id === 'personal');
+        if (sec) {
+          if (sec.isSingle) {
+            sec.isSingle = false;
+            sec.items = [
+              { to: sec.to, label: 'Personal Details', icon: <User size={16} /> },
+              subItem
+            ];
+            delete sec.to;
+          } else if (sec.items) {
+            sec.items.push(subItem);
+          }
+        }
+      } else if (cat === 'academic' || cat === 'academics') {
+        const sec = baseMenu.find(s => s.id === 'academics');
+        if (sec && sec.items) sec.items.push(subItem);
+      } else if (cat === 'activity' || cat === 'activities' || cat === 'faculty_activity') {
+        const sec = baseMenu.find(s => s.id === 'activity');
+        if (sec && sec.items) sec.items.push(subItem);
+      } else if (cat === 'rnd') {
+        const sec = baseMenu.find(s => s.id === 'rnd' || s.id === 'activity');
+        if (sec && sec.items) sec.items.push(subItem);
+      } else if (cat === 'reports') {
+        const sec = baseMenu.find(s => s.id === 'reports');
+        if (sec) {
+          if (sec.isSingle) {
+            sec.isSingle = false;
+            sec.items = [
+              { to: sec.to, label: 'Reports and Dossier', icon: <FileText size={16} /> },
+              subItem
+            ];
+            delete sec.to;
+          } else if (sec.items) {
+            sec.items.push(subItem);
+          }
+        }
       } else {
         // Standalone Top-Level Menu item
         baseMenu.push({
@@ -343,8 +385,7 @@ export default function Sidebar({ role, logout, auth }) {
 
   // Track expanded state for accordion categories
   const [expandedGroups, setExpandedGroups] = useState(() => {
-    const initial = { academics: true, activity: true, rnd: true, personal: true };
-    return initial;
+    return { academics: true, activity: true, rnd: true, personal: true };
   });
 
   useEffect(() => {
@@ -357,7 +398,7 @@ export default function Sidebar({ role, logout, auth }) {
         }
       }
     });
-  }, [location.pathname]);
+  }, [location.pathname, menuStructure]);
 
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
@@ -432,7 +473,7 @@ export default function Sidebar({ role, logout, auth }) {
             }
 
             const isExpanded = expandedGroups[group.id];
-            const hasActiveChild = group.items.some(item => location.pathname === item.to);
+            const hasActiveChild = group.items && group.items.some(item => location.pathname === item.to);
 
             return (
               <li key={group.id} style={{ marginBottom: '6px' }}>
@@ -444,17 +485,16 @@ export default function Sidebar({ role, logout, auth }) {
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     padding: '10px 16px',
                     borderRadius: 'var(--radius)',
                     background: hasActiveChild ? 'hsla(var(--primary), 0.08)' : 'transparent',
                     border: 'none',
-                    color: hasActiveChild ? 'hsl(var(--primary))' : '#334155',
+                    color: hasActiveChild ? 'hsl(var(--primary))' : 'hsl(var(--text-main))',
                     fontWeight: 700,
                     fontSize: '0.92rem',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    textAlign: 'left'
+                    transition: 'var(--transition-smooth)'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -464,30 +504,29 @@ export default function Sidebar({ role, logout, auth }) {
                   {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 </button>
 
-                {/* Sub Menu Items */}
-                {isExpanded && (
-                  <ul style={{ listStyle: 'none', paddingLeft: '24px', marginTop: '4px', marginBottom: '6px' }}>
-                    {group.items.map((subItem, idx) => (
-                      <li key={idx} style={{ marginBottom: '3px' }}>
+                {/* Sub Items List */}
+                {isExpanded && group.items && (
+                  <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0 6px 0', borderLeft: '2px solid hsl(var(--border))', marginLeft: '24px' }}>
+                    {group.items.map((item, idx) => (
+                      <li key={idx} style={{ marginBottom: '4px' }}>
                         <NavLink
-                          to={subItem.to}
+                          to={item.to}
                           style={({ isActive }) => ({
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
                             padding: '8px 12px',
-                            borderRadius: '6px',
-                            color: isActive ? '#ffffff' : '#475569',
-                            background: isActive ? 'hsl(var(--primary))' : 'transparent',
+                            borderRadius: 'var(--radius)',
+                            color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
+                            background: isActive ? 'hsla(var(--primary), 0.12)' : 'transparent',
                             fontWeight: isActive ? 700 : 500,
-                            fontSize: '0.85rem',
+                            fontSize: '0.86rem',
+                            textDecoration: 'none',
                             transition: 'var(--transition-smooth)'
                           })}
                         >
-                          {subItem.icon}
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {subItem.label}
-                          </span>
+                          {item.icon}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
                         </NavLink>
                       </li>
                     ))}
@@ -498,6 +537,18 @@ export default function Sidebar({ role, logout, auth }) {
           })}
         </ul>
       </nav>
+
+      {/* User profile & logout footer */}
+      <div style={{ padding: '16px', borderTop: '1px solid hsl(var(--border))', background: 'hsla(var(--bg-card), 0.5)' }}>
+        <button
+          onClick={handleLogout}
+          className="btn btn-secondary"
+          style={{ width: '100%', justifyContent: 'center', gap: '8px', padding: '10px' }}
+        >
+          <LogOut size={16} />
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }

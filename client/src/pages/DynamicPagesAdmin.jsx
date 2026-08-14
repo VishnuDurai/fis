@@ -160,6 +160,7 @@ export default function DynamicPagesAdmin({ auth }) {
       if (res.ok) {
         setMessage(`System page configuration for "${sysPageTitle}" saved successfully!`);
         fetchSysConfigs();
+        window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
         setError(data.error || 'Failed to save system page configuration');
       }
@@ -181,6 +182,7 @@ export default function DynamicPagesAdmin({ auth }) {
       if (res.ok) {
         setMessage(`Configuration for "${sysPageTitle}" reset to default.`);
         fetchSysConfigs();
+        window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
         setError(data.error || 'Failed to reset configuration');
       }
@@ -295,6 +297,7 @@ export default function DynamicPagesAdmin({ auth }) {
         setMessage(editingId ? 'Dynamic page updated successfully!' : 'Dynamic page created successfully!');
         setShowModal(false);
         fetchPages();
+        window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
         setError(data.error || 'Failed to save dynamic page');
       }
@@ -315,6 +318,7 @@ export default function DynamicPagesAdmin({ auth }) {
       if (res.ok) {
         setMessage(`Dynamic page "${page.title}" deleted.`);
         fetchPages();
+        window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to delete dynamic page');
