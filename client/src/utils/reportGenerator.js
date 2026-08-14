@@ -513,3 +513,497 @@ export const exportNbaB2FacultyDetails = (facultyList, departmentName = 'Departm
   XLSX.writeFile(workbook, `NBA_B2_Faculty_Details_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.xlsx`);
 };
 
+/**
+ * Exports Faculty Details in standard NBA Criterion 5 Form B2 PDF format
+ */
+export const exportNbaB2FacultyDetailsPdf = async (facultyList, departmentName = 'Department', academicYear = '2025-2026', auth = {}) => {
+  try {
+    const isInstitutional = !departmentName || 
+      ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE', 'N/A', ''].includes(departmentName.toString().trim().toUpperCase());
+
+    const fullDeptName = isInstitutional ? '' : getFullDepartmentName(departmentName);
+    const deptAcronym = isInstitutional ? '' : getDepartmentAcronym(departmentName);
+
+    const titleLine1 = isInstitutional ? 'Sri Ramakrishna Engineering College' : `Department of ${fullDeptName}`;
+    const titleLine2 = `FACULTY DETAILS OF THE DEPARTMENT - ACADEMIC YEAR ${academicYear}`;
+    const subTitle = `(NBA Criterion 5 - Form B2 Inspection Report)`;
+
+    const headers = [
+      'S.No',
+      'Faculty Name',
+      'PAN No.',
+      'Highest Qual.',
+      'Area of Specialization',
+      'Designation',
+      'DOJ',
+      'Date Designated as Prof/Assoc Prof',
+      'Currently Associated',
+      'Nature',
+      'Mode',
+      'Date of Leaving'
+    ];
+
+    const rows = (facultyList || []).map((f, idx) => [
+      idx + 1,
+      f.staff_name || 'N/A',
+      f.pan || 'N/A',
+      f.Qualification || 'Ph.D',
+      f.area_of_specialization || 'N/A',
+      f.Designation || 'N/A',
+      f.Date_of_joining || 'N/A',
+      f.date_designated_prof || 'NA',
+      f.is_relieved ? 'N' : 'Y',
+      (f.nature_of_association || 'REGULAR').toUpperCase(),
+      f.contractual_type || '-',
+      f.is_relieved ? (f.date_of_leaving || 'Yes') : 'NA'
+    ]);
+
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const headerBanner = await fetchImageAsBase64('/srec-header-banner.png') ||
+                         await fetchImageAsBase64('/report-logo-left.png') ||
+                         await fetchImageAsBase64('/logo.png');
+
+    const bannerWidth = 165;
+    const bannerHeight = bannerWidth / 5.505;
+    const bannerX = (pageWidth - bannerWidth) / 2;
+
+    const title1Y = 4 + bannerHeight + 5;
+    const title2Y = title1Y + 5;
+    const subTitleY = title2Y + 4;
+    const dividerY = subTitleY + 3;
+    const tableStartY = dividerY + 4;
+
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: tableStartY,
+      margin: { top: tableStartY, bottom: 25, left: 8, right: 8 },
+      styles: {
+        font: 'times',
+        fontSize: 8.5,
+        cellPadding: 2.2,
+        textColor: [15, 23, 42],
+        valign: 'middle',
+        overflow: 'linebreak'
+      },
+      headStyles: {
+        font: 'times',
+        fontStyle: 'bold',
+        fontSize: 8.5,
+        fillColor: [13, 148, 136], // #0d9488 Teal
+        textColor: [255, 255, 255],
+        halign: 'center'
+      },
+      bodyStyles: {
+        font: 'times',
+        fontSize: 8.5
+      },
+      alternateRowStyles: {
+        fillColor: [240, 253, 250]
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' }, // S.No
+        1: { cellWidth: 32 },                   // Name
+        2: { cellWidth: 20, halign: 'center' }, // PAN
+        3: { cellWidth: 20, halign: 'center' }, // Qual
+        4: { cellWidth: 42 },                   // Specialization
+        5: { cellWidth: 28 },                   // Designation
+        6: { cellWidth: 18, halign: 'center' }, // DOJ
+        7: { cellWidth: 26, halign: 'center' }, // Date Designated Prof
+        8: { cellWidth: 18, halign: 'center' }, // Associated
+        9: { cellWidth: 20, halign: 'center' }, // Nature
+        10: { cellWidth: 18, halign: 'center' },// Mode
+        11: { cellWidth: 20, halign: 'center' } // Leaving Date
+      },
+      didDrawPage: (data) => {
+        if (headerBanner) {
+          try {
+            doc.addImage(headerBanner, 'PNG', bannerX, 4, bannerWidth, bannerHeight);
+          } catch (e) {}
+        }
+
+        doc.setFont('times', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(15, 23, 42);
+        doc.text(titleLine1, pageWidth / 2, title1Y, { align: 'center' });
+
+        doc.setFontSize(11);
+        doc.setTextColor(13, 148, 136);
+        doc.text(titleLine2, pageWidth / 2, title2Y, { align: 'center' });
+
+        doc.setFontSize(9);
+        doc.setFont('times', 'italic');
+        doc.setTextColor(100, 116, 139);
+        doc.text(subTitle, pageWidth / 2, subTitleY, { align: 'center' });
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.4);
+        doc.line(8, dividerY, pageWidth - 8, dividerY);
+
+        // Page Number
+        const str = `Page ${doc.internal.getNumberOfPages()}`;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(str, pageWidth - 10, pageHeight - 8, { align: 'right' });
+      }
+    });
+
+    const finalY = doc.lastAutoTable.finalY || 150;
+    const sigY = Math.min(finalY + 16, pageHeight - 16);
+
+    const userRole = auth.role || 'faculty';
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+
+    if (userRole === 'admin' || isInstitutional) {
+      doc.text('PRINCIPAL', pageWidth - 14, sigY, { align: 'right' });
+      doc.setFont('times', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Sri Ramakrishna Engineering College', pageWidth - 14, sigY + 5, { align: 'right' });
+    } else {
+      doc.text('Faculty In-charge', 14, sigY);
+      doc.text(`HOD - ${deptAcronym}`, pageWidth - 14, sigY, { align: 'right' });
+    }
+
+    doc.save(`NBA_B2_Faculty_Details_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.pdf`);
+  } catch (err) {
+    console.error('Failed to generate NBA B2 PDF:', err);
+    alert('Failed to generate NBA Form B2 PDF.');
+  }
+};
+
+/**
+ * Exports NAAC Criterion 3 Multi-Table PDF
+ */
+export const exportNaacCriterion3Pdf = async (data, departmentName = 'Institution', auth = {}) => {
+  try {
+    const isInst = !departmentName || ['ALL', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE', 'N/A', ''].includes(departmentName.toUpperCase());
+    const fullDept = isInst ? 'Sri Ramakrishna Engineering College' : `Department of ${getFullDepartmentName(departmentName)}`;
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const headerBanner = await fetchImageAsBase64('/srec-header-banner.png') || await fetchImageAsBase64('/logo.png');
+    const bannerWidth = 165;
+    const bannerHeight = bannerWidth / 5.505;
+
+    let currentY = 4 + bannerHeight + 6;
+
+    // Header drawing helper
+    const drawHeader = (title) => {
+      if (headerBanner) {
+        try { doc.addImage(headerBanner, 'PNG', (pageWidth - bannerWidth) / 2, 4, bannerWidth, bannerHeight); } catch(e){}
+      }
+      doc.setFont('times', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text(fullDept, pageWidth / 2, 4 + bannerHeight + 5, { align: 'center' });
+      doc.setFontSize(11);
+      doc.setTextColor(22, 163, 74);
+      doc.text(title, pageWidth / 2, 4 + bannerHeight + 10, { align: 'center' });
+    };
+
+    drawHeader('NAAC CRITERION 3 - RESEARCH & EXTENSION INSPECTION DOSSIER');
+    currentY = 4 + bannerHeight + 16;
+
+    // 1. Publications
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`3.1 Research Publications (${(data.naac_3_1_publications || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const pubHeaders = ['Type', 'Title', 'Journal / Publisher', 'Authors', 'ISSN/ISBN', 'Date/Year', 'Indexing', 'Citations'];
+    const pubRows = (data.naac_3_1_publications || []).map(p => [
+      p.type_pub || 'Journal',
+      p.title || 'N/A',
+      p.journel || p.organizer || 'N/A',
+      p.co_authors || 'N/A',
+      p.issn_no || p.isbn || 'N/A',
+      p.date_con || p.year || 'N/A',
+      p.index_pub || 'N/A',
+      p.citations || '0'
+    ]);
+
+    autoTable(doc, {
+      head: [pubHeaders],
+      body: pubRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 2. Books
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`3.2 Books Published (${(data.naac_3_2_books || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const bookHeaders = ['Title', 'Co-Authors', 'Publisher', 'Edition', 'ISBN', 'Year / Date'];
+    const bookRows = (data.naac_3_2_books || []).map(b => [
+      b.title || 'N/A',
+      b.coauthor || 'None',
+      b.publisher || 'N/A',
+      b.edition || '1st',
+      b.isbn || 'N/A',
+      b.dateofpublication || b.year || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [bookHeaders],
+      body: bookRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 3. Sponsored Grants
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`3.3 Sponsored Research Grants (${(data.naac_3_3_grants || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const grantHeaders = ['Project Title', 'Category & Role', 'Funding Agency', 'Status', 'Sanctioned Amount (INR)', 'Ref No.'];
+    const grantRows = (data.naac_3_3_grants || []).map(g => [
+      g.title || 'N/A',
+      `${g.grant_category || 'Project'} (${g.faculty_role || 'PI'})`,
+      g.agency || 'N/A',
+      g.status || 'Ongoing',
+      g.amount ? `₹ ${Number(g.amount).toLocaleString('en-IN')}` : 'N/A',
+      g.ref_no || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [grantHeaders],
+      body: grantRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 4. Patents & IPR
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`3.5 Patents & Intellectual Property Rights (${(data.naac_3_5_patents || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const iprHeaders = ['IP Type', 'Title', 'Application / File No', 'Status', 'Filing Date', 'Granted / Pub Date'];
+    const iprRows = (data.naac_3_5_patents || []).map(ip => [
+      ip.ip_type || 'Patent',
+      ip.patent || ip.title || 'N/A',
+      ip.institution || ip.app_no || 'N/A',
+      ip.patent_status || ip.status || 'Published',
+      ip.filing_date || 'N/A',
+      ip.date || ip.pub_date || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [iprHeaders],
+      body: iprRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
+    });
+
+    doc.save(`NAAC_Criterion_3_Research_Report_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`);
+  } catch (err) {
+    console.error('Failed to generate NAAC PDF:', err);
+    alert('Failed to generate NAAC PDF report.');
+  }
+};
+
+/**
+ * Exports NBA Criterion 5 Multi-Table PDF
+ */
+export const exportNbaCriterion5Pdf = async (data, departmentName = 'Institution', auth = {}) => {
+  try {
+    const isInst = !departmentName || ['ALL', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE', 'N/A', ''].includes(departmentName.toUpperCase());
+    const fullDept = isInst ? 'Sri Ramakrishna Engineering College' : `Department of ${getFullDepartmentName(departmentName)}`;
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const headerBanner = await fetchImageAsBase64('/srec-header-banner.png') || await fetchImageAsBase64('/logo.png');
+    const bannerWidth = 165;
+    const bannerHeight = bannerWidth / 5.505;
+
+    let currentY = 4 + bannerHeight + 6;
+
+    const drawHeader = (title) => {
+      if (headerBanner) {
+        try { doc.addImage(headerBanner, 'PNG', (pageWidth - bannerWidth) / 2, 4, bannerWidth, bannerHeight); } catch(e){}
+      }
+      doc.setFont('times', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text(fullDept, pageWidth / 2, 4 + bannerHeight + 5, { align: 'center' });
+      doc.setFontSize(11);
+      doc.setTextColor(2, 132, 199);
+      doc.text(title, pageWidth / 2, 4 + bannerHeight + 10, { align: 'center' });
+    };
+
+    drawHeader('NBA CRITERION 5 - FACULTY CONTRIBUTIONS INSPECTION DOSSIER');
+    currentY = 4 + bannerHeight + 16;
+
+    // 1. FDPs / Interactions
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`5.1 Faculty Development Programs & Workshops Attended (${(data.nba_5_1_fdp_attended || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const fdpHeaders = ['Type', 'Event Title', 'Organizer', 'Duration / Dates', 'Venue / Mode'];
+    const fdpRows = (data.nba_5_1_fdp_attended || []).map(f => [
+      f.type || 'FDP',
+      f.title || 'N/A',
+      f.organizer || 'N/A',
+      f.from_date && f.to_date ? `${f.from_date} to ${f.to_date}` : (f.from_date || f.date || 'N/A'),
+      f.venue || f.nature_event || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [fdpHeaders],
+      body: fdpRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 2. Events Organized
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`5.2 Events / Workshops Organized (${(data.nba_5_2_events_organized || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const eventHeaders = ['Category', 'Event Title', 'Organizer Role', 'Dates / Duration', 'Participants', 'Sponsor Grant (INR)'];
+    const eventRows = (data.nba_5_2_events_organized || []).map(e => [
+      e.type || 'Workshop',
+      e.title || 'N/A',
+      e.role || 'Coordinator',
+      e.from_date && e.to_date ? `${e.from_date} to ${e.to_date}` : (e.from_date || 'N/A'),
+      e.ben_person || 0,
+      e.granted ? `₹ ${Number(e.granted).toLocaleString('en-IN')}` : 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [eventHeaders],
+      body: eventRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 3. Certifications
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`5.3 Faculty Certifications (${(data.nba_5_3_certifications || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const certHeaders = ['Course / Title', 'Issuing Organization', 'Score / Grade', 'Issue Date / Period'];
+    const certRows = (data.nba_5_3_certifications || []).map(c => [
+      c.title || 'N/A',
+      c.organization || 'NPTEL / Coursera',
+      c.grade || c.score || 'Elite',
+      c.from_date && c.to_date ? `${c.from_date} to ${c.to_date}` : (c.from_date || c.date || 'N/A')
+    ]);
+
+    autoTable(doc, {
+      head: [certHeaders],
+      body: certRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 4. Awards
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`5.4 Awards & Honors Received (${(data.nba_5_4_awards || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const awardHeaders = ['Award Title', 'Awarding Agency', 'Event Name', 'Award Date'];
+    const awardRows = (data.nba_5_4_awards || []).map(a => [
+      a.awardname || 'N/A',
+      a.awardby || 'N/A',
+      a.event || 'N/A',
+      a.awa_date || a.date || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [awardHeaders],
+      body: awardRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+
+    // 5. Responsibilities
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.text(`5.5 Responsibilities Assigned (${(data.nba_5_5_responsibilities || []).length} Records)`, 10, currentY);
+    currentY += 4;
+
+    const respHeaders = ['Responsibility Title', 'Level / Scope', 'Academic Year', 'Assigned By'];
+    const respRows = (data.nba_5_5_responsibilities || []).map(r => [
+      r.responsibility || 'N/A',
+      r.level || 'Department Level',
+      r.academic_year || '2025-2026',
+      r.assigned_by || 'HOD / Principal'
+    ]);
+
+    autoTable(doc, {
+      head: [respHeaders],
+      body: respRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    doc.save(`NBA_Criterion_5_Faculty_Contributions_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`);
+  } catch (err) {
+    console.error('Failed to generate NBA PDF:', err);
+    alert('Failed to generate NBA PDF report.');
+  }
+};
+

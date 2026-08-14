@@ -5,7 +5,7 @@ import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, Arro
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
-import { exportNbaB2FacultyDetails } from '../utils/reportGenerator.js';
+import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
 import { validateStaffId, validateEmail, validateMobile, validatePan, validateAadhar, validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
 export default function AdminUsers({ auth, initialTab }) {
@@ -1750,6 +1750,15 @@ export default function AdminUsers({ auth, initialTab }) {
                       >
                         <FileSpreadsheet size={15} />
                         Export NBA B2 Details (Excel)
+                      </button>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => exportNbaB2FacultyDetailsPdf(filteredFaculty, auth.role === 'admin' ? (searchDept || 'Institution') : (auth.department || auth.dept || 'Department'), '2025-2026', auth)}
+                        style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0fdfa', color: '#0f766e', border: '1px solid #99f6e4', fontWeight: 700 }}
+                        title="Download Faculty Details of the Department (NBA Criterion 5 Form B2 PDF)"
+                      >
+                        <FileText size={15} />
+                        Export NBA B2 Details (PDF)
                       </button>
                       {auth.role === 'dept_admin' && (
                         <button 

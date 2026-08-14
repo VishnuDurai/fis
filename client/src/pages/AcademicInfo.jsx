@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Eye, X, BookOpen, FileText, User, FileSpreadsheet } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
-import { exportNbaB2FacultyDetails } from '../utils/reportGenerator.js';
+import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
 import { validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
 export default function AcademicInfo({ auth }) {
@@ -264,6 +264,15 @@ export default function AcademicInfo({ auth }) {
                 >
                   <FileSpreadsheet size={15} />
                   Export NBA B2 Details (Excel)
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => exportNbaB2FacultyDetailsPdf(filteredPersonalList, selectedDepartment || auth.department || auth.dept || 'Department', '2025-2026', auth)}
+                  style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0fdfa', color: '#0f766e', border: '1px solid #99f6e4', fontWeight: 700 }}
+                  title="Download Faculty Details of the Department (NBA Criterion 5 Form B2 PDF)"
+                >
+                  <FileText size={15} />
+                  Export NBA B2 Details (PDF)
                 </button>
               </div>
               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'hsl(var(--primary))', whiteSpace: 'nowrap' }}>

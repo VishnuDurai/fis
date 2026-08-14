@@ -1470,15 +1470,35 @@ router.get('/search-faculty', authenticateToken, (req, res) => {
 
 // NAAC Accreditation Summary Exporter API (Criterion 3: Research & Extension)
 router.get('/accreditation/naac-summary', authenticateToken, async (req, res) => {
-  const department = req.query.department || '';
+  const department = (req.user.role === 'dept_admin' ? (req.user.department || '') : (req.query.department || '')).trim();
+  const isInst = !department || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(department.toUpperCase());
+
   try {
-    const publications = await new Promise(r => db.all('SELECT * FROM staff_publication', [], (_, rows) => r(rows || [])));
-    const books = await new Promise(r => db.all('SELECT * FROM staff_book_published', [], (_, rows) => r(rows || [])));
-    const funding = await new Promise(r => db.all('SELECT * FROM staff_funding', [], (_, rows) => r(rows || [])));
-    const seedMoney = await new Promise(r => db.all('SELECT * FROM staff_seed_money', [], (_, rows) => r(rows || [])));
-    const ipr = await new Promise(r => db.all('SELECT * FROM staff_ipr', [], (_, rows) => r(rows || [])));
+    let filterClause = '';
+    let params = [];
+    if (!isInst) {
+      filterClause = `
+        WHERE LOWER(TRIM(staff_id)) IN (
+          SELECT LOWER(TRIM(staff_id)) FROM staff_academics 
+          WHERE LOWER(TRIM(Department)) = LOWER(TRIM(?))
+             OR LOWER(TRIM(Department)) IN (
+               SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR LOWER(TRIM(acronym)) = LOWER(TRIM(?))
+               UNION
+               SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR LOWER(TRIM(acronym)) = LOWER(TRIM(?))
+             )
+        )
+      `;
+      params = [department, department, department, department, department];
+    }
+
+    const publications = await new Promise(r => db.all(`SELECT * FROM staff_publication ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const books = await new Promise(r => db.all(`SELECT * FROM staff_book_published ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const funding = await new Promise(r => db.all(`SELECT * FROM staff_funding ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const seedMoney = await new Promise(r => db.all(`SELECT * FROM staff_seed_money ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const ipr = await new Promise(r => db.all(`SELECT * FROM staff_ipr ${filterClause}`, params, (_, rows) => r(rows || [])));
 
     res.json({
+      department: isInst ? 'Institution' : department,
       naac_3_1_publications: publications,
       naac_3_2_books: books,
       naac_3_3_grants: funding,
@@ -1492,14 +1512,35 @@ router.get('/accreditation/naac-summary', authenticateToken, async (req, res) =>
 
 // NBA Accreditation Summary Exporter API (Criterion 5: Faculty Contributions)
 router.get('/accreditation/nba-summary', authenticateToken, async (req, res) => {
+  const department = (req.user.role === 'dept_admin' ? (req.user.department || '') : (req.query.department || '')).trim();
+  const isInst = !department || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(department.toUpperCase());
+
   try {
-    const interactions = await new Promise(r => db.all('SELECT * FROM staff_interaction', [], (_, rows) => r(rows || [])));
-    const events = await new Promise(r => db.all('SELECT * FROM staff_event_organized', [], (_, rows) => r(rows || [])));
-    const certs = await new Promise(r => db.all('SELECT * FROM staff_certificate', [], (_, rows) => r(rows || [])));
-    const awards = await new Promise(r => db.all('SELECT * FROM staff_award', [], (_, rows) => r(rows || [])));
-    const responsibilities = await new Promise(r => db.all('SELECT * FROM staff_responsibilities', [], (_, rows) => r(rows || [])));
+    let filterClause = '';
+    let params = [];
+    if (!isInst) {
+      filterClause = `
+        WHERE LOWER(TRIM(staff_id)) IN (
+          SELECT LOWER(TRIM(staff_id)) FROM staff_academics 
+          WHERE LOWER(TRIM(Department)) = LOWER(TRIM(?))
+             OR LOWER(TRIM(Department)) IN (
+               SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR LOWER(TRIM(acronym)) = LOWER(TRIM(?))
+               UNION
+               SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR LOWER(TRIM(acronym)) = LOWER(TRIM(?))
+             )
+        )
+      `;
+      params = [department, department, department, department, department];
+    }
+
+    const interactions = await new Promise(r => db.all(`SELECT * FROM staff_interaction ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const events = await new Promise(r => db.all(`SELECT * FROM staff_event_organized ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const certs = await new Promise(r => db.all(`SELECT * FROM staff_certificate ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const awards = await new Promise(r => db.all(`SELECT * FROM staff_award ${filterClause}`, params, (_, rows) => r(rows || [])));
+    const responsibilities = await new Promise(r => db.all(`SELECT * FROM staff_responsibilities ${filterClause}`, params, (_, rows) => r(rows || [])));
 
     res.json({
+      department: isInst ? 'Institution' : department,
       nba_5_1_fdp_attended: interactions,
       nba_5_2_events_organized: events,
       nba_5_3_certifications: certs,
