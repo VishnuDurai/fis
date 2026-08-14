@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, Upload, Award, KeyRound, Layers } from 'lucide-react';
+import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, Upload, Award, KeyRound, Layers, User } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
@@ -1726,7 +1726,7 @@ export default function AdminUsers({ auth, initialTab }) {
                     <table>
                       <thead>
                         <tr>
-                          <th>Faculty Name</th>
+                          <th>Faculty Details</th>
                           <th>Status</th>
                           <th>Designation</th>
                           <th>Department</th>
@@ -1735,26 +1735,53 @@ export default function AdminUsers({ auth, initialTab }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredFaculty.map(f => (
-                          <tr key={f.staff_id} style={{ opacity: f.is_relieved ? 0.75 : 1 }}>
-                            <td style={{ fontWeight: 700, color: '#0f172a' }}>
-                              {f.staff_name}
-                              <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>ID: {f.staff_id}</span>
-                            </td>
-                            <td>
-                              {f.is_relieved ? (
-                                <span className="badge" style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', fontWeight: 700 }}>
-                                  Relieved
-                                </span>
-                              ) : (
-                                <span className="badge badge-success" style={{ fontWeight: 700 }}>
-                                  Active
-                                </span>
-                              )}
-                            </td>
-                            <td><span className="badge badge-secondary">{f.Designation}</span></td>
-                            <td>{f.Department}</td>
-                            <td>{f.email || 'N/A'}</td>
+                        {filteredFaculty.map(f => {
+                          const pic = f.file || f.profile_pic;
+                          const picUrl = pic 
+                            ? `${API_BASE_URL}/uploads/upload/${pic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}` 
+                            : null;
+                          return (
+                            <tr key={f.staff_id} style={{ opacity: f.is_relieved ? 0.75 : 1 }}>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <div style={{ position: 'relative', width: '42px', height: '42px', minWidth: '42px', borderRadius: '50%', overflow: 'hidden', background: 'hsla(var(--primary), 0.1)', border: '1.5px solid hsl(var(--primary), 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {picUrl ? (
+                                      <img 
+                                        src={picUrl} 
+                                        alt={f.staff_name || 'Faculty'} 
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                                      />
+                                    ) : null}
+                                    <div style={{ display: picUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '0.85rem' }}>
+                                      {(f.staff_name || f.staff_id || 'F').charAt(0).toUpperCase()}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem', lineHeight: '1.25' }}>
+                                      {f.staff_name || 'Faculty Member'}
+                                    </div>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '1px 7px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, color: '#334155' }}>
+                                      <span>Staff ID:</span>
+                                      <span style={{ fontFamily: 'monospace', color: 'hsl(var(--primary))' }}>{f.staff_id || 'N/A'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                {f.is_relieved ? (
+                                  <span className="badge" style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', fontWeight: 700 }}>
+                                    Relieved
+                                  </span>
+                                ) : (
+                                  <span className="badge badge-success" style={{ fontWeight: 700 }}>
+                                    Active
+                                  </span>
+                                )}
+                              </td>
+                              <td><span className="badge badge-secondary">{f.Designation}</span></td>
+                              <td>{f.Department}</td>
+                              <td>{f.email || 'N/A'}</td>
                             {(auth.role === 'admin' || auth.role === 'dept_admin') && (
                               <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 {auth.role === 'admin' ? (
@@ -1858,7 +1885,8 @@ export default function AdminUsers({ auth, initialTab }) {
                               </td>
                             )}
                           </tr>
-                        ))}
+                        );
+                      })}
                       </tbody>
                     </table>
                   </div>
@@ -2495,9 +2523,32 @@ export default function AdminUsers({ auth, initialTab }) {
       {editFacultyTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="card" style={{ maxWidth: '720px', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', color: '#111827', border: '1px solid hsl(var(--border))', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '1.25rem' }}>Edit Faculty Profile: {editFacultyTarget.staff_id}</h3>
-              <button onClick={() => setEditFacultyTarget(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ position: 'relative', width: '52px', height: '52px', minWidth: '52px', borderRadius: '50%', overflow: 'hidden', background: 'hsla(var(--primary), 0.1)', border: '2px solid hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {editFacultyTarget.file || editFacultyTarget.profile_pic ? (
+                    <img 
+                      src={`${API_BASE_URL}/uploads/upload/${editFacultyTarget.file || editFacultyTarget.profile_pic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
+                      alt={editFacultyTarget.staff_name || 'Faculty'} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  <div style={{ display: (editFacultyTarget.file || editFacultyTarget.profile_pic) ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '1.2rem' }}>
+                    {(editFacultyTarget.staff_name || editFacultyTarget.staff_id || 'F').charAt(0).toUpperCase()}
+                  </div>
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 800, margin: 0 }}>Edit Faculty Profile: {editFacultyTarget.staff_name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <span style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', fontWeight: 700, fontSize: '0.78rem', padding: '2px 8px', borderRadius: '6px', border: '1px solid hsla(var(--primary), 0.2)' }}>
+                      Staff ID: {editFacultyTarget.staff_id}
+                    </span>
+                    <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Dept: {editFacultyTarget.Department}</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setEditFacultyTarget(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleSaveFacultyEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -2683,10 +2734,33 @@ export default function AdminUsers({ auth, initialTab }) {
       {dossierTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="card" style={{ maxWidth: '820px', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', color: '#111827', border: '1px solid hsl(var(--border))', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-              <div>
-                <h3 style={{ fontSize: '1.35rem', color: '#0f172a', fontWeight: 800 }}>Faculty Dossier: {dossierTarget.staff_name}</h3>
-                <span style={{ fontSize: '0.85rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Staff ID: {dossierTarget.staff_id} | Dept: {dossierTarget.Department}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ position: 'relative', width: '52px', height: '52px', minWidth: '52px', borderRadius: '50%', overflow: 'hidden', background: 'hsla(var(--primary), 0.1)', border: '2px solid hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {dossierTarget.file || dossierTarget.profile_pic ? (
+                    <img 
+                      src={`${API_BASE_URL}/uploads/upload/${dossierTarget.file || dossierTarget.profile_pic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
+                      alt={dossierTarget.staff_name || 'Faculty'} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  <div style={{ display: (dossierTarget.file || dossierTarget.profile_pic) ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '1.2rem' }}>
+                    {(dossierTarget.staff_name || dossierTarget.staff_id || 'F').charAt(0).toUpperCase()}
+                  </div>
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.3rem', color: '#0f172a', fontWeight: 800, margin: 0 }}>Faculty Dossier: {dossierTarget.staff_name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <span style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', fontWeight: 700, fontSize: '0.78rem', padding: '2px 8px', borderRadius: '6px', border: '1px solid hsla(var(--primary), 0.2)' }}>
+                      Staff ID: {dossierTarget.staff_id}
+                    </span>
+                    <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Dept: {dossierTarget.Department}</span>
+                    {dossierTarget.Designation && (
+                      <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>• {dossierTarget.Designation}</span>
+                    )}
+                  </div>
+                </div>
               </div>
               <button onClick={() => setDossierTarget(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={22} /></button>
             </div>
