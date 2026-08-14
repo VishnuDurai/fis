@@ -1140,8 +1140,8 @@ router.get('/appraisal/template', authenticateToken, (req, res) => {
       { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C2', criteria_title: 'Books & Book Chapters Published', rubric_description: 'Automatic mapping: 5 marks per book or book chapter published with ISBN [Max 10 pts].', mapping_type: 'auto', data_source_page: 'books', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, target_designation: 'ALL', display_order: 16 },
       { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C3', criteria_title: 'Community Service & Extension Activities', rubric_description: '5 marks per community outreach, societal project, or extension program.', mapping_type: 'manual', data_source_page: null, fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, target_designation: 'ALL', display_order: 17 },
       { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C4', criteria_title: 'IPR & Patents (Filed / Published / Granted)', rubric_description: 'Automatic mapping: 10 marks for patent granted, 7 marks for published, 3 marks for filed [Max 10 pts].', mapping_type: 'auto', data_source_page: 'ipr', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'patent_status_split', bracket_config: JSON.stringify({ granted_score: 10, published_score: 7, filed_score: 3 }), target_designation: 'ALL', display_order: 18 },
-      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Research Grants & External Sponsored Projects', rubric_description: 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 marks for <=5 Lakhs, 5 per proposal [Max 15 pts].', mapping_type: 'auto', data_source_page: 'funding', fixed_mark_per_record: 10, max_marks: 15, calculation_rule: 'bracket_rating', bracket_config: JSON.stringify({ high_grant_score: 10, low_grant_score: 8, proposal_score: 5 }), target_designation: 'ALL', display_order: 19 },
-      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Seed Money & Consultancy Services', rubric_description: 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project [Max 10 pts].', mapping_type: 'auto', data_source_page: 'seed_money', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, target_designation: 'ALL', display_order: 20 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Grants Applied/Received from Government and Non-Government agencies', rubric_description: 'Note: External Grants Only & Equal weightage shall be given to PI & Co-PI. (i) Research Projects: Sanctioned >5L (10m), <=5L (8m), Applied (5m) [Max 10]. (ii) Event Grants (Workshops/Seminars/FDPs): Sanctioned >1L (5m), <=1L (3m), Applied (2m) [Max 5]. Category Max 15 Pts.', mapping_type: 'auto', data_source_page: 'funding', fixed_mark_per_record: 10, max_marks: 15, calculation_rule: 'bracket_rating', bracket_config: JSON.stringify({ research_max: 10, research_received_high: 10, research_received_low: 8, research_applied: 5, events_max: 5, events_received_high: 5, events_received_low: 3, events_applied: 2 }), target_designation: 'ALL', display_order: 19 },
+      { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Funded Consultancy Projects / Seed Fund', rubric_description: 'Note: Equal weightage shall be given to PI & Co-PI. (i) Consultancy: Received >1L (5m), <=1L (3m) [Max 5]. (ii) Seed Money for Research: Received (5m), Applied (3m) [Max 5]. Category Max 10 Pts.', mapping_type: 'auto', data_source_page: 'seed_money', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'bracket_rating', bracket_config: JSON.stringify({ consultancy_max: 5, consultancy_high: 5, consultancy_low: 3, seed_max: 5, seed_received: 5, seed_applied: 3 }), target_designation: 'ALL', display_order: 20 },
       { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C7', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar (N/A for Non-Supervisors) [Max 5 pts].', mapping_type: 'auto', data_source_page: 'scholars', fixed_mark_per_record: 2.5, max_marks: 5, calculation_rule: 'phd_supervisor_gated', bracket_config: JSON.stringify({ scholar_unit_score: 2.5 }), target_designation: 'ALL', display_order: 21 },
       { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', data_source_page: 'awards', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, target_designation: 'ALL', display_order: 22 },
 
@@ -2402,25 +2402,108 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const scoreC4 = Math.min(ruleC4.maxMark, rawC4);
     scoreC += scoreC4;
 
-    // c5. Research Grants
+    // c5. Grants Applied/Received from Government and Non-Government agencies
+    const rowC5 = templateMap['C5'] || templateMap['c5'];
     const ruleC5 = getCriteriaRule('C5', 10, 15);
-    let rawC5 = 0;
+    let bConfigC5 = {};
+    try {
+      bConfigC5 = typeof rowC5?.bracket_config === 'string' ? JSON.parse(rowC5.bracket_config || '{}') : (rowC5?.bracket_config || {});
+    } catch (e) {
+      bConfigC5 = {};
+    }
+    
+    const rMaxC5 = parseFloat(bConfigC5.research_max) || 10;
+    const rRecHighC5 = parseFloat(bConfigC5.research_received_high) || 10;
+    const rRecLowC5 = parseFloat(bConfigC5.research_received_low) || 8;
+    const rAppC5 = parseFloat(bConfigC5.research_applied) || 5;
+
+    const eMaxC5 = parseFloat(bConfigC5.events_max) || 5;
+    const eRecHighC5 = parseFloat(bConfigC5.events_received_high) || 5;
+    const eRecLowC5 = parseFloat(bConfigC5.events_received_low) || 3;
+    const eAppC5 = parseFloat(bConfigC5.events_applied) || 2;
+
+    let researchSumC5 = 0;
+    let eventsSumC5 = 0;
+
     funding.forEach(f => {
+      const cat = (f.grant_category || '').toLowerCase();
       const amt = parseFloat(f.amount) || 0;
       const st = (f.status || '').toLowerCase();
-      if (st.includes('sanc') || st.includes('grant') || st.includes('rec')) {
-        rawC5 += amt > 500000 ? ruleC5.fixedMark : (ruleC5.fixedMark * 0.8);
+      const isReceived = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+      const isApplied = st.includes('app');
+
+      const isEventGrant = cat.includes('workshop') || cat.includes('seminar') || cat.includes('conference') || cat.includes('sttp') || cat.includes('fdp');
+
+      if (isEventGrant) {
+        if (isReceived) {
+          eventsSumC5 += (amt > 100000 ? eRecHighC5 : eRecLowC5);
+        } else if (isApplied) {
+          eventsSumC5 += eAppC5;
+        }
       } else {
-        rawC5 += (ruleC5.fixedMark * 0.5);
+        // Research Projects
+        if (isReceived) {
+          researchSumC5 += (amt > 500000 ? rRecHighC5 : rRecLowC5);
+        } else if (isApplied) {
+          researchSumC5 += rAppC5;
+        }
       }
     });
-    const scoreC5 = Math.min(ruleC5.maxMark, rawC5);
+
+    const scoreC5_1 = Math.min(rMaxC5, researchSumC5);
+    const scoreC5_2 = Math.min(eMaxC5, eventsSumC5);
+    const scoreC5 = Math.min(ruleC5.maxMark, scoreC5_1 + scoreC5_2);
     scoreC += scoreC5;
 
-    // c6. Seed Money & Consultancy
+    // c6. Funded Consultancy Projects / Seed Fund
+    const rowC6 = templateMap['C6'] || templateMap['c6'];
     const ruleC6 = getCriteriaRule('C6', 5, 10);
-    const rawC6 = seedMoney.length * ruleC6.fixedMark;
-    const scoreC6 = Math.min(ruleC6.maxMark, rawC6);
+    let bConfigC6 = {};
+    try {
+      bConfigC6 = typeof rowC6?.bracket_config === 'string' ? JSON.parse(rowC6.bracket_config || '{}') : (rowC6?.bracket_config || {});
+    } catch (e) {
+      bConfigC6 = {};
+    }
+
+    const cMaxC6 = parseFloat(bConfigC6.consultancy_max) || 5;
+    const cRecHighC6 = parseFloat(bConfigC6.consultancy_high) || 5;
+    const cRecLowC6 = parseFloat(bConfigC6.consultancy_low) || 3;
+
+    const sMaxC6 = parseFloat(bConfigC6.seed_max) || 5;
+    const sRecC6 = parseFloat(bConfigC6.seed_received) || 5;
+    const sAppC6 = parseFloat(bConfigC6.seed_applied) || 3;
+
+    let consultancySumC6 = 0;
+    let seedSumC6 = 0;
+
+    seedMoney.forEach(s => {
+      const entryType = (s.entry_type || '').toLowerCase();
+      const clientType = (s.client_type || '').toLowerCase();
+      const title = (s.title || '').toLowerCase();
+      const amt = parseFloat(s.amount) || 0;
+      const st = (s.status || '').toLowerCase();
+      const isReceived = st.includes('rec') || st.includes('sanc') || st.includes('ong') || st.includes('comp') || !st.includes('app');
+      const isApplied = st.includes('app');
+
+      const isConsultancy = entryType.includes('consult') || clientType.includes('industry') || clientType.includes('agency') || clientType.includes('individual') || title.includes('consult');
+
+      if (isConsultancy) {
+        if (isReceived) {
+          consultancySumC6 += (amt > 100000 ? cRecHighC6 : cRecLowC6);
+        }
+      } else {
+        // Seed Money
+        if (isReceived) {
+          seedSumC6 += sRecC6;
+        } else if (isApplied) {
+          seedSumC6 += sAppC6;
+        }
+      }
+    });
+
+    const scoreC6_1 = Math.min(cMaxC6, consultancySumC6);
+    const scoreC6_2 = Math.min(sMaxC6, seedSumC6);
+    const scoreC6 = Math.min(ruleC6.maxMark, scoreC6_1 + scoreC6_2);
     scoreC += scoreC6;
 
     // c8. Research Scholars
@@ -2538,7 +2621,11 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         C3: scoreC3,
         c4_ipr: scoreC4,
         c5_funding: scoreC5,
+        c5_1_research: scoreC5_1,
+        c5_2_events: scoreC5_2,
         c6_seed_money: scoreC6,
+        c6_1_consultancy: scoreC6_1,
+        c6_2_seed: scoreC6_2,
         c8_scholars: isRecognizedSupervisor ? scoreC8 : 'N/A',
         c9_awards: scoreC9,
         d_responsibilities: finalPartD,
@@ -2548,8 +2635,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         c1_publications: { count: journalPubs.length, fixedMark: ruleC1.fixedMark, rawScore: rawC1, cappedScore: scoreC1, maxMark: ruleC1.maxMark },
         c2_books: { count: confPubs.length + books.length, fixedMark: ruleC2.fixedMark, rawScore: rawC2, cappedScore: scoreC2, maxMark: ruleC2.maxMark },
         c4_ipr: { count: ipr.length, fixedMark: ruleC4.fixedMark, rawScore: rawC4, cappedScore: scoreC4, maxMark: ruleC4.maxMark },
-        c5_funding: { count: funding.length, fixedMark: ruleC5.fixedMark, rawScore: rawC5, cappedScore: scoreC5, maxMark: ruleC5.maxMark },
-        c6_seed_money: { count: seedMoney.length, fixedMark: ruleC6.fixedMark, rawScore: rawC6, cappedScore: scoreC6, maxMark: ruleC6.maxMark },
+        c5_funding: { count: funding.length, fixedMark: ruleC5.fixedMark, rawScore: researchSumC5 + eventsSumC5, cappedScore: scoreC5, maxMark: ruleC5.maxMark, scoreResearch: scoreC5_1, scoreEvents: scoreC5_2 },
+        c6_seed_money: { count: seedMoney.length, fixedMark: ruleC6.fixedMark, rawScore: consultancySumC6 + seedSumC6, cappedScore: scoreC6, maxMark: ruleC6.maxMark, scoreConsultancy: scoreC6_1, scoreSeed: scoreC6_2 },
         c8_scholars: { count: scholars.length, fixedMark: ruleC8.fixedMark, rawScore: rawC8, cappedScore: scoreC8, maxMark: ruleC8.maxMark },
         c9_awards: { count: awards.length, fixedMark: ruleC9.fixedMark, rawScore: rawC9, cappedScore: scoreC9, maxMark: ruleC9.maxMark },
         b1_memberships: { count: members.length, fixedMark: ruleB1.fixedMark, rawScore: rawB1, cappedScore: scoreB1, maxMark: ruleB1.maxMark },

@@ -59,7 +59,7 @@ const tableMap = {
   },
   funding: {
     table: 'staff_funding',
-    cols: ['staff_id', 'staff_name', 'copiname', 'copiid', 'title', 'fa', 'status', 'date', 'amount', 'referenceno', 'faculty_role', 'grant_category', 'file']
+    cols: ['staff_id', 'staff_name', 'copiname', 'copiid', 'title', 'fa', 'status', 'date', 'amount', 'referenceno', 'faculty_role', 'grant_category', 'project_type', 'from_date', 'to_date', 'file']
   },
   ipr: {
     table: 'staff_ipr',
@@ -103,7 +103,7 @@ const tableMap = {
   },
   seed_money: {
     table: 'staff_seed_money',
-    cols: ['staff_id', 'staff_name', 'title', 'faculty_role', 'sanctioned_date', 'duration', 'amount', 'file']
+    cols: ['staff_id', 'staff_name', 'title', 'faculty_role', 'sanctioned_date', 'duration', 'amount', 'entry_type', 'client_type', 'consultants', 'status', 'from_date', 'to_date', 'file']
   }
 };
 

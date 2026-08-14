@@ -656,8 +656,8 @@ export default function Appraisal({ auth }) {
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C2', criteria_title: 'Books & Book Chapters Published', rubric_description: 'Automatic mapping: 5 marks per book or book chapter published with ISBN [Max 10 pts].', mapping_type: 'auto', data_source_page: 'books', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 16 },
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C3', criteria_title: 'Community Service & Extension Activities', rubric_description: '5 marks per community outreach, societal project, or extension program.', mapping_type: 'manual', data_source_page: null, fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 17 },
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C4', criteria_title: 'IPR, Patents & Copyrights', rubric_description: 'Automatic mapping: 10 marks for Patent Granted / Copyright Registered, 7 marks for Patent Published, 3 marks for Filed [Max 10 pts].', mapping_type: 'auto', data_source_page: 'ipr', fixed_mark_per_record: 10, max_marks: 10, calculation_rule: 'patent_status_split', bracket_config: { granted_score: 10, published_score: 7, filed_score: 3 }, display_order: 18 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Research Grants & External Sponsored Projects', rubric_description: 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 marks for <=5 Lakhs, 5 per proposal [Max 15 pts].', mapping_type: 'auto', data_source_page: 'funding', fixed_mark_per_record: 10, max_marks: 15, calculation_rule: 'bracket_rating', bracket_config: { high_grant_score: 10, low_grant_score: 8, proposal_score: 5 }, display_order: 19 },
-    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Seed Money & Consultancy Services', rubric_description: 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project [Max 10 pts].', mapping_type: 'auto', data_source_page: 'seed_money', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 20 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C5', criteria_title: 'Grants Applied/Received from Government and Non-Government agencies', rubric_description: 'Note: External Grants Only & Equal weightage shall be given to PI & Co-PI. (i) Research Projects: Sanctioned >5L (10m), <=5L (8m), Applied (5m) [Max 10]. (ii) Event Grants (Workshops/Seminars/FDPs): Sanctioned >1L (5m), <=1L (3m), Applied (2m) [Max 5]. Category Max 15 Pts.', mapping_type: 'auto', data_source_page: 'funding', fixed_mark_per_record: 10, max_marks: 15, calculation_rule: 'bracket_rating', bracket_config: { research_max: 10, research_received_high: 10, research_received_low: 8, research_applied: 5, events_max: 5, events_received_high: 5, events_received_low: 3, events_applied: 2 }, display_order: 19 },
+    { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C6', criteria_title: 'Funded Consultancy Projects / Seed Fund', rubric_description: 'Note: Equal weightage shall be given to PI & Co-PI. (i) Consultancy: Received >1L (5m), <=1L (3m) [Max 5]. (ii) Seed Money for Research: Received (5m), Applied (3m) [Max 5]. Category Max 10 Pts.', mapping_type: 'auto', data_source_page: 'seed_money', fixed_mark_per_record: 5, max_marks: 10, calculation_rule: 'bracket_rating', bracket_config: { consultancy_max: 5, consultancy_high: 5, consultancy_low: 3, seed_max: 5, seed_received: 5, seed_applied: 3 }, display_order: 20 },
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C7', criteria_title: 'Research Scholars Guidance (Ph.D)', rubric_description: 'Automatic mapping: 2.5 marks per registered Ph.D scholar (N/A for Non-Supervisors) [Max 5 pts].', mapping_type: 'auto', data_source_page: 'scholars', fixed_mark_per_record: 2.5, max_marks: 5, calculation_rule: 'phd_supervisor_gated', bracket_config: { scholar_unit_score: 2.5 }, display_order: 21 },
     { section_code: 'PART_C', section_title: 'PART C: Research & Consultancy', criteria_code: 'C8', criteria_title: 'Awards & Recognitions Received', rubric_description: 'Automatic mapping: 5 marks per national/international award or honor received [Max 5 pts].', mapping_type: 'auto', data_source_page: 'awards', fixed_mark_per_record: 5, max_marks: 5, calculation_rule: 'fixed_per_record', bracket_config: null, display_order: 22 },
 
@@ -3600,89 +3600,391 @@ export default function Appraisal({ auth }) {
               </div>
             </div>
 
-            {/* c5 Table (Auto-Mapped Grants) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
-                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
-                  Category Total: {Math.min(15, (fpiDetails?.funding?.length || 0) * 10)} / 15 Pts
-                </span>
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
-                <thead>
-                  <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Project / Event Category</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>PI / Co-PI</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Project / Event</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Amount</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Applied / Sanctioned</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(!fpiDetails?.funding || fpiDetails.funding.length === 0) ? (
-                    <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No research grants or event funding logged in portal</td></tr>
-                  ) : fpiDetails.funding.map((fn, i) => (
-                    <tr key={i}>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.category || fn.project_type || 'Research Project'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.role || 'PI'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.title || fn.project_title || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.agency || fn.funding_agency || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.amount ? `₹ ${parseFloat(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.status || 'Sanctioned'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>10 Pts</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
-                c5 Category Total Score: {Math.min(15, (fpiDetails?.funding?.length || 0) * 10)} / 15 Pts
-              </div>
-            </div>
+            {/* c5 Table (Grants Applied/Received from Government and Non-Government agencies) */}
+            {(() => {
+              const itemC5 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C5') || {};
+              let bCfgC5 = {};
+              try {
+                bCfgC5 = typeof itemC5.bracket_config === 'object' && itemC5.bracket_config !== null ? itemC5.bracket_config : JSON.parse(itemC5.bracket_config || '{}');
+              } catch (e) { bCfgC5 = {}; }
+              
+              const rMax = parseFloat(bCfgC5.research_max) || 10;
+              const rHigh = parseFloat(bCfgC5.research_received_high) || 10;
+              const rLow = parseFloat(bCfgC5.research_received_low) || 8;
+              const rApp = parseFloat(bCfgC5.research_applied) || 5;
 
-            {/* c6 Table (Auto-Mapped Seed Money & Consultancy) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
-                <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
-                  Category Total: {Math.min(10, (fpiDetails?.seedMoney?.length || 0) * 5)} / 10 Pts
-                </span>
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
-                <thead>
-                  <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Faculty Members Involved</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>PI / Co-PI</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Project</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Amount Sanctioned</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(!fpiDetails?.seedMoney || fpiDetails.seedMoney.length === 0) ? (
-                    <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No seed money or consultancy logged in portal</td></tr>
-                  ) : fpiDetails.seedMoney.map((sm, i) => (
-                    <tr key={i}>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.faculty_involved || sm.staff_name || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.role || 'PI'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.title || sm.project_title || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{[sm.duration, sm.sanction_date].filter(Boolean).join(' | ') || 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.amount ? `₹ ${parseFloat(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
-                c6 Category Total Score: {Math.min(10, (fpiDetails?.seedMoney?.length || 0) * 5)} / 10 Pts
-              </div>
-            </div>
+              const eMax = parseFloat(bCfgC5.events_max) || 5;
+              const eHigh = parseFloat(bCfgC5.events_received_high) || 5;
+              const eLow = parseFloat(bCfgC5.events_received_low) || 3;
+              const eApp = parseFloat(bCfgC5.events_applied) || 2;
+
+              const allFunding = fpiDetails?.funding || [];
+              const researchProjects = allFunding.filter(f => {
+                const cat = (f.grant_category || '').toLowerCase();
+                return !cat.includes('workshop') && !cat.includes('seminar') && !cat.includes('conference') && !cat.includes('sttp') && !cat.includes('fdp');
+              });
+              const eventGrants = allFunding.filter(f => {
+                const cat = (f.grant_category || '').toLowerCase();
+                return cat.includes('workshop') || cat.includes('seminar') || cat.includes('conference') || cat.includes('sttp') || cat.includes('fdp');
+              });
+
+              let rawResearch = 0;
+              researchProjects.forEach(f => {
+                const amt = parseFloat(f.amount) || 0;
+                const st = (f.status || '').toLowerCase();
+                const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                const isApp = st.includes('app');
+                if (isRec) rawResearch += (amt > 500000 ? rHigh : rLow);
+                else if (isApp) rawResearch += rApp;
+              });
+              const scoreResearch = Math.min(rMax, fpiBreakdown?.c5_1_research !== undefined ? fpiBreakdown.c5_1_research : rawResearch);
+
+              let rawEvents = 0;
+              eventGrants.forEach(f => {
+                const amt = parseFloat(f.amount) || 0;
+                const st = (f.status || '').toLowerCase();
+                const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                const isApp = st.includes('app');
+                if (isRec) rawEvents += (amt > 100000 ? eHigh : eLow);
+                else if (isApp) rawEvents += eApp;
+              });
+              const scoreEvents = Math.min(eMax, fpiBreakdown?.c5_2_events !== undefined ? fpiBreakdown.c5_2_events : rawEvents);
+              const maxC5 = parseFloat(itemC5.max_marks) || 15;
+              const totalC5 = Math.min(maxC5, fpiBreakdown?.c5_funding !== undefined ? fpiBreakdown.c5_funding : (scoreResearch + scoreEvents));
+
+              return (
+                <div style={{ marginBottom: '20px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <div>
+                      <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        c5. {itemC5.criteria_title || 'Grants Applied/Received from Government and Non-Government agencies'} (Max: {maxC5} Marks)
+                      </h5>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                        Note: External Grants Only & Equal weightage shall be given to PI & Co-PI
+                      </span>
+                    </div>
+                    <span className="badge badge-success" style={{ fontSize: '0.82rem', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', fontWeight: 800, padding: '4px 10px' }}>
+                      c5 Category Total: {totalC5} / {maxC5} Pts
+                    </span>
+                  </div>
+
+                  {/* Sub-table (i): Research Projects during the year */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                        (i) Research Projects during the year (Externally funded research project through Government and non-Government) (Max: {rMax} Marks)
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                        Subtotal: {scoreResearch} / {rMax} Pts
+                      </span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Major/Minor/Student Project</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '75px', textAlign: 'center' }}>PI / Co-PI</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Title of the Project</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '90px' }}>Amount</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Duration (From - To)</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Grant No & Date</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '85px', textAlign: 'center' }}>Status</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {researchProjects.length === 0 ? (
+                          <tr><td colSpan={11} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No externally funded research projects logged in portal</td></tr>
+                        ) : researchProjects.map((fn, i) => {
+                          const amt = parseFloat(fn.amount) || 0;
+                          const st = (fn.status || '').toLowerCase();
+                          const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                          const isApp = st.includes('app');
+                          const pts = isRec ? (amt > 500000 ? rHigh : rLow) : (isApp ? rApp : 0);
+                          const fileUrl = fn.file ? (fn.file.startsWith('http') ? fn.file : `${API_BASE_URL}/uploads/${fn.file}`) : null;
+
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.project_type || fn.grant_category || 'Research Project'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700 }}>{fn.faculty_role || 'PI'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.title || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.fa || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{fn.amount ? `₹ ${Number(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{[fn.from_date, fn.to_date].filter(Boolean).join(' to ') || fn.date || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.referenceno || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isRec ? '#dcfce7' : '#fef3c7', color: isRec ? '#15803d' : '#92400e' }}>
+                                  {fn.status || 'Sanctioned'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                {fileUrl ? (
+                                  <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                    <Eye size={12} /> View
+                                  </a>
+                                ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                              </td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Sub-table (ii): Workshops/Seminars/STTPS/FDPS/Conferences during the year */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                        (ii) Workshops/Seminars/STTPS/FDPS/Conferences during the year (Max: {eMax} Marks)
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                        Subtotal: {scoreEvents} / {eMax} Pts
+                      </span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Workshops/Seminars/STTP/FDP/Conference</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Title of Event</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '90px' }}>Amount</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Duration (From - To)</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Grant No & Date</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '85px', textAlign: 'center' }}>Status</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {eventGrants.length === 0 ? (
+                          <tr><td colSpan={10} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No event grant funding logged in portal</td></tr>
+                        ) : eventGrants.map((fn, i) => {
+                          const amt = parseFloat(fn.amount) || 0;
+                          const st = (fn.status || '').toLowerCase();
+                          const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                          const isApp = st.includes('app');
+                          const pts = isRec ? (amt > 100000 ? eHigh : eLow) : (isApp ? eApp : 0);
+                          const fileUrl = fn.file ? (fn.file.startsWith('http') ? fn.file : `${API_BASE_URL}/uploads/${fn.file}`) : null;
+
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.project_type || fn.grant_category || 'Workshop / Seminar'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.title || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.fa || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{fn.amount ? `₹ ${Number(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{[fn.from_date, fn.to_date].filter(Boolean).join(' to ') || fn.date || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.referenceno || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isRec ? '#dcfce7' : '#fef3c7', color: isRec ? '#15803d' : '#92400e' }}>
+                                  {fn.status || 'Sanctioned'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                {fileUrl ? (
+                                  <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                    <Eye size={12} /> View
+                                  </a>
+                                ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                              </td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', marginTop: '10px' }}>
+                    c5 Category Total Score: {totalC5} / {maxC5} Pts
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* c6 Table (Funded Consultancy Projects / Seed Fund) */}
+            {(() => {
+              const itemC6 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C6') || {};
+              let bCfgC6 = {};
+              try {
+                bCfgC6 = typeof itemC6.bracket_config === 'object' && itemC6.bracket_config !== null ? itemC6.bracket_config : JSON.parse(itemC6.bracket_config || '{}');
+              } catch (e) { bCfgC6 = {}; }
+
+              const cMax = parseFloat(bCfgC6.consultancy_max) || 5;
+              const cHigh = parseFloat(bCfgC6.consultancy_high) || 5;
+              const cLow = parseFloat(bCfgC6.consultancy_low) || 3;
+
+              const sMax = parseFloat(bCfgC6.seed_max) || 5;
+              const sRec = parseFloat(bCfgC6.seed_received) || 5;
+              const sApp = parseFloat(bCfgC6.seed_applied) || 3;
+
+              const allSeed = fpiDetails?.seedMoney || [];
+              const consultancyList = allSeed.filter(s => {
+                const entryType = (s.entry_type || '').toLowerCase();
+                const clientType = (s.client_type || '').toLowerCase();
+                const title = (s.title || '').toLowerCase();
+                return entryType.includes('consult') || clientType.includes('industry') || clientType.includes('agency') || clientType.includes('individual') || title.includes('consult');
+              });
+              const seedMoneyList = allSeed.filter(s => {
+                const entryType = (s.entry_type || '').toLowerCase();
+                const clientType = (s.client_type || '').toLowerCase();
+                const title = (s.title || '').toLowerCase();
+                return !entryType.includes('consult') && !clientType.includes('industry') && !clientType.includes('agency') && !clientType.includes('individual') && !title.includes('consult');
+              });
+
+              let rawConsultancy = 0;
+              consultancyList.forEach(s => {
+                const amt = parseFloat(s.amount) || 0;
+                rawConsultancy += (amt > 100000 ? cHigh : cLow);
+              });
+              const scoreConsultancy = Math.min(cMax, fpiBreakdown?.c6_1_consultancy !== undefined ? fpiBreakdown.c6_1_consultancy : rawConsultancy);
+
+              let rawSeed = 0;
+              seedMoneyList.forEach(s => {
+                const st = (s.status || '').toLowerCase();
+                const isRec = st.includes('rec') || st.includes('sanc') || st.includes('ong') || st.includes('comp') || !st.includes('app');
+                const isApp = st.includes('app');
+                if (isRec) rawSeed += sRec;
+                else if (isApp) rawSeed += sApp;
+              });
+              const scoreSeed = Math.min(sMax, fpiBreakdown?.c6_2_seed !== undefined ? fpiBreakdown.c6_2_seed : rawSeed);
+              const maxC6 = parseFloat(itemC6.max_marks) || 10;
+              const totalC6 = Math.min(maxC6, fpiBreakdown?.c6_seed_money !== undefined ? fpiBreakdown.c6_seed_money : (scoreConsultancy + scoreSeed));
+
+              return (
+                <div style={{ marginBottom: '20px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <div>
+                      <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        c6. {itemC6.criteria_title || 'Funded Consultancy Projects / Seed Fund'} (Max: {maxC6} Marks)
+                      </h5>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                        Note: Equal weightage shall be given to PI & Co-PI
+                      </span>
+                    </div>
+                    <span className="badge badge-success" style={{ fontSize: '0.82rem', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', fontWeight: 800, padding: '4px 10px' }}>
+                      c6 Category Total: {totalC6} / {maxC6} Pts
+                    </span>
+                  </div>
+
+                  {/* Sub-table (i): Consultancy */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                        (i) Consultancy (Max: {cMax} Marks)
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                        Subtotal: {scoreConsultancy} / {cMax} Pts
+                      </span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Name and address of Consultants</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Individual / Industry / Agency / Others</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Nature of Consultation</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '130px' }}>Amount (College Account)</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {consultancyList.length === 0 ? (
+                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No consultancy projects logged in portal</td></tr>
+                        ) : consultancyList.map((sm, i) => {
+                          const amt = parseFloat(sm.amount) || 0;
+                          const pts = amt > 100000 ? cHigh : cLow;
+                          const fileUrl = sm.file ? (sm.file.startsWith('http') ? sm.file : `${API_BASE_URL}/uploads/${sm.file}`) : null;
+
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.consultants || sm.staff_name || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.client_type || 'Industry'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.title || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{sm.amount ? `₹ ${Number(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                {fileUrl ? (
+                                  <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                    <Eye size={12} /> View
+                                  </a>
+                                ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                              </td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Sub-table (ii): Seed money for research */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                        (ii) Seed money for research (Max: {sMax} Marks)
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                        Subtotal: {scoreSeed} / {sMax} Pts
+                      </span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Name of the Faculty members involved</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '75px', textAlign: 'center' }}>PI / Co-PI</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Title of the project</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Sanctioned Date</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Duration</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '110px' }}>Amount Sanctioned</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                          <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {seedMoneyList.length === 0 ? (
+                          <tr><td colSpan={9} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No seed money grants logged in portal</td></tr>
+                        ) : seedMoneyList.map((sm, i) => {
+                          const st = (sm.status || '').toLowerCase();
+                          const isRec = st.includes('rec') || st.includes('sanc') || st.includes('ong') || st.includes('comp') || !st.includes('app');
+                          const pts = isRec ? sRec : sApp;
+                          const fileUrl = sm.file ? (sm.file.startsWith('http') ? sm.file : `${API_BASE_URL}/uploads/${sm.file}`) : null;
+
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.consultants || sm.staff_name || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700 }}>{sm.faculty_role || 'PI'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.title || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.sanctioned_date || sm.date || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.duration || 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{sm.amount ? `₹ ${Number(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                {fileUrl ? (
+                                  <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                    <Eye size={12} /> View
+                                  </a>
+                                ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                              </td>
+                              <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', marginTop: '10px' }}>
+                    c6 Category Total Score: {totalC6} / {maxC6} Pts
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
             <div style={{ marginBottom: '16px' }}>
@@ -6120,89 +6422,391 @@ export default function Appraisal({ auth }) {
                     </div>
                   </div>
 
-                  {/* c5 Table (Auto-Mapped Research & Event Grants) */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c5. Grants Applied/Received from Government and Non-Government agencies (Max: 15 Marks)</h5>
-                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
-                        Category Total: {score_c5} / 15 Pts
-                      </span>
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
-                      <thead>
-                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Project / Event Category</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>PI / Co-PI</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Project / Event</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Amount</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Applied / Sanctioned</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(!fpiDetails?.funding || fpiDetails.funding.length === 0) ? (
-                          <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No research grants or event funding logged in portal</td></tr>
-                        ) : fpiDetails.funding.map((fn, i) => (
-                          <tr key={i}>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.grant_category || 'Research Project'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.faculty_role || 'PI'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.title || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.fa || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.amount ? `₹ ${parseFloat(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{fn.status || 'Sanctioned'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>10 Pts</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
-                      c5 Category Total Score: {score_c5} / 15 Pts
-                    </div>
-                  </div>
+                  {/* c5 Table (Grants Applied/Received from Government and Non-Government agencies) */}
+                  {(() => {
+                    const itemC5 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C5') || {};
+                    let bCfgC5 = {};
+                    try {
+                      bCfgC5 = typeof itemC5.bracket_config === 'object' && itemC5.bracket_config !== null ? itemC5.bracket_config : JSON.parse(itemC5.bracket_config || '{}');
+                    } catch (e) { bCfgC5 = {}; }
 
-                  {/* c6 Table (Auto-Mapped Seed Money & Consultancy) */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c6. Funded Consultancy Projects & Internal Seed Money for Research (Max: 10 Marks)</h5>
-                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
-                        Category Total: {score_c6} / 10 Pts
-                      </span>
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
-                      <thead>
-                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Faculty Members Involved</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>PI / Co-PI</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Title of Project</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Duration / Dates</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Amount Sanctioned</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(!fpiDetails?.seedMoney || fpiDetails.seedMoney.length === 0) ? (
-                          <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No seed money or consultancy logged in portal</td></tr>
-                        ) : fpiDetails.seedMoney.map((sm, i) => (
-                          <tr key={i}>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.staff_name || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.faculty_role || 'PI'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.title || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.duration || sm.sanctioned_date || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{sm.amount ? `₹ ${parseFloat(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
-                      c6 Category Total Score: {score_c6} / 10 Pts
-                    </div>
-                  </div>
+                    const rMax = parseFloat(bCfgC5.research_max) || 10;
+                    const rHigh = parseFloat(bCfgC5.research_received_high) || 10;
+                    const rLow = parseFloat(bCfgC5.research_received_low) || 8;
+                    const rApp = parseFloat(bCfgC5.research_applied) || 5;
+
+                    const eMax = parseFloat(bCfgC5.events_max) || 5;
+                    const eHigh = parseFloat(bCfgC5.events_received_high) || 5;
+                    const eLow = parseFloat(bCfgC5.events_received_low) || 3;
+                    const eApp = parseFloat(bCfgC5.events_applied) || 2;
+
+                    const allFunding = fpiDetails?.funding || [];
+                    const researchProjects = allFunding.filter(f => {
+                      const cat = (f.grant_category || '').toLowerCase();
+                      return !cat.includes('workshop') && !cat.includes('seminar') && !cat.includes('conference') && !cat.includes('sttp') && !cat.includes('fdp');
+                    });
+                    const eventGrants = allFunding.filter(f => {
+                      const cat = (f.grant_category || '').toLowerCase();
+                      return cat.includes('workshop') || cat.includes('seminar') || cat.includes('conference') || cat.includes('sttp') || cat.includes('fdp');
+                    });
+
+                    let rawResearch = 0;
+                    researchProjects.forEach(f => {
+                      const amt = parseFloat(f.amount) || 0;
+                      const st = (f.status || '').toLowerCase();
+                      const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                      const isApp = st.includes('app');
+                      if (isRec) rawResearch += (amt > 500000 ? rHigh : rLow);
+                      else if (isApp) rawResearch += rApp;
+                    });
+                    const scoreResearch = Math.min(rMax, fpiBreakdown?.c5_1_research !== undefined ? fpiBreakdown.c5_1_research : rawResearch);
+
+                    let rawEvents = 0;
+                    eventGrants.forEach(f => {
+                      const amt = parseFloat(f.amount) || 0;
+                      const st = (f.status || '').toLowerCase();
+                      const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                      const isApp = st.includes('app');
+                      if (isRec) rawEvents += (amt > 100000 ? eHigh : eLow);
+                      else if (isApp) rawEvents += eApp;
+                    });
+                    const scoreEvents = Math.min(eMax, fpiBreakdown?.c5_2_events !== undefined ? fpiBreakdown.c5_2_events : rawEvents);
+                    const maxC5 = parseFloat(itemC5.max_marks) || 15;
+                    const totalC5 = score_c5;
+
+                    return (
+                      <div style={{ marginBottom: '20px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '8px' }}>
+                          <div>
+                            <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                              c5. {itemC5.criteria_title || 'Grants Applied/Received from Government and Non-Government agencies'} (Max: {maxC5} Marks)
+                            </h5>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                              Note: External Grants Only & Equal weightage shall be given to PI & Co-PI
+                            </span>
+                          </div>
+                          <span className="badge badge-success" style={{ fontSize: '0.82rem', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', fontWeight: 800, padding: '4px 10px' }}>
+                            Category Total: {totalC5} / {maxC5} Pts
+                          </span>
+                        </div>
+
+                        {/* Sub-table (i): Research Projects during the year */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                              (i) Research Projects during the year (Externally funded research project through Government and non-Government) (Max: {rMax} Marks)
+                            </span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                              Subtotal: {scoreResearch} / {rMax} Pts
+                            </span>
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                            <thead>
+                              <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Major/Minor/Student Project</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '75px', textAlign: 'center' }}>PI / Co-PI</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Title of the Project</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '90px' }}>Amount</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Duration (From - To)</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Grant No & Date</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '85px', textAlign: 'center' }}>Status</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {researchProjects.length === 0 ? (
+                                <tr><td colSpan={11} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No externally funded research projects logged in portal</td></tr>
+                              ) : researchProjects.map((fn, i) => {
+                                const amt = parseFloat(fn.amount) || 0;
+                                const st = (fn.status || '').toLowerCase();
+                                const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                                const isApp = st.includes('app');
+                                const pts = isRec ? (amt > 500000 ? rHigh : rLow) : (isApp ? rApp : 0);
+                                const fileUrl = fn.file ? (fn.file.startsWith('http') ? fn.file : `${API_BASE_URL}/uploads/${fn.file}`) : null;
+
+                                return (
+                                  <tr key={i}>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.project_type || fn.grant_category || 'Research Project'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700 }}>{fn.faculty_role || 'PI'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.title || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.fa || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{fn.amount ? `₹ ${Number(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{[fn.from_date, fn.to_date].filter(Boolean).join(' to ') || fn.date || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.referenceno || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                      <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isRec ? '#dcfce7' : '#fef3c7', color: isRec ? '#15803d' : '#92400e' }}>
+                                        {fn.status || 'Sanctioned'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                      {fileUrl ? (
+                                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                          <Eye size={12} /> View
+                                        </a>
+                                      ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                                    </td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Sub-table (ii): Workshops/Seminars/STTPS/FDPS/Conferences during the year */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                              (ii) Workshops/Seminars/STTPS/FDPS/Conferences during the year (Max: {eMax} Marks)
+                            </span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                              Subtotal: {scoreEvents} / {eMax} Pts
+                            </span>
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                            <thead>
+                              <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Workshops/Seminars/STTP/FDP/Conference</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Title of Event</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Funding Agency</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '90px' }}>Amount</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Duration (From - To)</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Grant No & Date</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '85px', textAlign: 'center' }}>Status</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {eventGrants.length === 0 ? (
+                                <tr><td colSpan={10} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No event grant funding logged in portal</td></tr>
+                              ) : eventGrants.map((fn, i) => {
+                                const amt = parseFloat(fn.amount) || 0;
+                                const st = (fn.status || '').toLowerCase();
+                                const isRec = st.includes('sanc') || st.includes('grant') || st.includes('rec') || st.includes('ong') || st.includes('comp');
+                                const isApp = st.includes('app');
+                                const pts = isRec ? (amt > 100000 ? eHigh : eLow) : (isApp ? eApp : 0);
+                                const fileUrl = fn.file ? (fn.file.startsWith('http') ? fn.file : `${API_BASE_URL}/uploads/${fn.file}`) : null;
+
+                                return (
+                                  <tr key={i}>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.project_type || fn.grant_category || 'Workshop / Seminar'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.title || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.fa || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{fn.amount ? `₹ ${Number(fn.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{[fn.from_date, fn.to_date].filter(Boolean).join(' to ') || fn.date || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{fn.referenceno || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                      <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, background: isRec ? '#dcfce7' : '#fef3c7', color: isRec ? '#15803d' : '#92400e' }}>
+                                        {fn.status || 'Sanctioned'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                      {fileUrl ? (
+                                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                          <Eye size={12} /> View
+                                        </a>
+                                      ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                                    </td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', marginTop: '10px' }}>
+                          c5 Category Total Score: {totalC5} / {maxC5} Pts
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* c6 Table (Funded Consultancy Projects / Seed Fund) */}
+                  {(() => {
+                    const itemC6 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C6') || {};
+                    let bCfgC6 = {};
+                    try {
+                      bCfgC6 = typeof itemC6.bracket_config === 'object' && itemC6.bracket_config !== null ? itemC6.bracket_config : JSON.parse(itemC6.bracket_config || '{}');
+                    } catch (e) { bCfgC6 = {}; }
+
+                    const cMax = parseFloat(bCfgC6.consultancy_max) || 5;
+                    const cHigh = parseFloat(bCfgC6.consultancy_high) || 5;
+                    const cLow = parseFloat(bCfgC6.consultancy_low) || 3;
+
+                    const sMax = parseFloat(bCfgC6.seed_max) || 5;
+                    const sRec = parseFloat(bCfgC6.seed_received) || 5;
+                    const sApp = parseFloat(bCfgC6.seed_applied) || 3;
+
+                    const allSeed = fpiDetails?.seedMoney || [];
+                    const consultancyList = allSeed.filter(s => {
+                      const entryType = (s.entry_type || '').toLowerCase();
+                      const clientType = (s.client_type || '').toLowerCase();
+                      const title = (s.title || '').toLowerCase();
+                      return entryType.includes('consult') || clientType.includes('industry') || clientType.includes('agency') || clientType.includes('individual') || title.includes('consult');
+                    });
+                    const seedMoneyList = allSeed.filter(s => {
+                      const entryType = (s.entry_type || '').toLowerCase();
+                      const clientType = (s.client_type || '').toLowerCase();
+                      const title = (s.title || '').toLowerCase();
+                      return !entryType.includes('consult') && !clientType.includes('industry') && !clientType.includes('agency') && !clientType.includes('individual') && !title.includes('consult');
+                    });
+
+                    let rawConsultancy = 0;
+                    consultancyList.forEach(s => {
+                      const amt = parseFloat(s.amount) || 0;
+                      rawConsultancy += (amt > 100000 ? cHigh : cLow);
+                    });
+                    const scoreConsultancy = Math.min(cMax, fpiBreakdown?.c6_1_consultancy !== undefined ? fpiBreakdown.c6_1_consultancy : rawConsultancy);
+
+                    let rawSeed = 0;
+                    seedMoneyList.forEach(s => {
+                      const st = (s.status || '').toLowerCase();
+                      const isRec = st.includes('rec') || st.includes('sanc') || st.includes('ong') || st.includes('comp') || !st.includes('app');
+                      const isApp = st.includes('app');
+                      if (isRec) rawSeed += sRec;
+                      else if (isApp) rawSeed += sApp;
+                    });
+                    const scoreSeed = Math.min(sMax, fpiBreakdown?.c6_2_seed !== undefined ? fpiBreakdown.c6_2_seed : rawSeed);
+                    const maxC6 = parseFloat(itemC6.max_marks) || 10;
+                    const totalC6 = score_c6;
+
+                    return (
+                      <div style={{ marginBottom: '20px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '10px', padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '8px' }}>
+                          <div>
+                            <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                              c6. {itemC6.criteria_title || 'Funded Consultancy Projects / Seed Fund'} (Max: {maxC6} Marks)
+                            </h5>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                              Note: Equal weightage shall be given to PI & Co-PI
+                            </span>
+                          </div>
+                          <span className="badge badge-success" style={{ fontSize: '0.82rem', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', fontWeight: 800, padding: '4px 10px' }}>
+                            Category Total: {totalC6} / {maxC6} Pts
+                          </span>
+                        </div>
+
+                        {/* Sub-table (i): Consultancy */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                              (i) Consultancy (Max: {cMax} Marks)
+                            </span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                              Subtotal: {scoreConsultancy} / {cMax} Pts
+                            </span>
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                            <thead>
+                              <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Name and address of Consultants</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Individual / Industry / Agency / Others</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Nature of Consultation</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '130px' }}>Amount (College Account)</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {consultancyList.length === 0 ? (
+                                <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No consultancy projects logged in portal</td></tr>
+                              ) : consultancyList.map((sm, i) => {
+                                const amt = parseFloat(sm.amount) || 0;
+                                const pts = amt > 100000 ? cHigh : cLow;
+                                const fileUrl = sm.file ? (sm.file.startsWith('http') ? sm.file : `${API_BASE_URL}/uploads/${sm.file}`) : null;
+
+                                return (
+                                  <tr key={i}>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.consultants || sm.staff_name || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.client_type || 'Industry'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.title || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{sm.amount ? `₹ ${Number(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                      {fileUrl ? (
+                                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                          <Eye size={12} /> View
+                                        </a>
+                                      ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                                    </td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Sub-table (ii): Seed money for research */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e3a8a' }}>
+                              (ii) Seed money for research (Max: {sMax} Marks)
+                            </span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                              Subtotal: {scoreSeed} / {sMax} Pts
+                            </span>
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }} className="table-container">
+                            <thead>
+                              <tr style={{ background: '#f8fafc', color: '#334155' }}>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px', textAlign: 'center' }}>S. No.</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Name of the Faculty members involved</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '75px', textAlign: 'center' }}>PI / Co-PI</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Title of the project</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Sanctioned Date</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>Duration</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '110px' }}>Amount Sanctioned</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Proof</th>
+                                <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '70px', textAlign: 'center' }}>Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {seedMoneyList.length === 0 ? (
+                                <tr><td colSpan={9} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No seed money grants logged in portal</td></tr>
+                              ) : seedMoneyList.map((sm, i) => {
+                                const st = (sm.status || '').toLowerCase();
+                                const isRec = st.includes('rec') || st.includes('sanc') || st.includes('ong') || st.includes('comp') || !st.includes('app');
+                                const pts = isRec ? sRec : sApp;
+                                const fileUrl = sm.file ? (sm.file.startsWith('http') ? sm.file : `${API_BASE_URL}/uploads/${sm.file}`) : null;
+
+                                return (
+                                  <tr key={i}>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.consultants || sm.staff_name || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700 }}>{sm.faculty_role || 'PI'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.title || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.sanctioned_date || sm.date || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{sm.duration || 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{sm.amount ? `₹ ${Number(sm.amount).toLocaleString('en-IN')}` : 'N/A'}</td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                      {fileUrl ? (
+                                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                          <Eye size={12} /> View
+                                        </a>
+                                      ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                                    </td>
+                                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 800, color: '#0284c7' }}>{pts} Pts</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1', marginTop: '10px' }}>
+                          c6 Category Total Score: {totalC6} / {maxC6} Pts
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* c7 Table (Auto-Mapped Ph.D Research Scholars) */}
                   <div style={{ marginBottom: '16px' }}>
@@ -6672,7 +7276,221 @@ export default function Appraisal({ auth }) {
               </div>
 
               {/* RULE SPECIFIC EDITORS */}
-              {ruleType === 'bracket_rating' && (
+              {item.criteria_code === 'C5' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#166534' }}>(i) Research Projects Rubrics</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700 }}>Sub-Cap:</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          style={{ width: '60px', padding: '2px 4px', fontSize: '0.8rem', textAlign: 'center', fontWeight: 800 }}
+                          className="form-control"
+                          value={configObj.research_max ?? 10}
+                          onChange={(e) => updateConfigField('research_max', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#15803d', display: 'block', marginBottom: '2px' }}>
+                          Received &gt; 5L:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.research_received_high ?? 10}
+                          onChange={(e) => updateConfigField('research_received_high', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#15803d', display: 'block', marginBottom: '2px' }}>
+                          Received &lt;= 5L:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.research_received_low ?? 8}
+                          onChange={(e) => updateConfigField('research_received_low', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#b45309', display: 'block', marginBottom: '2px' }}>
+                          Applied:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.research_applied ?? 5}
+                          onChange={(e) => updateConfigField('research_applied', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#1e40af' }}>(ii) Event Grants (Workshops/Seminars/FDPs)</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>Sub-Cap:</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          style={{ width: '60px', padding: '2px 4px', fontSize: '0.8rem', textAlign: 'center', fontWeight: 800 }}
+                          className="form-control"
+                          value={configObj.events_max ?? 5}
+                          onChange={(e) => updateConfigField('events_max', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1d4ed8', display: 'block', marginBottom: '2px' }}>
+                          Received &gt; 1L:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.events_received_high ?? 5}
+                          onChange={(e) => updateConfigField('events_received_high', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1d4ed8', display: 'block', marginBottom: '2px' }}>
+                          Received &lt;= 1L:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.events_received_low ?? 3}
+                          onChange={(e) => updateConfigField('events_received_low', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#b45309', display: 'block', marginBottom: '2px' }}>
+                          Applied:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.events_applied ?? 2}
+                          onChange={(e) => updateConfigField('events_applied', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {item.criteria_code === 'C6' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#166534' }}>(i) Consultancy Projects</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700 }}>Sub-Cap:</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          style={{ width: '60px', padding: '2px 4px', fontSize: '0.8rem', textAlign: 'center', fontWeight: 800 }}
+                          className="form-control"
+                          value={configObj.consultancy_max ?? 5}
+                          onChange={(e) => updateConfigField('consultancy_max', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#15803d', display: 'block', marginBottom: '2px' }}>
+                          Received &gt; 1 Lakh:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.consultancy_high ?? 5}
+                          onChange={(e) => updateConfigField('consultancy_high', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#15803d', display: 'block', marginBottom: '2px' }}>
+                          Received &lt;= 1 Lakh:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.consultancy_low ?? 3}
+                          onChange={(e) => updateConfigField('consultancy_low', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#1e40af' }}>(ii) Seed Money for Research</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>Sub-Cap:</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          style={{ width: '60px', padding: '2px 4px', fontSize: '0.8rem', textAlign: 'center', fontWeight: 800 }}
+                          className="form-control"
+                          value={configObj.seed_max ?? 5}
+                          onChange={(e) => updateConfigField('seed_max', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1d4ed8', display: 'block', marginBottom: '2px' }}>
+                          Received / Sanctioned:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.seed_received ?? 5}
+                          onChange={(e) => updateConfigField('seed_received', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#b45309', display: 'block', marginBottom: '2px' }}>
+                          Applied:
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          className="form-control"
+                          value={configObj.seed_applied ?? 3}
+                          onChange={(e) => updateConfigField('seed_applied', e.target.value)}
+                          style={{ fontSize: '0.8rem', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {ruleType === 'bracket_rating' && item.criteria_code !== 'C5' && item.criteria_code !== 'C6' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
                     <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', display: 'block', marginBottom: '4px' }}>

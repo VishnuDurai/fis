@@ -272,44 +272,55 @@ const activityConfigs = {
     ]
   },
   funding: {
-    title: 'Research Funding',
-    headers: ['Project Title', 'Category & Role', 'Funding Agency', 'Status', 'Sanctioned Amount', 'Reference Number', 'Attachment'],
+    title: 'Research Funding & Event Grants',
+    headers: ['Project / Event Title', 'Category & Type', 'Role & Co-PI', 'Funding Agency', 'Amount', 'Duration', 'Grant No / Date', 'Status', 'Attachment'],
     fields: [
-      { name: 'title', label: 'Project Title', type: 'text', required: true },
-      { name: 'grant_category', label: 'Grant Category', type: 'select', options: ['Research Project', 'Workshop/Seminar/Conference'], required: true },
+      { name: 'title', label: 'Project / Event Title', type: 'text', required: true },
+      { name: 'grant_category', label: 'Grant Category', type: 'select', options: ['Research Project', 'Workshops/Seminars/STTP/FDP/Conference'], required: true },
+      { name: 'project_type', label: 'Project / Event Type', type: 'select', options: ['Major Project', 'Minor Project', 'Student Project', 'Workshop', 'Seminar', 'STTP', 'FDP', 'Conference'], required: false },
       { name: 'faculty_role', label: 'Faculty Role', type: 'select', options: ['PI', 'Co-PI'], required: true },
-      { name: 'copiname', label: 'Co-PI Staff Name', type: 'text', required: true },
-      { name: 'copiid', label: 'Co-PI Staff ID', type: 'text', required: true },
+      { name: 'copiname', label: 'Co-PI Staff Name(s)', type: 'text', required: false },
+      { name: 'copiid', label: 'Co-PI Staff ID(s)', type: 'text', required: false },
       { name: 'fa', label: 'Funding Agency Name', type: 'text', required: true },
-      { name: 'status', label: 'Current Status', type: 'select', options: ['Applied', 'Sanctioned', 'Ongoing', 'Completed'], required: true },
-      { name: 'amount', label: 'Sanctioned Amount (INR)', type: 'number', required: true },
-      { name: 'referenceno', label: 'Agency Order Reference', type: 'text', required: true }
+      { name: 'amount', label: 'Grant Amount (INR)', type: 'number', required: true },
+      { name: 'from_date', label: 'Duration From Date', type: 'date', required: false },
+      { name: 'to_date', label: 'Duration To Date', type: 'date', required: false },
+      { name: 'referenceno', label: 'Grant No & Order Date', type: 'text', required: false },
+      { name: 'status', label: 'Current Status', type: 'select', options: ['Sanctioned', 'Received', 'Applied', 'Ongoing', 'Completed'], required: true }
     ],
     renderRow: (row) => [
       row.title,
-      `${row.grant_category || 'Research Project'} (${row.faculty_role || 'PI'})`,
+      `${row.grant_category || 'Research Project'}${row.project_type ? ` - ${row.project_type}` : ''}`,
+      `${row.faculty_role || 'PI'}${row.copiname ? ` (Co-PI: ${row.copiname})` : ''}`,
       row.fa,
-      row.status,
-      `₹ ${row.amount?.toLocaleString('en-IN')}`,
-      row.referenceno || 'N/A'
+      `₹ ${Number(row.amount || 0).toLocaleString('en-IN')}`,
+      [row.from_date, row.to_date].filter(Boolean).join(' to ') || row.date || 'N/A',
+      row.referenceno || 'N/A',
+      row.status || 'Sanctioned'
     ]
   },
   seed_money: {
-    title: 'Seed Money for Research',
-    headers: ['Project Title', 'Faculty Role', 'Sanctioned Date', 'Duration', 'Amount Sanctioned (INR)', 'Attachment'],
+    title: 'Funded Consultancy Projects & Seed Money for Research',
+    headers: ['Title / Work Description', 'Category', 'Client / Agency', 'Role & Faculty Involved', 'Sanctioned Date / Duration', 'Amount (College Account)', 'Status', 'Attachment'],
     fields: [
-      { name: 'title', label: 'Research Project Title', type: 'text', required: true },
-      { name: 'faculty_role', label: 'Faculty Role', type: 'select', options: ['PI', 'Co-PI'], required: true },
-      { name: 'sanctioned_date', label: 'Sanctioned Date', type: 'date', required: true },
-      { name: 'duration', label: 'Duration (e.g. 1 Year)', type: 'text', required: true },
-      { name: 'amount', label: 'Amount Sanctioned (INR)', type: 'number', required: true }
+      { name: 'entry_type', label: 'Category Type', type: 'select', options: ['Seed Money for Research', 'Consultancy'], required: true },
+      { name: 'title', label: 'Project Title / Nature of Consultation', type: 'text', required: true },
+      { name: 'client_type', label: 'Client / Sponsoring Agency', type: 'select', options: ['Internal / SREC Seed Fund', 'Individual', 'Industry', 'Agency / Sponsoring Body', 'Others'], required: false },
+      { name: 'consultants', label: 'Name of Faculty Members Involved / Consultants', type: 'text', required: false },
+      { name: 'faculty_role', label: 'Faculty Role', type: 'select', options: ['PI', 'Co-PI', 'Consultant', 'Principal Consultant'], required: true },
+      { name: 'sanctioned_date', label: 'Sanctioned Date', type: 'date', required: false },
+      { name: 'duration', label: 'Duration (e.g. 6 Months / 1 Year)', type: 'text', required: false },
+      { name: 'amount', label: 'Amount (INR - Only Through College Account)', type: 'number', required: true },
+      { name: 'status', label: 'Current Status', type: 'select', options: ['Received', 'Sanctioned', 'Applied', 'Ongoing', 'Completed'], required: true }
     ],
     renderRow: (row) => [
       row.title,
-      row.faculty_role || 'PI',
-      row.sanctioned_date,
-      row.duration,
-      `₹ ${row.amount?.toLocaleString('en-IN')}`
+      row.entry_type || 'Seed Money for Research',
+      row.client_type || 'SREC Seed Fund',
+      `${row.faculty_role || 'PI'}${row.consultants ? ` (${row.consultants})` : ''}`,
+      [row.sanctioned_date, row.duration].filter(Boolean).join(' | ') || 'N/A',
+      `₹ ${Number(row.amount || 0).toLocaleString('en-IN')}`,
+      row.status || 'Received'
     ]
   },
   ipr: {

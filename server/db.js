@@ -253,7 +253,10 @@ const createTables = async () => {
       referenceno TEXT,
       file TEXT,
       faculty_role TEXT,
-      grant_category TEXT
+      grant_category TEXT,
+      project_type TEXT,
+      from_date TEXT,
+      to_date TEXT
     )`,
     // 13. staff_ipr
     `CREATE TABLE IF NOT EXISTS staff_ipr (
@@ -500,6 +503,12 @@ const createTables = async () => {
       sanctioned_date TEXT,
       duration TEXT,
       amount DOUBLE DEFAULT 0,
+      entry_type TEXT,
+      client_type TEXT,
+      consultants TEXT,
+      status TEXT,
+      from_date TEXT,
+      to_date TEXT,
       file TEXT
     )`,
     // 30. appraisal_template
@@ -746,8 +755,8 @@ const createTables = async () => {
       ['PART_C', 'PART C: Research & Consultancy', 'C2', 'Books & Book Chapters Published', 'Automatic mapping: 5 marks per book or book chapter published', 'auto', 5, 10, 'fixed_per_record', null, 'books', 16],
       ['PART_C', 'PART C: Research & Consultancy', 'C3', 'Community Service & Extension Activities', '5 marks per community outreach project', 'manual', 5, 5, 'fixed_per_record', null, null, 17],
       ['PART_C', 'PART C: Research & Consultancy', 'C4', 'IPR, Patents & Copyrights', 'Automatic mapping: 10 marks for Granted/Registered, 7 for Published, 3 for Filed', 'auto', 10, 10, 'patent_status_split', JSON.stringify({ granted_score: 10, published_score: 7, filed_score: 3 }), 'ipr', 18],
-      ['PART_C', 'PART C: Research & Consultancy', 'C5', 'Research Grants & External Sponsored Projects', 'Automatic mapping: 10 marks for sanctioned grant >5 Lakhs, 8 for <=5 Lakhs, 5 per proposal', 'auto', 10, 15, 'bracket_rating', JSON.stringify({ high_grant_score: 10, low_grant_score: 8, proposal_score: 5 }), 'funding', 19],
-      ['PART_C', 'PART C: Research & Consultancy', 'C6', 'Seed Money & Consultancy Services', 'Automatic mapping: 5 marks per internal seed money grant or external consultancy project', 'auto', 5, 10, 'fixed_per_record', null, 'seed_money', 20],
+      ['PART_C', 'PART C: Research & Consultancy', 'C5', 'Grants Applied/Received from Government and Non-Government agencies', 'Note: External Grants Only & Equal weightage shall be given to PI & Co-PI. (i) Research Projects: Sanctioned >5L (10m), <=5L (8m), Applied (5m) [Max 10]. (ii) Event Grants (Workshops/Seminars/FDPs): Sanctioned >1L (5m), <=1L (3m), Applied (2m) [Max 5]. Category Max 15 Pts.', 'auto', 10, 15, 'bracket_rating', JSON.stringify({ research_max: 10, research_received_high: 10, research_received_low: 8, research_applied: 5, events_max: 5, events_received_high: 5, events_received_low: 3, events_applied: 2 }), 'funding', 19],
+      ['PART_C', 'PART C: Research & Consultancy', 'C6', 'Funded Consultancy Projects / Seed Fund', 'Note: Equal weightage shall be given to PI & Co-PI. (i) Consultancy: Received >1L (5m), <=1L (3m) [Max 5]. (ii) Seed Money for Research: Received (5m), Applied (3m) [Max 5]. Category Max 10 Pts.', 'auto', 5, 10, 'bracket_rating', JSON.stringify({ consultancy_max: 5, consultancy_high: 5, consultancy_low: 3, seed_max: 5, seed_received: 5, seed_applied: 3 }), 'seed_money', 20],
       ['PART_C', 'PART C: Research & Consultancy', 'C7', 'Research Scholars Guidance (Ph.D)', 'Automatic mapping: 2.5 marks per registered Ph.D scholar (Only for Recognized Research Supervisors)', 'auto', 2.5, 5, 'phd_supervisor_gated', JSON.stringify({ scholar_unit_score: 2.5 }), 'scholars', 21],
       ['PART_C', 'PART C: Research & Consultancy', 'C8', 'Awards & Recognitions Received', 'Automatic mapping: 5 marks per national/international award received', 'auto', 5, 5, 'fixed_per_record', null, 'awards', 22],
       ['PART_D', 'PART D: Institutional Development & Contribution', 'D1', 'Assigned Institutional & Departmental Responsibilities', 'Automatic mapping: 10 marks per Institutional role (Max 20), 10 per Departmental role (Max 10). Combined Max 20', 'auto', 10, 20, 'fixed_per_record', null, 'responsibilities', 23],
@@ -769,6 +778,35 @@ const createTables = async () => {
           data_source_page = VALUES(data_source_page)
       `, item);
     }
+  } catch (e) {}
+
+  // Migrate missing columns on staff_funding and staff_seed_money safely
+  try {
+    await pool.query("ALTER TABLE staff_funding ADD COLUMN project_type TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_funding ADD COLUMN from_date TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_funding ADD COLUMN to_date TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_seed_money ADD COLUMN entry_type TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_seed_money ADD COLUMN client_type TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_seed_money ADD COLUMN consultants TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_seed_money ADD COLUMN status TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_seed_money ADD COLUMN from_date TEXT");
+  } catch (e) {}
+  try {
+    await pool.query("ALTER TABLE staff_seed_money ADD COLUMN to_date TEXT");
   } catch (e) {}
 
   // Seed default System Admin account if empty
