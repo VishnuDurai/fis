@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar.jsx';
 import { 
   Layers, Plus, Trash2, Edit3, Eye, FileText, CheckSquare, 
   Square, ShieldAlert, Award, BookOpen, Sparkles, Folder, 
-  GraduationCap, Users, Star, Save, X, ArrowLeft, ArrowUp, ArrowDown 
+  GraduationCap, Users, Star, Save, X, ArrowLeft, ArrowUp, ArrowDown, Paperclip 
 } from 'lucide-react';
 
 const ICON_OPTIONS = [
@@ -246,6 +246,11 @@ export default function DynamicPagesAdmin({ auth }) {
   const handleAddField = () => {
     const newId = `f_${Date.now()}`;
     setFields([...fields, { id: newId, label: '', type: 'text', required: false, options: '' }]);
+  };
+
+  const handleAddAttachmentField = () => {
+    const newId = `f_${Date.now()}`;
+    setFields([...fields, { id: newId, label: 'Supporting Document Attachment', type: 'file', required: false, options: '' }]);
   };
 
   const handleRemoveField = (index) => {
@@ -1088,11 +1093,19 @@ export default function DynamicPagesAdmin({ auth }) {
 
               {/* Dynamic Field Builder */}
               <div style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>Dynamic Form Fields Setup</h4>
-                  <button type="button" className="btn btn-secondary" onClick={handleAddField} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <Plus size={14} /> Add Field
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Dynamic Form Fields Setup</h4>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>Configure input fields and supporting document uploads with custom labels, order, and mandatory constraints.</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button type="button" className="btn btn-secondary" onClick={handleAddField} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Plus size={14} /> Add Input Field
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={handleAddAttachmentField} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))', fontWeight: 600 }}>
+                      <Paperclip size={14} /> + Add Supporting Document Field
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1100,10 +1113,10 @@ export default function DynamicPagesAdmin({ auth }) {
                     <div 
                       key={f.id || idx} 
                       style={{ 
-                        background: '#f8fafc', 
+                        background: f.type === 'file' ? '#f0fdf4' : '#f8fafc', 
                         padding: '12px 14px', 
                         borderRadius: '8px', 
-                        border: '1px solid #e2e8f0', 
+                        border: f.type === 'file' ? '1.5px solid #86efac' : '1px solid #e2e8f0', 
                         display: 'grid', 
                         gridTemplateColumns: '40px 2fr 1.3fr 0.9fr 1.2fr 84px', 
                         gap: '10px', 
@@ -1113,7 +1126,7 @@ export default function DynamicPagesAdmin({ auth }) {
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ 
-                          background: 'hsl(var(--primary))', 
+                          background: f.type === 'file' ? '#16a34a' : 'hsl(var(--primary))', 
                           color: '#fff', 
                           padding: '3px 7px', 
                           borderRadius: '6px', 
@@ -1128,7 +1141,7 @@ export default function DynamicPagesAdmin({ auth }) {
                         <input 
                           type="text" 
                           className="form-control" 
-                          placeholder="e.g. Event Title / Client Name"
+                          placeholder={f.type === 'file' ? 'Supporting Document Attachment' : 'e.g. Event Title / Client Name'}
                           value={f.label} 
                           onChange={(e) => handleFieldChange(idx, 'label', e.target.value)}
                           required 
@@ -1137,33 +1150,28 @@ export default function DynamicPagesAdmin({ auth }) {
                       <div>
                         <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Field Type</label>
                         <select className="form-control" value={f.type} onChange={(e) => handleFieldChange(idx, 'type', e.target.value)}>
-                          <optgroup label="── Text & Input ──">
+                          <optgroup label="── Common & Attachment ──">
                             <option value="text">Single-line Text</option>
-                            <option value="textarea">Multi-line Textarea</option>
-                            <option value="email">Email Address</option>
-                            <option value="tel">Phone Number</option>
-                            <option value="url">Website URL</option>
-                            <option value="password">Password</option>
-                          </optgroup>
-                          <optgroup label="── Numeric ──">
-                            <option value="number">Numeric Value</option>
-                            <option value="range">Range / Slider</option>
-                          </optgroup>
-                          <optgroup label="── Date & Time ──">
+                            <option value="file">📎 Supporting Document Attachment (PDF/Image)</option>
                             <option value="date">Date Picker</option>
-                            <option value="time">Time Picker</option>
-                            <option value="datetime-local">Date &amp; Time Picker</option>
-                            <option value="month">Month Picker</option>
-                            <option value="week">Week Picker</option>
+                            <option value="number">Numeric Value</option>
+                            <option value="textarea">Multi-line Textarea</option>
                           </optgroup>
-                          <optgroup label="── Choice ──">
+                          <optgroup label="── Choice & Options ──">
                             <option value="select">Dropdown Select</option>
                             <option value="radio">Radio Buttons</option>
                             <option value="checkbox">Checkbox (Yes / No)</option>
                             <option value="multiselect">Multi-Select Checkboxes</option>
                           </optgroup>
-                          <optgroup label="── Special ──">
-                            <option value="file">File Attachment Upload</option>
+                          <optgroup label="── Date, Contact & Media ──">
+                            <option value="email">Email Address</option>
+                            <option value="tel">Phone Number</option>
+                            <option value="url">Website URL</option>
+                            <option value="time">Time Picker</option>
+                            <option value="datetime-local">Date &amp; Time Picker</option>
+                            <option value="month">Month Picker</option>
+                            <option value="week">Week Picker</option>
+                            <option value="range">Range / Slider</option>
                             <option value="color">Color Picker</option>
                             <option value="rating">Star Rating (1–5)</option>
                           </optgroup>

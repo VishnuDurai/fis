@@ -408,7 +408,7 @@ export default function DynamicPage({ auth }) {
                   {dynamicFields.map(f => (
                     <th key={f.id}>{f.label}</th>
                   ))}
-                  <th>Document File</th>
+                  {!dynamicFields.some(f => f.type === 'file') && <th>Document File</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -419,24 +419,42 @@ export default function DynamicPage({ auth }) {
                     <td><span className="badge badge-secondary">{r.department || 'N/A'}</span></td>
                     {dynamicFields.map(f => (
                       <td key={f.id} style={{ maxWidth: '250px' }}>
-                        {r.data?.[f.id] || 'N/A'}
+                        {f.type === 'file' ? (
+                          r.file ? (
+                            <a 
+                              href={`${API_BASE_URL}/uploads/${r.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <Download size={14} /> View Document
+                            </a>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No Attachment</span>
+                          )
+                        ) : (
+                          r.data?.[f.id] || 'N/A'
+                        )}
                       </td>
                     ))}
-                    <td>
-                      {r.file ? (
-                        <a 
-                          href={`${API_BASE_URL}/uploads/${r.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        >
-                          <Download size={14} /> View File
-                        </a>
-                      ) : (
-                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No File</span>
-                      )}
-                    </td>
+                    {!dynamicFields.some(f => f.type === 'file') && (
+                      <td>
+                        {r.file ? (
+                          <a 
+                            href={`${API_BASE_URL}/uploads/${r.file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <Download size={14} /> View File
+                          </a>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No File</span>
+                        )}
+                      </td>
+                    )}
                     <td>
                       {(auth.role === 'admin' || auth.role === 'dept_admin' || auth.staffId === r.staff_id) && (
                         <button 
