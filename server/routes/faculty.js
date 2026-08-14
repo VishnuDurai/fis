@@ -171,15 +171,20 @@ router.get('/personal', authenticateToken, (req, res) => {
 
   if (reqStaffId) {
     db.all(`
-      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+      SELECT p.*, 
+             COALESCE(p.staff_id, a.staff_id) as staff_id,
+             COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
+             a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
-             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months,
+             u.file as profile_pic, u.file as file
       FROM staff_personal p
       LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
-      WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
-    `, [reqStaffId], (err, rows) => {
+      LEFT JOIN staff_user u ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(u.staff_id))
+      WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?)) OR LOWER(TRIM(a.staff_id)) = LOWER(TRIM(?))
+    `, [reqStaffId, reqStaffId], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
       sendEnriched(rows);
     });
@@ -189,13 +194,18 @@ router.get('/personal', authenticateToken, (req, res) => {
     const placeholders = lowerDepts.map(() => '?').join(',');
 
     db.all(`
-      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+      SELECT p.*, 
+             COALESCE(p.staff_id, a.staff_id) as staff_id,
+             COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
+             a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
-             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months,
+             u.file as profile_pic, u.file as file
       FROM staff_personal p
       JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_user u ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(u.staff_id))
       WHERE LOWER(TRIM(a.Department)) IN (${placeholders})
          OR LOWER(TRIM(a.Department)) IN (
            SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) IN (${placeholders}) OR LOWER(TRIM(acronym)) IN (${placeholders})
@@ -210,13 +220,18 @@ router.get('/personal', authenticateToken, (req, res) => {
     });
   } else if (isAdmin) {
     db.all(`
-      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+      SELECT p.*, 
+             COALESCE(p.staff_id, a.staff_id) as staff_id,
+             COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
+             a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
-             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months,
+             u.file as profile_pic, u.file as file
       FROM staff_personal p
       LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_user u ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(u.staff_id))
       ORDER BY p.staff_name ASC
     `, [], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });
@@ -224,13 +239,18 @@ router.get('/personal', authenticateToken, (req, res) => {
     });
   } else {
     db.all(`
-      SELECT p.*, a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+      SELECT p.*, 
+             COALESCE(p.staff_id, a.staff_id) as staff_id,
+             COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
+             a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
-             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months
+             a.exp_srec_years, a.exp_srec_months, a.total_exp_years, a.total_exp_months,
+             u.file as profile_pic, u.file as file
       FROM staff_personal p
       LEFT JOIN staff_academics a ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(a.staff_id))
+      LEFT JOIN staff_user u ON LOWER(TRIM(p.staff_id)) = LOWER(TRIM(u.staff_id))
       WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?))
     `, [req.user.staffId], (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error' });

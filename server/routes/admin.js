@@ -156,7 +156,9 @@ router.get('/staff', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
       a.exp_srec_months,
       a.total_exp_years,
       a.total_exp_months,
-      COALESCE(u.is_relieved, 0) as is_relieved
+      COALESCE(u.is_relieved, 0) as is_relieved,
+      u.file as profile_pic,
+      u.file as file
     FROM staff_academics a
     LEFT JOIN staff_personal p ON LOWER(TRIM(a.staff_id)) = LOWER(TRIM(p.staff_id))
     LEFT JOIN staff_user u ON LOWER(TRIM(a.staff_id)) = LOWER(TRIM(u.staff_id))

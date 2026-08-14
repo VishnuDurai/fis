@@ -440,7 +440,7 @@ export default function Personal({ auth }) {
               <table style={{ width: '100%', fontSize: '0.88rem' }}>
                 <thead>
                   <tr>
-                    <th>Faculty Name</th>
+                    <th>Faculty Details</th>
                     <th>Designation</th>
                     <th>Department</th>
                     <th>Date of Birth & Gender</th>
@@ -458,32 +458,63 @@ export default function Personal({ auth }) {
                       </td>
                     </tr>
                   ) : (
-                    filteredPersonalList.map((item) => (
-                      <tr key={item.staff_id}>
-                        <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.staff_name || 'N/A'}</td>
-                        <td style={{ fontWeight: 600 }}>{item.Designation || 'N/A'}</td>
-                        <td>{getDeptWithAcronym(item.Department)}</td>
-                        <td style={{ fontWeight: 600 }}>{item.dob || 'N/A'} ({item.gender || 'Male'})</td>
-                        <td style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
-                          <div><strong style={{ color: '#0f172a' }}>Email:</strong> {item.email || 'N/A'}</div>
-                          <div><strong style={{ color: '#0f172a' }}>Mobile:</strong> {item.mobile || 'N/A'}</div>
-                        </td>
-                        <td style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
-                          <div><strong style={{ color: '#0f172a' }}>PAN:</strong> {item.pan || 'N/A'}</div>
-                          <div><strong style={{ color: '#0f172a' }}>Aadhaar:</strong> {item.aadhar || 'N/A'}</div>
-                        </td>
-                        <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address || 'N/A'}</td>
-                        <td>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-                            onClick={() => setSelectedFacultyTarget(item)}
-                          >
-                            <Eye size={14} /> {auth.role === 'dept_admin' ? 'View Details' : 'View & Edit'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    filteredPersonalList.map((item) => {
+                      const pic = item.file || item.profile_pic;
+                      const picUrl = pic 
+                        ? `${API_BASE_URL}/uploads/upload/${pic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}` 
+                        : null;
+                      return (
+                        <tr key={item.staff_id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ position: 'relative', width: '42px', height: '42px', minWidth: '42px', borderRadius: '50%', overflow: 'hidden', background: 'hsla(var(--primary), 0.1)', border: '1.5px solid hsl(var(--primary), 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {picUrl ? (
+                                  <img 
+                                    src={picUrl} 
+                                    alt={item.staff_name || 'Faculty'} 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                                  />
+                                ) : null}
+                                <div style={{ display: picUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '0.85rem' }}>
+                                  {(item.staff_name || item.staff_id || 'F').charAt(0).toUpperCase()}
+                                </div>
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem', lineHeight: '1.25' }}>
+                                  {item.staff_name || 'Faculty Member'}
+                                </div>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '1px 7px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, color: '#334155' }}>
+                                  <span>Staff ID:</span>
+                                  <span style={{ fontFamily: 'monospace', color: 'hsl(var(--primary))' }}>{item.staff_id || 'N/A'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{item.Designation || 'N/A'}</td>
+                          <td>{getDeptWithAcronym(item.Department)}</td>
+                          <td style={{ fontWeight: 600 }}>{item.dob || 'N/A'} ({item.gender || 'Male'})</td>
+                          <td style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+                            <div><strong style={{ color: '#0f172a' }}>Email:</strong> {item.email || 'N/A'}</div>
+                            <div><strong style={{ color: '#0f172a' }}>Mobile:</strong> {item.mobile || 'N/A'}</div>
+                          </td>
+                          <td style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+                            <div><strong style={{ color: '#0f172a' }}>PAN:</strong> {item.pan || 'N/A'}</div>
+                            <div><strong style={{ color: '#0f172a' }}>Aadhaar:</strong> {item.aadhar || 'N/A'}</div>
+                          </td>
+                          <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.address || 'N/A'}</td>
+                          <td>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+                              onClick={() => setSelectedFacultyTarget(item)}
+                            >
+                              <Eye size={14} /> {auth.role === 'dept_admin' ? 'View Details' : 'View & Edit'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -494,10 +525,33 @@ export default function Personal({ auth }) {
           {selectedFacultyTarget && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
               <div className="card" style={{ maxWidth: '750px', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', color: '#111827', border: '1px solid hsl(var(--border))', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.3rem', color: '#0f172a', fontWeight: 800 }}>Personal Details: {selectedFacultyTarget.staff_name}</h3>
-                    <span style={{ fontSize: '0.85rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Staff ID: {selectedFacultyTarget.staff_id} | Dept: {selectedFacultyTarget.Department}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ position: 'relative', width: '52px', height: '52px', minWidth: '52px', borderRadius: '50%', overflow: 'hidden', background: 'hsla(var(--primary), 0.1)', border: '2px solid hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {selectedFacultyTarget.file || selectedFacultyTarget.profile_pic ? (
+                        <img 
+                          src={`${API_BASE_URL}/uploads/upload/${selectedFacultyTarget.file || selectedFacultyTarget.profile_pic}?token=${auth?.token || localStorage.getItem('srec_token') || ''}`} 
+                          alt={selectedFacultyTarget.staff_name || 'Faculty'} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                      ) : null}
+                      <div style={{ display: (selectedFacultyTarget.file || selectedFacultyTarget.profile_pic) ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '1.2rem' }}>
+                        {(selectedFacultyTarget.staff_name || selectedFacultyTarget.staff_id || 'F').charAt(0).toUpperCase()}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 800, margin: 0 }}>{selectedFacultyTarget.staff_name || 'Faculty Member'}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                        <span style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', fontWeight: 700, fontSize: '0.78rem', padding: '2px 8px', borderRadius: '6px', border: '1px solid hsla(var(--primary), 0.2)' }}>
+                          Staff ID: {selectedFacultyTarget.staff_id}
+                        </span>
+                        <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Dept: {getDeptWithAcronym(selectedFacultyTarget.Department)}</span>
+                        {selectedFacultyTarget.Designation && (
+                          <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>• {selectedFacultyTarget.Designation}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <button onClick={() => setSelectedFacultyTarget(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={22} /></button>
                 </div>
@@ -556,7 +610,7 @@ export default function Personal({ auth }) {
           <div style={{ textAlign: 'center', padding: '40px' }}>Loading personal profile...</div>
         ) : personal ? (
           <div className="card" style={{ maxWidth: '850px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>
                 Personal Details
               </h3>
@@ -586,6 +640,33 @@ export default function Personal({ auth }) {
                   ]} 
                   auth={auth}
                 />
+              </div>
+            </div>
+
+            {/* Profile Identity Banner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 18px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+              <div style={{ position: 'relative', width: '52px', height: '52px', minWidth: '52px', borderRadius: '50%', overflow: 'hidden', background: 'hsla(var(--primary), 0.1)', border: '2px solid hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {auth?.profilePic ? (
+                  <img 
+                    src={`${API_BASE_URL}/uploads/upload/${auth.profilePic}?token=${auth.token}`} 
+                    alt={auth.name || 'Profile'} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                  />
+                ) : null}
+                <div style={{ display: auth?.profilePic ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '1.2rem' }}>
+                  {(auth.name || auth.staffId || 'F').charAt(0).toUpperCase()}
+                </div>
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{auth.name || personal.staff_name || 'Faculty Member'}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', fontWeight: 700, fontSize: '0.78rem', padding: '2px 8px', borderRadius: '6px', border: '1px solid hsla(var(--primary), 0.2)' }}>
+                    Staff ID: {auth.staffId || personal.staff_id}
+                  </span>
+                  <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>{auth.designation || (academics && academics.Designation) || 'Faculty'}</span>
+                  <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>• {getDeptWithAcronym(auth.dept || auth.department || (academics && academics.Department))}</span>
+                </div>
               </div>
             </div>
             
