@@ -1141,6 +1141,40 @@ export default function Activities({ auth }) {
                     }
                   }
 
+                  if (type === 'seed_money') {
+                    const isConsultancy = (formData.entry_type || 'Seed Money for Research') === 'Consultancy';
+                    if (f.name === 'title') {
+                      fieldLabel = isConsultancy ? 'Nature / Title of Consultation' : 'Research Project Title';
+                      fieldPlaceholder = isConsultancy ? 'Enter nature of consultation / project title' : 'Enter research project title';
+                    } else if (f.name === 'client_type') {
+                      fieldLabel = isConsultancy ? 'Client Type (Individual / Industry / Agency / Others)' : 'Sponsoring Body / Internal Seed Fund';
+                      selectOptions = isConsultancy ? ['Industry', 'Agency / Sponsoring Body', 'Individual', 'Others'] : ['Internal / SREC Seed Fund', 'Others'];
+                    } else if (f.name === 'consultants') {
+                      fieldLabel = isConsultancy ? 'Name & Address of Consultants / Faculty Involved' : 'Faculty Members Involved';
+                      fieldPlaceholder = isConsultancy ? 'Enter name and address of consultants' : 'Enter names of faculty members involved';
+                    } else if (f.name === 'faculty_role') {
+                      fieldLabel = isConsultancy ? 'Consultant Role' : 'Faculty Role';
+                      selectOptions = isConsultancy ? ['Principal Consultant', 'Consultant', 'Co-Consultant', 'PI', 'Co-PI'] : ['PI', 'Co-PI'];
+                    } else if (f.name === 'amount') {
+                      fieldLabel = isConsultancy ? 'Amount (Only Through College Account - INR)' : 'Amount Sanctioned (INR)';
+                      fieldPlaceholder = isConsultancy ? 'Enter amount received through college account' : 'Enter amount sanctioned';
+                    }
+                  }
+
+                  if (type === 'funding') {
+                    const isEvent = (formData.grant_category || 'Research Project').toLowerCase().includes('workshop') ||
+                                    (formData.grant_category || '').toLowerCase().includes('seminar') ||
+                                    (formData.grant_category || '').toLowerCase().includes('conference') ||
+                                    (formData.grant_category || '').toLowerCase().includes('fdp') ||
+                                    (formData.grant_category || '').toLowerCase().includes('sttp');
+                    if (f.name === 'title') {
+                      fieldLabel = isEvent ? 'Title of Event (Workshop / Seminar / FDP / Conference)' : 'Title of the Project';
+                    } else if (f.name === 'project_type') {
+                      fieldLabel = isEvent ? 'Event Type' : 'Project Type (Major / Minor / Student Project)';
+                      selectOptions = isEvent ? ['Workshop', 'Seminar', 'FDP', 'STTP', 'Conference', 'Symposium'] : ['Major Research Project', 'Minor Research Project', 'Student Project', 'Collaborative Project'];
+                    }
+                  }
+
                   return (
                   <div className="form-group" key={idx} style={{ gridColumn: f.type === 'textarea' ? 'span 2' : 'span 1' }}>
                     <label className="form-label">
