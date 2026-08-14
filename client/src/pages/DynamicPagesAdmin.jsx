@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar.jsx';
 import { 
   Layers, Plus, Trash2, Edit3, Eye, FileText, CheckSquare, 
   Square, ShieldAlert, Award, BookOpen, Sparkles, Folder, 
-  GraduationCap, Users, Star, Save, X, ArrowLeft 
+  GraduationCap, Users, Star, Save, X, ArrowLeft, ArrowUp, ArrowDown 
 } from 'lucide-react';
 
 const ICON_OPTIONS = [
@@ -260,6 +260,26 @@ export default function DynamicPagesAdmin({ auth }) {
     const updated = [...fields];
     updated[index][key] = val;
     setFields(updated);
+  };
+
+  const handleMoveField = (index, direction) => {
+    const newFields = [...fields];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newFields.length) return;
+    const temp = newFields[index];
+    newFields[index] = newFields[targetIndex];
+    newFields[targetIndex] = temp;
+    setFields(newFields);
+  };
+
+  const handleMoveSysField = (index, direction) => {
+    const updated = [...sysFields];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= updated.length) return;
+    const temp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = temp;
+    setSysFields(updated);
   };
 
   const handleSavePage = async (e) => {
@@ -694,7 +714,33 @@ export default function DynamicPagesAdmin({ auth }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {sysFields.map((f, idx) => (
-                <div key={f.name || idx} style={{ background: (f.status === 'hidden') ? '#f1f5f9' : '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '1.8fr 1.2fr 1.2fr 1.2fr 1.5fr 40px', gap: '12px', alignItems: 'center', opacity: (f.status === 'hidden') ? 0.75 : 1 }}>
+                <div 
+                  key={f.name || idx} 
+                  style={{ 
+                    background: (f.status === 'hidden') ? '#f1f5f9' : '#f8fafc', 
+                    padding: '14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid #e2e8f0', 
+                    display: 'grid', 
+                    gridTemplateColumns: '40px 1.8fr 1.2fr 1.2fr 1.2fr 1.5fr 84px', 
+                    gap: '12px', 
+                    alignItems: 'center', 
+                    opacity: (f.status === 'hidden') ? 0.75 : 1,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ 
+                      background: 'hsl(var(--primary))', 
+                      color: '#fff', 
+                      padding: '3px 7px', 
+                      borderRadius: '6px', 
+                      fontSize: '0.75rem', 
+                      fontWeight: 800 
+                    }}>
+                      #{idx + 1}
+                    </span>
+                  </div>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Field Label</label>
                     <input
@@ -778,13 +824,63 @@ export default function DynamicPagesAdmin({ auth }) {
                       }}
                     />
                   </div>
-                  <div style={{ textAlign: 'center', marginTop: '18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '18px', justifyContent: 'center' }}>
+                    <button 
+                      type="button" 
+                      title="Move Field Up"
+                      disabled={idx === 0} 
+                      onClick={() => handleMoveSysField(idx, 'up')} 
+                      style={{ 
+                        background: idx === 0 ? '#f1f5f9' : '#e2e8f0', 
+                        border: '1px solid #cbd5e1', 
+                        borderRadius: '5px', 
+                        padding: '5px 7px', 
+                        cursor: idx === 0 ? 'not-allowed' : 'pointer', 
+                        color: idx === 0 ? '#94a3b8' : '#0f172a',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <button 
+                      type="button" 
+                      title="Move Field Down"
+                      disabled={idx === sysFields.length - 1} 
+                      onClick={() => handleMoveSysField(idx, 'down')} 
+                      style={{ 
+                        background: idx === sysFields.length - 1 ? '#f1f5f9' : '#e2e8f0', 
+                        border: '1px solid #cbd5e1', 
+                        borderRadius: '5px', 
+                        padding: '5px 7px', 
+                        cursor: idx === sysFields.length - 1 ? 'not-allowed' : 'pointer', 
+                        color: idx === sysFields.length - 1 ? '#94a3b8' : '#0f172a',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <ArrowDown size={14} />
+                    </button>
                     <button
                       type="button"
+                      title="Delete Field"
                       onClick={() => setSysFields(sysFields.filter((_, i) => i !== idx))}
-                      style={{ background: 'none', border: 'none', color: 'hsl(var(--danger))', cursor: 'pointer' }}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: 'hsl(var(--danger))', 
+                        cursor: 'pointer',
+                        padding: '5px 6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -1001,7 +1097,32 @@ export default function DynamicPagesAdmin({ auth }) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {fields.map((f, idx) => (
-                    <div key={f.id || idx} style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 40px', gap: '12px', alignItems: 'center' }}>
+                    <div 
+                      key={f.id || idx} 
+                      style={{ 
+                        background: '#f8fafc', 
+                        padding: '12px 14px', 
+                        borderRadius: '8px', 
+                        border: '1px solid #e2e8f0', 
+                        display: 'grid', 
+                        gridTemplateColumns: '40px 2fr 1.3fr 0.9fr 1.2fr 84px', 
+                        gap: '10px', 
+                        alignItems: 'center',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ 
+                          background: 'hsl(var(--primary))', 
+                          color: '#fff', 
+                          padding: '3px 7px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 800 
+                        }}>
+                          #{idx + 1}
+                        </span>
+                      </div>
                       <div>
                         <label className="form-label" style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Field Label</label>
                         <input 
@@ -1066,9 +1187,63 @@ export default function DynamicPagesAdmin({ auth }) {
                           onChange={(e) => handleFieldChange(idx, 'options', e.target.value)}
                         />
                       </div>
-                      <div style={{ textAlign: 'center', marginTop: '18px' }}>
-                        <button type="button" onClick={() => handleRemoveField(idx)} style={{ background: 'none', border: 'none', color: 'hsl(var(--danger))', cursor: 'pointer' }}>
-                          <Trash2 size={18} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '18px', justifyContent: 'center' }}>
+                        <button 
+                          type="button" 
+                          title="Move Field Up"
+                          disabled={idx === 0} 
+                          onClick={() => handleMoveField(idx, 'up')} 
+                          style={{ 
+                            background: idx === 0 ? '#f1f5f9' : '#e2e8f0', 
+                            border: '1px solid #cbd5e1', 
+                            borderRadius: '5px', 
+                            padding: '5px 7px', 
+                            cursor: idx === 0 ? 'not-allowed' : 'pointer', 
+                            color: idx === 0 ? '#94a3b8' : '#0f172a',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button 
+                          type="button" 
+                          title="Move Field Down"
+                          disabled={idx === fields.length - 1} 
+                          onClick={() => handleMoveField(idx, 'down')} 
+                          style={{ 
+                            background: idx === fields.length - 1 ? '#f1f5f9' : '#e2e8f0', 
+                            border: '1px solid #cbd5e1', 
+                            borderRadius: '5px', 
+                            padding: '5px 7px', 
+                            cursor: idx === fields.length - 1 ? 'not-allowed' : 'pointer', 
+                            color: idx === fields.length - 1 ? '#94a3b8' : '#0f172a',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        <button 
+                          type="button" 
+                          title="Delete Field"
+                          onClick={() => handleRemoveField(idx)} 
+                          style={{ 
+                            background: 'none', 
+                            border: 'none', 
+                            color: 'hsl(var(--danger))', 
+                            cursor: 'pointer',
+                            padding: '5px 6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
