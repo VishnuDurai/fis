@@ -1001,12 +1001,11 @@ export default function Appraisal({ auth }) {
     const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
     const totalPartB = Math.min(40, autoPartB + calcB4 + calcB7);
 
-    // C3: Auto vs Manual
-    const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5 };
+    // Helper to dynamically resolve portal records for dynamic criteria (like C3 extension & outreach)
+    const itemC3 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5 };
     let calcC3 = 0;
     if (itemC3.mapping_type === 'auto') {
-      const src = itemC3.data_source_page || 'custom_extension-activities';
-      const recs = fpiDetails?.[src] || fpiDetails?.[src.replace('custom_', '')] || [];
+      const recs = getDynamicRecordsForCriteria('C3', itemC3, fpiDetails);
       calcC3 = fpiBreakdown?.C3 !== undefined ? fpiBreakdown.C3 : (fpiBreakdown?.c3 !== undefined ? fpiBreakdown.c3 : (fpiBreakdown?.c3_community_service !== undefined ? fpiBreakdown.c3_community_service : Math.min(parseFloat(itemC3.max_marks) || 5, recs.length * (parseFloat(itemC3.fixed_mark_per_record) || 5))));
     } else {
       calcC3 = Math.min(parseFloat(itemC3.max_marks) || 5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * (parseFloat(itemC3.fixed_mark_per_record) || 5));
@@ -1030,6 +1029,35 @@ export default function Appraisal({ auth }) {
 
     setSelfAppraisalScore(`${grandTotal} / 200`);
   }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown, fpiDetails, templateItems]);
+
+  // Dynamic helper to resolve dynamic page records across all aliases
+  const getDynamicRecordsForCriteria = (criteriaCode, item, details) => {
+    if (!details) return [];
+    if (item?.data_source_page) {
+      const k = item.data_source_page;
+      const ck = k.replace('custom_', '');
+      const list = details[k] || details[ck] || details.dynamicDataMap?.[k] || details.dynamicDataMap?.[ck];
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+    if ((criteriaCode || '').toUpperCase() === 'C3') {
+      const keysToCheck = [
+        'extension-outreach', 'custom_extension-outreach',
+        'extension-activities', 'custom_extension-activities',
+        'community-service', 'custom_community-service',
+        'outreach-activities', 'custom_outreach-activities'
+      ];
+      for (const key of keysToCheck) {
+        if (Array.isArray(details[key]) && details[key].length > 0) return details[key];
+        if (Array.isArray(details.dynamicDataMap?.[key]) && details.dynamicDataMap[key].length > 0) return details.dynamicDataMap[key];
+      }
+      for (const k of Object.keys(details)) {
+        if ((k.includes('extension') || k.includes('outreach') || k.includes('community')) && Array.isArray(details[k]) && details[k].length > 0) {
+          return details[k];
+        }
+      }
+    }
+    return [];
+  };
 
   // Live Category-Wise and Section-Wise Manual Scores Calculation
   const manualScores = useMemo(() => {
@@ -1075,11 +1103,10 @@ export default function Appraisal({ auth }) {
     const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
     const partB = Math.min(40, autoPartB + b4 + b7);
 
-    const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5 };
+    const itemC3 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5 };
     let c3 = 0;
     if (itemC3.mapping_type === 'auto') {
-      const src = itemC3.data_source_page || 'custom_extension-activities';
-      const recs = fpiDetails?.[src] || fpiDetails?.[src.replace('custom_', '')] || [];
+      const recs = getDynamicRecordsForCriteria('C3', itemC3, fpiDetails);
       c3 = fpiBreakdown?.C3 !== undefined ? fpiBreakdown.C3 : (fpiBreakdown?.c3 !== undefined ? fpiBreakdown.c3 : (fpiBreakdown?.c3_community_service !== undefined ? fpiBreakdown.c3_community_service : Math.min(parseFloat(itemC3.max_marks) || 5, recs.length * (parseFloat(itemC3.fixed_mark_per_record) || 5))));
     } else {
       c3 = Math.min(parseFloat(itemC3.max_marks) || 5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * (parseFloat(itemC3.fixed_mark_per_record) || 5));
@@ -3413,11 +3440,9 @@ export default function Appraisal({ auth }) {
 
             {/* C3: Community Service & Extension Activities (Dynamic Auto vs Manual) */}
             {(() => {
-              const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, criteria_title: 'Organizing Community Service / Outreach Activities' };
+              const itemC3 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, criteria_title: 'Organizing Community Service / Outreach Activities' };
               const isAutoC3 = itemC3.mapping_type === 'auto';
-              const srcKey = itemC3.data_source_page || 'custom_extension-activities';
-              const cleanKey = srcKey.replace('custom_', '');
-              const recordsC3 = fpiDetails?.[srcKey] || fpiDetails?.[cleanKey] || fpiDetails?.dynamicDataMap?.[cleanKey] || [];
+              const recordsC3 = getDynamicRecordsForCriteria('C3', itemC3, fpiDetails);
               const scoreC3Val = manualScores.c3;
 
               if (isAutoC3) {
@@ -3451,12 +3476,12 @@ export default function Appraisal({ auth }) {
                             </td>
                           </tr>
                         ) : recordsC3.map((r, i) => {
-                          const dataObj = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : (r.data || {});
-                          const title = r.title || r.eventname || r.name || dataObj['f_1'] || dataObj['title'] || dataObj['activity_name'] || Object.values(dataObj)[0] || 'Community Outreach Activity';
-                          const type = r.type || r.eventtype || r.category || dataObj['f_2'] || dataObj['type'] || dataObj['event_type'] || Object.values(dataObj)[1] || 'Outreach';
-                          const details = r.organizer || r.body || r.location || dataObj['f_3'] || dataObj['organizer'] || dataObj['location'] || Object.values(dataObj)[2] || r.department || 'N/A';
-                          const date = r.date || r.from_date || dataObj['f_4'] || dataObj['f_5'] || dataObj['date'] || dataObj['event_date'] || Object.values(dataObj)[3] || 'N/A';
-                          const file = r.file || r.document_path || r.certificate_path;
+                          const dataObj = typeof r.data === 'string' ? (JSON.parse(r.data || '{}') || {}) : (r.data || {});
+                          const title = r.title || r.eventname || r.name || dataObj['f1'] || dataObj['f_1'] || dataObj['title'] || dataObj['activity_title'] || dataObj['activity_name'] || Object.values(dataObj)[0] || 'Community Outreach Activity';
+                          const type = r.type || r.eventtype || r.category || dataObj['f_1786696782477'] || dataObj['f2'] || dataObj['type'] || dataObj['event_type'] || dataObj['category'] || Object.values(dataObj)[1] || 'Outreach';
+                          const details = r.organizer || r.body || r.location || dataObj['f2'] || dataObj['f3'] || dataObj['organizer'] || dataObj['organizing_body'] || dataObj['location'] || (dataObj['f3'] ? `Beneficiaries: ${dataObj['f3']}` : '') || r.department || 'N/A';
+                          const date = r.date || r.from_date || dataObj['f4'] || dataObj['f_4'] || dataObj['f5'] || dataObj['date'] || dataObj['event_date'] || Object.values(dataObj).find(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) || 'N/A';
+                          const file = r.file || dataObj['f_1786697536942'] || r.document_path || r.certificate_path;
                           return (
                             <tr key={i}>
                               <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
@@ -5122,10 +5147,9 @@ export default function Appraisal({ auth }) {
         const confPubsList = (fpiDetails?.publications || []).filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
         const bookPubsList = fpiDetails?.books || [];
 
-        const score_c1 = Math.min(c_c1.maxMarks, fpiDetails?.breakdown?.c1_publications ?? (journalPubsList.length * c_c1.unitMark));
-        const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3');
+        const itemC3 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C3');
         const isAutoC3 = itemC3?.mapping_type === 'auto';
-        const autoRecordsC3 = isAutoC3 ? (fpiDetails?.[itemC3?.data_source_page] || fpiDetails?.[itemC3?.data_source_page?.replace('custom_', '')] || []) : [];
+        const autoRecordsC3 = isAutoC3 ? getDynamicRecordsForCriteria('C3', itemC3, fpiDetails) : [];
         const score_c3 = isAutoC3
           ? Math.min(c_c3.maxMarks, fpiDetails?.breakdown?.C3 ?? fpiDetails?.breakdown?.c3 ?? fpiDetails?.breakdown?.c3_community_service ?? (autoRecordsC3.length * c_c3.unitMark))
           : Math.min(c_c3.maxMarks, vC3.length * c_c3.unitMark);
@@ -5993,11 +6017,11 @@ export default function Appraisal({ auth }) {
                           {autoRecordsC3.length === 0 ? (
                             <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No {itemC3?.criteria_title || 'outreach activities'} logged</td></tr>
                           ) : autoRecordsC3.map((r, i) => {
-                            const dataObj = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : (r.data || {});
-                            const title = r.title || r.eventname || r.name || dataObj['f_1'] || dataObj['title'] || dataObj['activity_name'] || Object.values(dataObj)[0] || 'Community Outreach Activity';
-                            const type = r.type || r.eventtype || r.category || dataObj['f_2'] || dataObj['type'] || dataObj['event_type'] || Object.values(dataObj)[1] || 'Outreach';
-                            const details = r.organizer || r.body || r.location || dataObj['f_3'] || dataObj['organizer'] || dataObj['location'] || Object.values(dataObj)[2] || r.department || 'N/A';
-                            const date = r.date || r.from_date || dataObj['f_4'] || dataObj['f_5'] || dataObj['date'] || dataObj['event_date'] || Object.values(dataObj)[3] || 'N/A';
+                            const dataObj = typeof r.data === 'string' ? (JSON.parse(r.data || '{}') || {}) : (r.data || {});
+                            const title = r.title || r.eventname || r.name || dataObj['f1'] || dataObj['f_1'] || dataObj['title'] || dataObj['activity_title'] || dataObj['activity_name'] || Object.values(dataObj)[0] || 'Community Outreach Activity';
+                            const type = r.type || r.eventtype || r.category || dataObj['f_1786696782477'] || dataObj['f2'] || dataObj['type'] || dataObj['event_type'] || dataObj['category'] || Object.values(dataObj)[1] || 'Outreach';
+                            const details = r.organizer || r.body || r.location || dataObj['f2'] || dataObj['f3'] || dataObj['organizer'] || dataObj['organizing_body'] || dataObj['location'] || (dataObj['f3'] ? `Beneficiaries: ${dataObj['f3']}` : '') || r.department || 'N/A';
+                            const date = r.date || r.from_date || dataObj['f4'] || dataObj['f_4'] || dataObj['f5'] || dataObj['date'] || dataObj['event_date'] || Object.values(dataObj).find(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) || 'N/A';
                             return (
                               <tr key={i}>
                                 <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>

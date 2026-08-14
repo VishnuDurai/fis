@@ -2359,8 +2359,32 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     let rawC3 = 0;
     let recordsC3 = [];
     if (rowC3 && rowC3.mapping_type === 'auto') {
-      const src = rowC3.data_source_page || 'custom_extension-activities';
-      recordsC3 = dynamicDataMap[src] || dynamicDataMap[src.replace('custom_', '')] || [];
+      const src = rowC3.data_source_page;
+      if (src) {
+        recordsC3 = dynamicDataMap[src] || dynamicDataMap[src.replace('custom_', '')] || [];
+      }
+      if (!recordsC3.length) {
+        const possibleKeys = [
+          'extension-outreach', 'custom_extension-outreach',
+          'extension-activities', 'custom_extension-activities',
+          'community-service', 'custom_community-service',
+          'outreach-activities', 'custom_outreach-activities'
+        ];
+        for (const pk of possibleKeys) {
+          if (dynamicDataMap[pk] && dynamicDataMap[pk].length > 0) {
+            recordsC3 = dynamicDataMap[pk];
+            break;
+          }
+        }
+      }
+      if (!recordsC3.length) {
+        for (const k of Object.keys(dynamicDataMap)) {
+          if ((k.includes('extension') || k.includes('outreach') || k.includes('community')) && Array.isArray(dynamicDataMap[k]) && dynamicDataMap[k].length > 0) {
+            recordsC3 = dynamicDataMap[k];
+            break;
+          }
+        }
+      }
       rawC3 = recordsC3.length * ruleC3.fixedMark;
       scoreC3 = Math.min(ruleC3.maxMark, rawC3);
       scoreC += scoreC3;
