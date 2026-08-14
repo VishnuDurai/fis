@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, User, BookOpen, GraduationCap, Award, FileText,
@@ -50,15 +50,13 @@ export default function Sidebar({ role, logout, auth }) {
         })
         .catch(err => console.error('Sidebar fetch error:', err));
     }
-  }, [auth]);
+  }, [auth?.token]);
 
   useEffect(() => {
     fetchMenuData();
     window.addEventListener('srec_dynamic_pages_updated', fetchMenuData);
-    window.addEventListener('focus', fetchMenuData);
     return () => {
       window.removeEventListener('srec_dynamic_pages_updated', fetchMenuData);
-      window.removeEventListener('focus', fetchMenuData);
     };
   }, [fetchMenuData]);
 
@@ -74,8 +72,8 @@ export default function Sidebar({ role, logout, auth }) {
   const isInstAdminUser = auth?.isInstitutionalAdmin || (auth?.designation || '').toLowerCase().includes('principal') || (auth?.designation || '').toLowerCase().includes('hr');
   const isClubCoord = auth?.isClubCoordinator || (auth?.myClubs && auth.myClubs.length > 0);
 
-  // Define menu structure across all 3 portals
-  const getMenuStructure = () => {
+  // Define menu structure across all 3 portals with memoization
+  const menuStructure = useMemo(() => {
     let baseMenu = [];
 
     if (role === 'admin') {
@@ -339,19 +337,19 @@ export default function Sidebar({ role, logout, auth }) {
               subItem
             ];
             delete sec.to;
-          } else if (sec.items) {
+          } else if (Array.isArray(sec.items)) {
             sec.items.push(subItem);
           }
         }
       } else if (cat === 'academic' || cat === 'academics') {
         const sec = baseMenu.find(s => s.id === 'academics');
-        if (sec && sec.items) sec.items.push(subItem);
+        if (sec && Array.isArray(sec.items)) sec.items.push(subItem);
       } else if (cat === 'activity' || cat === 'activities' || cat === 'faculty_activity') {
         const sec = baseMenu.find(s => s.id === 'activity');
-        if (sec && sec.items) sec.items.push(subItem);
+        if (sec && Array.isArray(sec.items)) sec.items.push(subItem);
       } else if (cat === 'rnd') {
         const sec = baseMenu.find(s => s.id === 'rnd' || s.id === 'activity');
-        if (sec && sec.items) sec.items.push(subItem);
+        if (sec && Array.isArray(sec.items)) sec.items.push(subItem);
       } else if (cat === 'reports') {
         const sec = baseMenu.find(s => s.id === 'reports');
         if (sec) {
@@ -362,7 +360,7 @@ export default function Sidebar({ role, logout, auth }) {
               subItem
             ];
             delete sec.to;
-          } else if (sec.items) {
+          } else if (Array.isArray(sec.items)) {
             sec.items.push(subItem);
           }
         }
@@ -379,22 +377,26 @@ export default function Sidebar({ role, logout, auth }) {
     });
 
     return baseMenu;
-  };
-
-  const menuStructure = getMenuStructure();
+  }, [role, dynamicPages, isHod, isDoctorateOrPhd, isInstAdminUser, isClubCoord]);
 
   // Track expanded state for accordion categories
-  const [expandedGroups, setExpandedGroups] = useState(() => {
-    return { academics: true, activity: true, rnd: true, personal: true };
+  const [expandedGroups, setExpandedGroups] = useState({
+    academics: true,
+    activity: true,
+    rnd: true,
+    personal: true
   });
 
   useEffect(() => {
-    // Auto expand group if current pathname matches an item inside
+    // Auto expand group if current pathname matches an item inside, without infinite loop
     menuStructure.forEach(group => {
-      if (!group.isSingle && group.items) {
+      if (!group.isSingle && Array.isArray(group.items)) {
         const hasActive = group.items.some(item => location.pathname === item.to);
         if (hasActive) {
-          setExpandedGroups(prev => ({ ...prev, [group.id]: true }));
+          setExpandedGroups(prev => {
+            if (prev[group.id]) return prev;
+            return { ...prev, [group.id]: true };
+          });
         }
       }
     });
@@ -449,6 +451,7 @@ export default function Sidebar({ role, logout, auth }) {
                       borderLeft: isActive ? '4px solid hsl(var(--secondary))' : '4px solid transparent',
                       fontWeight: isActive ? 700 : 600,
                       fontSize: '0.92rem',
+                      textDecoration: 'none',
                       transition: 'var(--transition-smooth)'
                     })}
                   >
@@ -472,8 +475,8 @@ export default function Sidebar({ role, logout, auth }) {
               );
             }
 
-            const isExpanded = expandedGroups[group.id];
-            const hasActiveChild = group.items && group.items.some(item => location.pathname === item.to);
+            const isExpanded = !!expandedGroups[group.id];
+            const hasActiveChild = Array.isArray(group.items) && group.items.some(item => location.pathname === item.to);
 
             return (
               <li key={group.id} style={{ marginBottom: '6px' }}>
@@ -505,10 +508,10 @@ export default function Sidebar({ role, logout, auth }) {
                 </button>
 
                 {/* Sub Items List */}
-                {isExpanded && group.items && (
+                {isExpanded && Array.isArray(group.items) && (
                   <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0 6px 0', borderLeft: '2px solid hsl(var(--border))', marginLeft: '24px' }}>
                     {group.items.map((item, idx) => (
-                      <li key={idx} style={{ marginBottom: '4px' }}>
+                      <li key={`${group.id}-item-${idx}`} style={{ marginBottom: '4px' }}>
                         <NavLink
                           to={item.to}
                           style={({ isActive }) => ({
