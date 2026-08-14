@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, Upload, Award, KeyRound, Layers, User, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, FileText, Upload, Award, KeyRound, Layers, User, AlertTriangle } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
