@@ -48,6 +48,7 @@ export default function Appraisal({ auth }) {
 
   // Dynamic Template State & Rule Config Modal
   const [templateItems, setTemplateItems] = useState([]);
+  const [dynamicPages, setDynamicPages] = useState([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [ruleModalItem, setRuleModalItem] = useState(null);
   const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
@@ -542,14 +543,37 @@ export default function Appraisal({ auth }) {
   // Principal & HR Final Evaluation State
   const [finalScores, setFinalScores] = useState({});
 
+  const fetchDynamicPages = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDynamicPages(data || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch dynamic pages in Appraisal:', e);
+    }
+  };
+
   useEffect(() => {
     fetchTemplate();
+    fetchDynamicPages();
     fetchAppraisals();
     fetchFpiSummary();
     fetchGeneralInfo();
     if (isAdminOrHR) {
       fetchDepartments();
     }
+
+    const handlePagesUpdate = () => {
+      fetchDynamicPages();
+    };
+    window.addEventListener('srec_dynamic_pages_updated', handlePagesUpdate);
+    return () => {
+      window.removeEventListener('srec_dynamic_pages_updated', handlePagesUpdate);
+    };
   }, [auth]);
 
   // Re-fetch automated FPI metrics whenever Academic Year dropdown is changed
@@ -709,6 +733,28 @@ export default function Appraisal({ auth }) {
         mapping_type: 'manual',
         fixed_mark_per_record: 5,
         max_marks: 10,
+        calculation_rule: 'fixed_per_record',
+        display_order: prev.length + 1
+      }
+    ]);
+  };
+
+  const handleAddDynamicPageCriteriaItem = (sectionCode, sectionTitle, page) => {
+    const prefix = sectionCode ? sectionCode.replace('PART_', '') : 'X';
+    const nextCode = `${prefix}${templateItems.length + 1}`;
+    setTemplateItems(prev => [
+      ...prev,
+      {
+        section_code: sectionCode,
+        section_title: sectionTitle,
+        criteria_code: nextCode,
+        criteria_title: page.title || 'Dynamic Activity Criteria',
+        rubric_description: `Automatic mapping: 5 marks per entry submitted in ${page.title || 'Dynamic Page'}.`,
+        mapping_type: 'auto',
+        data_source_page: `custom_${page.slug}`,
+        fixed_mark_per_record: 5,
+        max_marks: 10,
+        calculation_rule: 'fixed_per_record',
         display_order: prev.length + 1
       }
     ]);
@@ -2142,7 +2188,7 @@ export default function Appraisal({ auth }) {
                       style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px' }}
                     />
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => handleAddCriteriaItem(sectionCode, currentTitle)}
                       className="btn btn-secondary"
@@ -2150,6 +2196,29 @@ export default function Appraisal({ auth }) {
                     >
                       <Plus size={14} /> Add Criteria
                     </button>
+                    {dynamicPages && dynamicPages.length > 0 && (
+                      <select
+                        className="form-control"
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const selectedPage = dynamicPages.find(p => p.slug === e.target.value);
+                          if (selectedPage) {
+                            handleAddDynamicPageCriteriaItem(sectionCode, currentTitle, selectedPage);
+                          }
+                          e.target.value = '';
+                        }}
+                        defaultValue=""
+                        style={{ fontSize: '0.78rem', padding: '4px 8px', width: 'auto', background: '#ecfdf5', borderColor: '#6ee7b7', color: '#047857', fontWeight: 700, cursor: 'pointer' }}
+                        title="Quick-add any custom dynamic page as an auto-evaluated criteria"
+                      >
+                        <option value="">+ Add Dynamic Page Criteria...</option>
+                        {dynamicPages.map(dp => (
+                          <option key={dp.id || dp.slug} value={dp.slug}>
+                            🧩 {dp.title} (/custom/{dp.slug})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {!isStandardPart && (
                       <button
                         onClick={() => handleRemoveSection(sectionCode)}
@@ -2169,7 +2238,7 @@ export default function Appraisal({ auth }) {
                         <th style={{ width: '65px' }}>Code</th>
                         <th style={{ width: '180px' }}>Criteria Title</th>
                         <th>Rubrics & Evaluation Description</th>
-                        <th style={{ width: '130px' }}>Mapping Type</th>
+                        <th style={{ width: '140px' }}>Mapping Type</th>
                         <th style={{ width: '150px' }}>Calculation Rule</th>
                         <th style={{ width: '110px' }}>Mark / Record</th>
                         <th style={{ width: '100px' }}>Total Max</th>
@@ -2236,19 +2305,30 @@ export default function Appraisal({ auth }) {
                                       onChange={(e) => handleTemplateItemChange(itemIndex, 'data_source_page', e.target.value)}
                                       style={{ fontSize: '0.75rem', padding: '3px 5px', background: '#f0f9ff', borderColor: '#7dd3fc', color: '#0369a1', fontWeight: 700 }}
                                     >
-                                      <option value="memberships">👥 Professional Societies (staff_member)</option>
-                                      <option value="resource">🎤 Resource Person (staff_resource)</option>
-                                      <option value="interactions">🎓 FDPs Attended (staff_interaction)</option>
-                                      <option value="events">🎪 Events Organized (staff_event_organized)</option>
-                                      <option value="certs">📜 Online Certifications (staff_certificate)</option>
-                                      <option value="publications">📚 Publications (staff_publication)</option>
-                                      <option value="books">📖 Books Published (staff_book_published)</option>
-                                      <option value="ipr">🛡️ IPR / Patents (staff_ipr)</option>
-                                      <option value="funding">💰 Research Funding (staff_funding)</option>
-                                      <option value="seed_money">🌱 Seed Money / Consultancy (staff_seed_money)</option>
-                                      <option value="scholars">🎓 PhD Scholars (staff_scholars)</option>
-                                      <option value="awards">🏆 Awards Received (staff_award)</option>
-                                      <option value="responsibilities">📋 Responsibilities (staff_responsibilities)</option>
+                                      <optgroup label="── Standard Core Activity Pages ──">
+                                        <option value="memberships">👥 Professional Societies (staff_member)</option>
+                                        <option value="resource">🎤 Resource Person (staff_resource)</option>
+                                        <option value="interactions">🎓 FDPs Attended (staff_interaction)</option>
+                                        <option value="events">🎪 Events Organized (staff_event_organized)</option>
+                                        <option value="certs">📜 Online Certifications (staff_certificate)</option>
+                                        <option value="publications">📚 Publications (staff_publication)</option>
+                                        <option value="books">📖 Books Published (staff_book_published)</option>
+                                        <option value="ipr">🛡️ IPR / Patents (staff_ipr)</option>
+                                        <option value="funding">💰 Research Funding (staff_funding)</option>
+                                        <option value="seed_money">🌱 Seed Money / Consultancy (staff_seed_money)</option>
+                                        <option value="scholars">🎓 PhD Scholars (staff_scholars)</option>
+                                        <option value="awards">🏆 Awards Received (staff_award)</option>
+                                        <option value="responsibilities">📋 Responsibilities (staff_responsibilities)</option>
+                                      </optgroup>
+                                      {dynamicPages && dynamicPages.length > 0 && (
+                                        <optgroup label="── Custom Dynamic Pages ──">
+                                          {dynamicPages.map(dp => (
+                                            <option key={dp.id || dp.slug} value={`custom_${dp.slug}`}>
+                                              🧩 {dp.title} (/custom/{dp.slug})
+                                            </option>
+                                          ))}
+                                        </optgroup>
+                                      )}
                                     </select>
                                   </div>
                                 )}

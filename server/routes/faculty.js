@@ -2249,6 +2249,19 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const seedMoney = await getRows('SELECT * FROM staff_seed_money WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const responsibilities = await getRows('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
 
+    // Fetch all custom dynamic pages and their records for this staff
+    const dynamicPages = await new Promise((resolve) => {
+      db.all('SELECT * FROM dynamic_pages', [], (err, rows) => resolve(rows || []));
+    });
+    const dynamicDataRows = await getRows('SELECT * FROM dynamic_page_data WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const dynamicDataMap = {};
+    dynamicPages.forEach(dp => {
+      const records = dynamicDataRows.filter(r => r.page_id == dp.id);
+      dynamicDataMap[dp.slug] = records;
+      dynamicDataMap[`custom_${dp.slug}`] = records;
+      dynamicDataMap[String(dp.id)] = records;
+    });
+
     const supervisorRows = await getRows('SELECT * FROM staff_supervisor WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const academicRows = await getRows('SELECT Qualification, Designation FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const personalRows = await getRows('SELECT staff_name FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
@@ -2407,6 +2420,38 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const rawD1 = deptScore + collegeScore;
     const finalPartD = Math.min(20, rawD1);
 
+    // Compute dynamic counts and breakdowns for custom dynamic pages
+    const dynamicCounts = {};
+    const dynamicScores = {};
+    const dynamicRawBreakdown = {};
+    dynamicPages.forEach(dp => {
+      const records = dynamicDataMap[dp.slug] || [];
+      dynamicCounts[dp.slug] = records.length;
+      dynamicCounts[`custom_${dp.slug}`] = records.length;
+    });
+
+    templateRows.forEach(item => {
+      const src = item.data_source_page;
+      if (src && (src.startsWith('custom_') || dynamicDataMap[src])) {
+        const records = dynamicDataMap[src] || [];
+        const fixedMark = parseFloat(item.fixed_mark_per_record) || 5;
+        const maxMark = parseFloat(item.max_marks) || 10;
+        const rawScore = records.length * fixedMark;
+        const score = Math.min(maxMark, rawScore);
+        
+        const key = item.criteria_code || src;
+        dynamicScores[key] = score;
+        dynamicRawBreakdown[key] = {
+          title: item.criteria_title,
+          count: records.length,
+          fixedMark,
+          rawScore,
+          cappedScore: score,
+          maxMark
+        };
+      }
+    });
+
     res.json({
       part_b_score: finalPartB,
       part_c_score: finalPartC,
@@ -2422,7 +2467,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         events: events.length,
         memberships: members.length,
         awards: awards.length,
-        responsibilities: responsibilities.length
+        responsibilities: responsibilities.length,
+        ...dynamicCounts
       },
       details: {
         publications,
@@ -2438,8 +2484,10 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         interactions,
         resource,
         scholars,
-        is_recognized_supervisor: isRecognizedSupervisor
+        is_recognized_supervisor: isRecognizedSupervisor,
+        ...dynamicDataMap
       },
+      dynamicPages,
       breakdown: {
         b1_memberships: scoreB1,
         b2_resource: scoreB2,
@@ -2453,7 +2501,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         c6_seed_money: scoreC6,
         c8_scholars: isRecognizedSupervisor ? scoreC8 : 'N/A',
         c9_awards: scoreC9,
-        d_responsibilities: finalPartD
+        d_responsibilities: finalPartD,
+        ...dynamicScores
       },
       rawBreakdown: {
         c1_publications: { count: journalPubs.length, fixedMark: ruleC1.fixedMark, rawScore: rawC1, cappedScore: scoreC1, maxMark: ruleC1.maxMark },
@@ -2468,7 +2517,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         b3_interactions: { count: interactions.length, fixedMark: ruleB3.fixedMark, rawScore: rawB3, cappedScore: scoreB3, maxMark: ruleB3.maxMark },
         b5_events: { count: events.length, fixedMark: ruleB5.fixedMark, rawScore: rawB5, cappedScore: scoreB5, maxMark: ruleB5.maxMark },
         b6_certs: { count: certs.length, fixedMark: ruleB6.fixedMark, rawScore: rawB6, cappedScore: scoreB6, maxMark: ruleB6.maxMark },
-        d_responsibilities: { count: responsibilities.length, fixedMark: ruleD1.fixedMark, rawScore: rawD1, cappedScore: finalPartD, maxMark: ruleD1.maxMark }
+        d_responsibilities: { count: responsibilities.length, fixedMark: ruleD1.fixedMark, rawScore: rawD1, cappedScore: finalPartD, maxMark: ruleD1.maxMark },
+        ...dynamicRawBreakdown
       }
     });
   } catch (err) {
