@@ -116,6 +116,11 @@ const createTables = async () => {
       Department TEXT,
       Designation TEXT,
       Qualification TEXT,
+      area_of_specialization TEXT,
+      date_designated_prof TEXT,
+      nature_of_association VARCHAR(100) DEFAULT 'REGULAR',
+      contractual_type VARCHAR(100) DEFAULT '-',
+      date_of_leaving TEXT,
       prev_exp_academic_years INT DEFAULT 0,
       prev_exp_academic_months INT DEFAULT 0,
       prev_exp_industry_years INT DEFAULT 0,
@@ -634,7 +639,7 @@ const createTables = async () => {
     try { await pool.query(alterQuery); } catch (e) {}
   }
 
-  // Safe column migration for staff_academics (Bibliometrics & Identifiers)
+  // Safe column migration for staff_academics (Bibliometrics, Identifiers & NBA B2 Compliance)
   const academicCols = [
     'ALTER TABLE staff_academics ADD COLUMN orcid_id VARCHAR(100)',
     'ALTER TABLE staff_academics ADD COLUMN scholar_id VARCHAR(100)',
@@ -643,7 +648,12 @@ const createTables = async () => {
     'ALTER TABLE staff_academics ADD COLUMN h_index INT DEFAULT 0',
     'ALTER TABLE staff_academics ADD COLUMN i10_index INT DEFAULT 0',
     'ALTER TABLE staff_academics ADD COLUMN total_citations INT DEFAULT 0',
-    'ALTER TABLE staff_academics ADD COLUMN last_citation_sync DATETIME'
+    'ALTER TABLE staff_academics ADD COLUMN last_citation_sync DATETIME',
+    'ALTER TABLE staff_academics ADD COLUMN area_of_specialization TEXT',
+    'ALTER TABLE staff_academics ADD COLUMN date_designated_prof TEXT',
+    "ALTER TABLE staff_academics ADD COLUMN nature_of_association VARCHAR(100) DEFAULT 'REGULAR'",
+    "ALTER TABLE staff_academics ADD COLUMN contractual_type VARCHAR(100) DEFAULT '-'",
+    'ALTER TABLE staff_academics ADD COLUMN date_of_leaving TEXT'
   ];
   for (const alterQuery of academicCols) {
     try { await pool.query(alterQuery); } catch (e) {}

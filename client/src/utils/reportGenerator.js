@@ -441,3 +441,75 @@ export const downloadPdfReport = async ({ filename, pageTitle, departmentName, h
     throw err;
   }
 };
+
+/**
+ * Exports Faculty Details in standard NBA Criterion 5 Form B2 Excel (.xlsx) format
+ */
+export const exportNbaB2FacultyDetails = (facultyList, departmentName = 'Department', academicYear = '2025-2026') => {
+  const headers = [
+    'S. No.',
+    'Name',
+    'PAN No.',
+    'Qualification',
+    'Area of Specialization',
+    'Designation',
+    'Date of Joining',
+    'Date on which Designated as Professor/ Associate Professor',
+    'Currently Associated (Y/N)',
+    'Nature of Association (Regular/Contract/Adjunct)',
+    'If contractual mention Full time or Part time',
+    'Date of Leaving'
+  ];
+
+  const rows = (facultyList || []).map((f, idx) => [
+    idx + 1,
+    f.staff_name || 'N/A',
+    f.pan || 'N/A',
+    f.Qualification || 'Ph.D',
+    f.area_of_specialization || 'N/A',
+    f.Designation || 'N/A',
+    f.Date_of_joining || 'N/A',
+    f.date_designated_prof || 'NA',
+    f.is_relieved ? 'N' : 'Y',
+    (f.nature_of_association || 'REGULAR').toUpperCase(),
+    f.contractual_type || '-',
+    f.is_relieved ? (f.date_of_leaving || 'Yes') : 'NA'
+  ]);
+
+  const fullDept = getFullDepartmentName(departmentName) || departmentName;
+
+  const worksheetData = [
+    ['Educational Service : SNR Sons Charitable Trust'],
+    ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
+    ['Vattamalaipalayam, N.G.G.O. Colony Post, Coimbatore - 641022.'],
+    [`Department of ${fullDept}`],
+    ['FACULTY DETAILS OF THE DEPARTMENT'],
+    [`ACADEMIC YEAR ${academicYear}`],
+    [],
+    headers,
+    ...rows
+  ];
+
+  const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+  
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 8 },  // S. No.
+    { wch: 28 }, // Name
+    { wch: 15 }, // PAN No.
+    { wch: 15 }, // Qualification
+    { wch: 32 }, // Area of Specialization
+    { wch: 22 }, // Designation
+    { wch: 15 }, // Date of Joining
+    { wch: 28 }, // Date on which Designated as Prof
+    { wch: 14 }, // Currently Associated
+    { wch: 20 }, // Nature of Association
+    { wch: 18 }, // Contractual type
+    { wch: 15 }  // Date of Leaving
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Faculty Details (B2)');
+  XLSX.writeFile(workbook, `NBA_B2_Faculty_Details_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+};
+

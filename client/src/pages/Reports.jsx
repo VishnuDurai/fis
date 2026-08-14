@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Printer, FileSpreadsheet, Eye, EyeOff, Search, Award, ShieldCheck, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Navbar from '../components/Navbar.jsx';
+import { exportNbaB2FacultyDetails } from '../utils/reportGenerator.js';
 
 export default function Reports({ auth }) {
   const [personal, setPersonal] = useState(null);
@@ -40,6 +41,22 @@ export default function Reports({ auth }) {
       XLSX.writeFile(wb, `NAAC_Criterion_3_Research_Tables.xlsx`);
     } catch (e) {
       alert('Error generating NAAC export: ' + e.message);
+    } finally {
+      setExportingAccreditation(false);
+    }
+  };
+
+  const handleExportNBAB2 = async () => {
+    try {
+      setExportingAccreditation(true);
+      const res = await fetch(`${API_BASE_URL}/api/admin/staff`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch faculty details');
+      const staffList = await res.json();
+      exportNbaB2FacultyDetails(staffList, auth.department || auth.dept || 'Institution', '2025-2026');
+    } catch (e) {
+      alert('Error exporting NBA B2: ' + e.message);
     } finally {
       setExportingAccreditation(false);
     }
@@ -289,6 +306,15 @@ export default function Reports({ auth }) {
                 style={{ padding: '8px 16px', fontWeight: 800, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0284c7', borderColor: '#0369a1' }}
               >
                 <Download size={16} /> NBA Criterion 5 Export (.xlsx)
+              </button>
+              <button
+                type="button"
+                onClick={handleExportNBAB2}
+                disabled={exportingAccreditation}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontWeight: 800, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0d9488', borderColor: '#0f766e' }}
+              >
+                <FileSpreadsheet size={16} /> NBA Criterion 5 Form B2 Export (.xlsx)
               </button>
             </div>
           </div>

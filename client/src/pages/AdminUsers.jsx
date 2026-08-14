@@ -1,10 +1,11 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, Upload, Award, KeyRound, Layers, User } from 'lucide-react';
+import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, Upload, Award, KeyRound, Layers, User, AlertTriangle } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { exportNbaB2FacultyDetails } from '../utils/reportGenerator.js';
 import { validateStaffId, validateEmail, validateMobile, validatePan, validateAadhar, validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
 export default function AdminUsers({ auth, initialTab }) {
@@ -27,6 +28,7 @@ export default function AdminUsers({ auth, initialTab }) {
   const [editStaffName, setEditStaffName] = useState('');
   const [editDept, setEditDept] = useState('');
   const [editDesg, setEditDesg] = useState('');
+  const [editOriginalDesg, setEditOriginalDesg] = useState('');
   const [editDoj, setEditDoj] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editMobile, setEditMobile] = useState('');
@@ -37,6 +39,13 @@ export default function AdminUsers({ auth, initialTab }) {
   const [editAicteId, setEditAicteId] = useState('');
   const [editAnnaUnivId, setEditAnnaUnivId] = useState('');
   const [editApaarId, setEditApaarId] = useState('');
+  
+  // NBA B2 Compliance Fields
+  const [editSpecialization, setEditSpecialization] = useState('');
+  const [editDateDesignatedProf, setEditDateDesignatedProf] = useState('');
+  const [editNatureOfAssociation, setEditNatureOfAssociation] = useState('REGULAR');
+  const [editContractualType, setEditContractualType] = useState('-');
+  const [editDateOfLeaving, setEditDateOfLeaving] = useState('');
   
   // Previous Experience Edit States
   const [editHasNoPrevExp, setEditHasNoPrevExp] = useState(false);
@@ -68,6 +77,10 @@ export default function AdminUsers({ auth, initialTab }) {
   const [fPass, setFPass] = useState('');
   const [fDept, setFDept] = useState('');
   const [fDesg, setFDesg] = useState('Assistant Professor');
+  const [fAreaOfSpecialization, setFAreaOfSpecialization] = useState('');
+  const [fDateDesignatedProf, setFDateDesignatedProf] = useState('');
+  const [fNatureOfAssociation, setFNatureOfAssociation] = useState('REGULAR');
+  const [fContractualType, setFContractualType] = useState('-');
 
   // Previous Experience Add States
   const [fHasNoPrevExp, setFHasNoPrevExp] = useState(false);
@@ -349,7 +362,16 @@ export default function AdminUsers({ auth, initialTab }) {
           staff_name: fName,
           password: fId,
           department: fDept || (departments[0]?.name || ''),
-          designation: typeof fDesg === 'string' ? fDesg : (fDesg?.name || '')
+          designation: typeof fDesg === 'string' ? fDesg : (fDesg?.name || ''),
+          area_of_specialization: fAreaOfSpecialization,
+          date_designated_prof: fDateDesignatedProf,
+          nature_of_association: fNatureOfAssociation,
+          contractual_type: fContractualType,
+          prev_exp_academic_years: fHasNoPrevExp ? 0 : (parseInt(fPrevAcadYears) || 0),
+          prev_exp_academic_months: fHasNoPrevExp ? 0 : (parseInt(fPrevAcadMonths) || 0),
+          prev_exp_industry_years: fHasNoPrevExp ? 0 : (parseInt(fPrevIndYears) || 0),
+          prev_exp_industry_months: fHasNoPrevExp ? 0 : (parseInt(fPrevIndMonths) || 0),
+          has_no_prev_exp: fHasNoPrevExp ? 1 : 0
         })
       });
 
@@ -362,6 +384,10 @@ export default function AdminUsers({ auth, initialTab }) {
       setFId('');
       setFName('');
       setFPass('');
+      setFAreaOfSpecialization('');
+      setFDateDesignatedProf('');
+      setFNatureOfAssociation('REGULAR');
+      setFContractualType('-');
       setShowAddFaculty(false);
       fetchData();
     } catch (err) {
@@ -557,6 +583,7 @@ export default function AdminUsers({ auth, initialTab }) {
       setEditStaffName(faculty.staff_name || p.staff_name || '');
       setEditDept(faculty.Department || p.Department || '');
       setEditDesg(faculty.Designation || p.Designation || '');
+      setEditOriginalDesg(faculty.Designation || p.Designation || '');
       setEditDoj(formatDojForInput(faculty.Date_of_joining || p.Date_of_joining || ''));
       setEditEmail(faculty.email || p.email || '');
       setEditMobile(faculty.mobile || p.mobile || '');
@@ -567,6 +594,13 @@ export default function AdminUsers({ auth, initialTab }) {
       setEditAicteId(p.aicte_id || '');
       setEditAnnaUnivId(p.anna_univ_id || '');
       setEditApaarId(p.apaar_id || '');
+
+      // NBA B2 fields
+      setEditSpecialization(faculty.area_of_specialization || p.area_of_specialization || '');
+      setEditDateDesignatedProf(formatDojForInput(faculty.date_designated_prof || p.date_designated_prof || ''));
+      setEditNatureOfAssociation(faculty.nature_of_association || p.nature_of_association || 'REGULAR');
+      setEditContractualType(faculty.contractual_type || p.contractual_type || '-');
+      setEditDateOfLeaving(formatDojForInput(faculty.date_of_leaving || p.date_of_leaving || ''));
 
       setEditHasNoPrevExp(Boolean(p.has_no_prev_exp || faculty.has_no_prev_exp));
       setEditPrevAcadYears(p.prev_exp_academic_years ?? faculty.prev_exp_academic_years ?? 0);
@@ -631,6 +665,11 @@ export default function AdminUsers({ auth, initialTab }) {
           aicte_id: editAicteId,
           anna_univ_id: editAnnaUnivId,
           apaar_id: editApaarId,
+          area_of_specialization: editSpecialization,
+          date_designated_prof: editDateDesignatedProf,
+          nature_of_association: editNatureOfAssociation,
+          contractual_type: editContractualType,
+          date_of_leaving: editDateOfLeaving,
           prev_exp_academic_years: editHasNoPrevExp ? 0 : (parseInt(editPrevAcadYears) || 0),
           prev_exp_academic_months: editHasNoPrevExp ? 0 : (parseInt(editPrevAcadMonths) || 0),
           prev_exp_industry_years: editHasNoPrevExp ? 0 : (parseInt(editPrevIndYears) || 0),
@@ -881,11 +920,22 @@ export default function AdminUsers({ auth, initialTab }) {
 
   const handleToggleRelieve = async (faculty) => {
     const isRelievedNow = Boolean(faculty.is_relieved);
-    const confirmMessage = isRelievedNow
-      ? `Are you sure you want to REACTIVATE faculty member "${faculty.staff_name}" (${faculty.staff_id})?\n\n- Login access to the Faculty Panel will be RESTORED.`
-      : `Are you sure you want to mark faculty member "${faculty.staff_name}" (${faculty.staff_id}) as RELIEVED?\n\n- Login access to the Faculty Panel will be BLOCKED.\n- All database records and activity history will be retained.`;
+    let dateOfLeaving = '';
 
-    if (!window.confirm(confirmMessage)) return;
+    if (!isRelievedNow) {
+      const defaultDate = new Date().toISOString().split('T')[0];
+      const inputDate = window.prompt(
+        `Mark faculty "${faculty.staff_name}" (${faculty.staff_id}) as RELIEVED.\n\nEnter Date of Leaving / Relieving Date (YYYY-MM-DD):`,
+        defaultDate
+      );
+      if (inputDate === null) return; // User cancelled
+      dateOfLeaving = inputDate.trim() || defaultDate;
+    } else {
+      if (!window.confirm(`Are you sure you want to REACTIVATE faculty member "${faculty.staff_name}" (${faculty.staff_id})?\n\n- Login access to the Faculty Panel will be RESTORED.`)) {
+        return;
+      }
+    }
+
     setMessage('');
     setError('');
 
@@ -896,7 +946,7 @@ export default function AdminUsers({ auth, initialTab }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${auth.token}`
         },
-        body: JSON.stringify({ is_relieved: !isRelievedNow })
+        body: JSON.stringify({ is_relieved: !isRelievedNow, date_of_leaving: dateOfLeaving })
       });
 
       const data = await res.json();
@@ -1680,17 +1730,27 @@ export default function AdminUsers({ auth, initialTab }) {
                       <ReportButtons 
                         pageTitle="Faculty Directory" 
                         departmentName={auth.role === 'admin' ? searchDept : (auth.department || auth.dept || '')} 
-                        headers={['Staff ID', 'Staff Name', 'Department', 'Designation', 'DOJ', 'Status']} 
+                        headers={['Staff ID', 'Staff Name', 'Department', 'Designation', 'DOJ', 'Specialization', 'Status']} 
                         rows={filteredFaculty.map(f => [
                           f.staff_id,
                           f.staff_name,
                           f.Department || 'N/A',
                           f.Designation || 'N/A',
                           f.Date_of_joining || 'N/A',
+                          f.area_of_specialization || 'N/A',
                           f.status === 'relieved' ? 'Relieved' : 'Active'
                         ])} 
                         auth={auth}
                       />
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => exportNbaB2FacultyDetails(filteredFaculty, auth.role === 'admin' ? (searchDept || 'Institution') : (auth.department || auth.dept || 'Department'))}
+                        style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 700 }}
+                        title="Download Faculty Details of the Department (NBA Criterion 5 Form B2 Excel Sheet)"
+                      >
+                        <FileSpreadsheet size={15} />
+                        Export NBA B2 Details (Excel)
+                      </button>
                       {auth.role === 'dept_admin' && (
                         <button 
                           className="btn btn-secondary" 
@@ -2620,9 +2680,94 @@ export default function AdminUsers({ auth, initialTab }) {
                   <input type="text" className="form-control" value={editAadhar} onChange={(e) => setEditAadhar(e.target.value)} required />
                 </div>
               </div>
-              <div>
-                <label className="form-label">Contact Address <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
-                <textarea className="form-control" rows="2" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} required></textarea>
+                <div>
+                  <label className="form-label">Contact Address <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
+                  <textarea className="form-control" rows="2" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} required></textarea>
+                </div>
+
+              {/* Designation Change Effective Date Prompt */}
+              {editDesg !== editOriginalDesg && (
+                <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', padding: '14px 18px', borderRadius: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 800, fontSize: '0.92rem', marginBottom: '6px' }}>
+                    <AlertTriangle size={18} />
+                    Designation Change Detected ({editOriginalDesg || 'None'} ➔ {editDesg})
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: '#92400e', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Faculty designation has been modified. Please specify the <strong>Date from which this new designation is effective</strong> (Date on which Designated as Professor / Associate Professor for NBA Form B2):
+                  </p>
+                  <div style={{ maxWidth: '320px' }}>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      value={editDateDesignatedProf} 
+                      onChange={(e) => setEditDateDesignatedProf(e.target.value)} 
+                      style={{ borderColor: '#f59e0b', background: '#ffffff', fontWeight: 600 }}
+                      required 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* NBA B2 Compliance & Institutional Cadre Section */}
+              <div style={{ background: '#f0fdf4', padding: '16px 20px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#166534', marginBottom: '12px', textTransform: 'uppercase' }}>
+                  NBA Accreditation & Institutional Cadre Details (Form B2)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>Primary Area of Specialization</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="e.g. High Performance Computing, Big Data and Data Science, Cloud Computing" 
+                      value={editSpecialization} 
+                      onChange={(e) => setEditSpecialization(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>Date Designated as Prof / Assoc Prof</label>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      value={editDateDesignatedProf} 
+                      onChange={(e) => setEditDateDesignatedProf(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>Nature of Association</label>
+                    <select 
+                      className="form-control" 
+                      value={editNatureOfAssociation} 
+                      onChange={(e) => setEditNatureOfAssociation(e.target.value)}
+                    >
+                      <option value="REGULAR">REGULAR</option>
+                      <option value="CONTRACT">CONTRACT</option>
+                      <option value="ADJUNCT">ADJUNCT</option>
+                      <option value="VISITING">VISITING</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>If Contractual (Full time / Part time)</label>
+                    <select 
+                      className="form-control" 
+                      value={editContractualType} 
+                      onChange={(e) => setEditContractualType(e.target.value)}
+                    >
+                      <option value="-">- (Not Applicable / Regular)</option>
+                      <option value="Full time">Full time</option>
+                      <option value="Part time">Part time</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>Date of Leaving (If Relieved)</label>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      value={editDateOfLeaving} 
+                      onChange={(e) => setEditDateOfLeaving(e.target.value)} 
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Previous Experience Edit Section */}

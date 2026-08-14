@@ -175,6 +175,10 @@ router.get('/personal', authenticateToken, (req, res) => {
              COALESCE(p.staff_id, a.staff_id) as staff_id,
              COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
              a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.area_of_specialization, a.date_designated_prof,
+             COALESCE(a.nature_of_association, 'REGULAR') as nature_of_association,
+             COALESCE(a.contractual_type, '-') as contractual_type,
+             a.date_of_leaving,
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
@@ -198,6 +202,10 @@ router.get('/personal', authenticateToken, (req, res) => {
              COALESCE(p.staff_id, a.staff_id) as staff_id,
              COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
              a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.area_of_specialization, a.date_designated_prof,
+             COALESCE(a.nature_of_association, 'REGULAR') as nature_of_association,
+             COALESCE(a.contractual_type, '-') as contractual_type,
+             a.date_of_leaving,
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
@@ -224,6 +232,10 @@ router.get('/personal', authenticateToken, (req, res) => {
              COALESCE(p.staff_id, a.staff_id) as staff_id,
              COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
              a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.area_of_specialization, a.date_designated_prof,
+             COALESCE(a.nature_of_association, 'REGULAR') as nature_of_association,
+             COALESCE(a.contractual_type, '-') as contractual_type,
+             a.date_of_leaving,
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
@@ -243,6 +255,10 @@ router.get('/personal', authenticateToken, (req, res) => {
              COALESCE(p.staff_id, a.staff_id) as staff_id,
              COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id, a.staff_id) as staff_name,
              a.Department, a.Designation, a.Date_of_joining, a.Qualification, 
+             a.area_of_specialization, a.date_designated_prof,
+             COALESCE(a.nature_of_association, 'REGULAR') as nature_of_association,
+             COALESCE(a.contractual_type, '-') as contractual_type,
+             a.date_of_leaving,
              a.prev_exp_academic_years, a.prev_exp_academic_months, 
              a.prev_exp_industry_years, a.prev_exp_industry_months, 
              a.total_prev_exp_years, a.total_prev_exp_months, a.has_no_prev_exp,
@@ -516,40 +532,74 @@ router.get('/academics', authenticateToken, (req, res) => {
 // 4. UPDATE Academic Details
 router.post('/academics/update', authenticateToken, (req, res) => {
   const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId || req.user.staff_id) : (req.user.staffId || req.user.staff_id);
+  const isAdmin = req.user.role === 'admin';
   const {
     Date_of_joining, Department, Designation, Qualification,
-    orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations
+    orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations,
+    area_of_specialization, date_designated_prof, nature_of_association, contractual_type, date_of_leaving
   } = req.body;
 
-  db.run(`
-    INSERT INTO staff_academics (
-      staff_id, Date_of_joining, Department, Designation, Qualification,
-      orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      Date_of_joining = VALUES(Date_of_joining),
-      Department = VALUES(Department),
-      Designation = VALUES(Designation),
-      Qualification = VALUES(Qualification),
-      orcid_id = VALUES(orcid_id),
-      scholar_id = VALUES(scholar_id),
-      scopus_id = VALUES(scopus_id),
-      wos_id = VALUES(wos_id),
-      h_index = VALUES(h_index),
-      i10_index = VALUES(i10_index),
-      total_citations = VALUES(total_citations)
-  `, [
-    staffId || '', Date_of_joining || '', Department || '', Designation || '', Qualification || '',
-    orcid_id || '', scholar_id || '', scopus_id || '', wos_id || '',
-    parseInt(h_index || 0), parseInt(i10_index || 0), parseInt(total_citations || 0)
-  ], function(err) {
-    if (err) {
-      console.error('Academics update error:', err);
-      return res.status(500).json({ error: 'Failed to update academic info' });
-    }
-    res.json({ success: true });
-  });
+  if (isAdmin) {
+    db.run(`
+      INSERT INTO staff_academics (
+        staff_id, Date_of_joining, Department, Designation, Qualification,
+        orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations,
+        area_of_specialization, date_designated_prof, nature_of_association, contractual_type, date_of_leaving
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        Date_of_joining = VALUES(Date_of_joining),
+        Department = VALUES(Department),
+        Designation = VALUES(Designation),
+        Qualification = VALUES(Qualification),
+        orcid_id = VALUES(orcid_id),
+        scholar_id = VALUES(scholar_id),
+        scopus_id = VALUES(scopus_id),
+        wos_id = VALUES(wos_id),
+        h_index = VALUES(h_index),
+        i10_index = VALUES(i10_index),
+        total_citations = VALUES(total_citations),
+        area_of_specialization = VALUES(area_of_specialization),
+        date_designated_prof = VALUES(date_designated_prof),
+        nature_of_association = VALUES(nature_of_association),
+        contractual_type = VALUES(contractual_type),
+        date_of_leaving = VALUES(date_of_leaving)
+    `, [
+      staffId || '', Date_of_joining || '', Department || '', Designation || '', Qualification || '',
+      orcid_id || '', scholar_id || '', scopus_id || '', wos_id || '',
+      parseInt(h_index || 0), parseInt(i10_index || 0), parseInt(total_citations || 0),
+      area_of_specialization || '', date_designated_prof || '',
+      nature_of_association || 'REGULAR', contractual_type || '-', date_of_leaving || ''
+    ], function(err) {
+      if (err) {
+        console.error('Academics admin update error:', err);
+        return res.status(500).json({ error: 'Failed to update academic info' });
+      }
+      res.json({ success: true });
+    });
+  } else {
+    // Faculty user updating own academic info (can update area_of_specialization and bibliometric identifiers)
+    db.run(`
+      INSERT INTO staff_academics (
+        staff_id, orcid_id, scholar_id, scopus_id, wos_id, area_of_specialization
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        orcid_id = VALUES(orcid_id),
+        scholar_id = VALUES(scholar_id),
+        scopus_id = VALUES(scopus_id),
+        wos_id = VALUES(wos_id),
+        area_of_specialization = VALUES(area_of_specialization)
+    `, [
+      staffId || '', orcid_id || '', scholar_id || '', scopus_id || '', wos_id || '', area_of_specialization || ''
+    ], function(err) {
+      if (err) {
+        console.error('Academics faculty update error:', err);
+        return res.status(500).json({ error: 'Failed to update academic info' });
+      }
+      res.json({ success: true });
+    });
+  }
 });
 
 // 4b. GET Live Citation & Bibliometrics Sync Endpoint

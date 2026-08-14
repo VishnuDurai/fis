@@ -1,8 +1,9 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, X, BookOpen, FileText, User } from 'lucide-react';
+import { Search, Eye, X, BookOpen, FileText, User, FileSpreadsheet } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { exportNbaB2FacultyDetails } from '../utils/reportGenerator.js';
 import { validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
 export default function AcademicInfo({ auth }) {
@@ -125,10 +126,15 @@ export default function AcademicInfo({ auth }) {
           headers,
           body: JSON.stringify({
             staffId: targetStaffId,
-            Date_of_joining: academics?.Date_of_joining || '',
-            Department: academics?.Department || '',
-            Designation: academics?.Designation || '',
-            Qualification: academics?.Qualification || '',
+            Date_of_joining: (targetItem?.Date_of_joining !== undefined ? targetItem.Date_of_joining : academics?.Date_of_joining) || '',
+            Department: (targetItem?.Department !== undefined ? targetItem.Department : academics?.Department) || '',
+            Designation: (targetItem?.Designation !== undefined ? targetItem.Designation : academics?.Designation) || '',
+            Qualification: (targetItem?.Qualification !== undefined ? targetItem.Qualification : academics?.Qualification) || '',
+            area_of_specialization: (targetItem?.area_of_specialization !== undefined ? targetItem.area_of_specialization : academics?.area_of_specialization) || '',
+            date_designated_prof: (targetItem?.date_designated_prof !== undefined ? targetItem.date_designated_prof : academics?.date_designated_prof) || '',
+            nature_of_association: (targetItem?.nature_of_association !== undefined ? targetItem.nature_of_association : academics?.nature_of_association) || 'REGULAR',
+            contractual_type: (targetItem?.contractual_type !== undefined ? targetItem.contractual_type : academics?.contractual_type) || '-',
+            date_of_leaving: (targetItem?.date_of_leaving !== undefined ? targetItem.date_of_leaving : academics?.date_of_leaving) || '',
             orcid_id: (targetItem?.orcid_id !== undefined ? targetItem.orcid_id : academics?.orcid_id) || '',
             scholar_id: (targetItem?.scholar_id !== undefined ? targetItem.scholar_id : academics?.scholar_id) || '',
             scopus_id: (targetItem?.scopus_id !== undefined ? targetItem.scopus_id : academics?.scopus_id) || '',
@@ -237,18 +243,28 @@ export default function AcademicInfo({ auth }) {
                 <ReportButtons 
                   pageTitle="Faculty Academic Identification Directory" 
                   departmentName={auth.role === 'admin' ? selectedDepartment : (auth.department || auth.dept || '')} 
-                  headers={['Staff ID', 'Staff Name', 'Department', 'Designation', 'AICTE Faculty ID', 'Anna University ID', 'APAAR ID']} 
+                  headers={['Staff ID', 'Staff Name', 'Department', 'Designation', 'Specialization', 'AICTE Faculty ID', 'Anna University ID', 'APAAR ID']} 
                   rows={filteredPersonalList.map(f => [
                     f.staff_id,
                     f.staff_name,
                     f.Department || 'N/A',
                     f.Designation || 'N/A',
+                    f.area_of_specialization || 'N/A',
                     f.aicte_id || 'N/A',
                     f.anna_univ_id || 'N/A',
                     f.apaar_id || 'N/A'
                   ])} 
                   auth={auth}
                 />
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => exportNbaB2FacultyDetails(filteredPersonalList, selectedDepartment || auth.department || auth.dept || 'Department')}
+                  style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 700 }}
+                  title="Download Faculty Details of the Department (NBA Criterion 5 Form B2 Excel Sheet)"
+                >
+                  <FileSpreadsheet size={15} />
+                  Export NBA B2 Details (Excel)
+                </button>
               </div>
               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'hsl(var(--primary))', whiteSpace: 'nowrap' }}>
                 Total Records: {filteredPersonalList.length}
@@ -266,6 +282,7 @@ export default function AcademicInfo({ auth }) {
                     <th>Faculty Details</th>
                     <th>Designation</th>
                     <th>Department</th>
+                    <th>Area of Specialization</th>
                     <th>AICTE Faculty ID</th>
                     <th>Anna University ID</th>
                     <th>APAAR ID</th>
@@ -275,7 +292,7 @@ export default function AcademicInfo({ auth }) {
                 <tbody>
                   {filteredPersonalList.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b', fontWeight: 500 }}>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b', fontWeight: 500 }}>
                         No faculty academic records match your search query.
                       </td>
                     </tr>
@@ -315,6 +332,7 @@ export default function AcademicInfo({ auth }) {
                           </td>
                           <td style={{ fontWeight: 600 }}>{item.Designation || 'N/A'}</td>
                           <td>{getDeptWithAcronym(item.Department)}</td>
+                          <td style={{ fontWeight: 600, color: '#0369a1' }}>{item.area_of_specialization || 'N/A'}</td>
                           <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.aicte_id || 'N/A'}</td>
                           <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.anna_univ_id || 'N/A'}</td>
                           <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.apaar_id || 'N/A'}</td>
@@ -372,6 +390,90 @@ export default function AcademicInfo({ auth }) {
                 </div>
 
                 <form onSubmit={(e) => auth.role === 'dept_admin' ? setSelectedFacultyTarget(null) : handleSaveAcademicInfo(e, selectedFacultyTarget)} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0369a1', marginBottom: '12px' }}>Academic & Research Specialization (NBA Criterion 5)</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '14px', marginBottom: '14px' }}>
+                      <div>
+                        <label className="form-label" style={{ fontWeight: 700 }}>Primary Area of Specialization</label>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="e.g. High Performance Computing, Big Data and Data Science" 
+                          disabled={auth.role === 'dept_admin'} 
+                          value={selectedFacultyTarget.area_of_specialization || ''} 
+                          onChange={(e) => setSelectedFacultyTarget({ ...selectedFacultyTarget, area_of_specialization: e.target.value })} 
+                        />
+                      </div>
+                    </div>
+
+                    {auth.role === 'admin' ? (
+                      <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '14px' }}>
+                        <h5 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>Institutional & Cadre Designations (Admin Only)</h5>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Date Designated as Prof / Assoc Prof</label>
+                            <input 
+                              type="date" 
+                              className="form-control" 
+                              value={selectedFacultyTarget.date_designated_prof || ''} 
+                              onChange={(e) => setSelectedFacultyTarget({ ...selectedFacultyTarget, date_designated_prof: e.target.value })} 
+                            />
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Nature of Association</label>
+                            <select 
+                              className="form-control" 
+                              value={selectedFacultyTarget.nature_of_association || 'REGULAR'} 
+                              onChange={(e) => setSelectedFacultyTarget({ ...selectedFacultyTarget, nature_of_association: e.target.value })}
+                            >
+                              <option value="REGULAR">REGULAR</option>
+                              <option value="CONTRACT">CONTRACT</option>
+                              <option value="ADJUNCT">ADJUNCT</option>
+                              <option value="VISITING">VISITING</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>If Contractual (Full time / Part time)</label>
+                            <select 
+                              className="form-control" 
+                              value={selectedFacultyTarget.contractual_type || '-'} 
+                              onChange={(e) => setSelectedFacultyTarget({ ...selectedFacultyTarget, contractual_type: e.target.value })}
+                            >
+                              <option value="-">- (Not Applicable / Regular)</option>
+                              <option value="Full time">Full time</option>
+                              <option value="Part time">Part time</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Date of Leaving (Relieved Date)</label>
+                            <input 
+                              type="date" 
+                              className="form-control" 
+                              value={selectedFacultyTarget.date_of_leaving || ''} 
+                              onChange={(e) => setSelectedFacultyTarget({ ...selectedFacultyTarget, date_of_leaving: e.target.value })} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                        <span className="badge badge-secondary" style={{ fontSize: '0.8rem' }}>
+                          Nature: {selectedFacultyTarget.nature_of_association || 'REGULAR'}
+                        </span>
+                        {selectedFacultyTarget.date_designated_prof && (
+                          <span className="badge badge-secondary" style={{ fontSize: '0.8rem' }}>
+                            Designated as Prof: {selectedFacultyTarget.date_designated_prof}
+                          </span>
+                        )}
+                        {selectedFacultyTarget.contractual_type && selectedFacultyTarget.contractual_type !== '-' && (
+                          <span className="badge badge-secondary" style={{ fontSize: '0.8rem' }}>
+                            Mode: {selectedFacultyTarget.contractual_type}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0369a1', marginBottom: '12px' }}>Regulatory & Institutional Identification</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '14px' }}>
@@ -477,6 +579,31 @@ export default function AcademicInfo({ auth }) {
             </div>
 
             <form onSubmit={handleSaveAcademicInfo} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', marginBottom: '14px', borderBottom: '2px solid #e0f2fe', paddingBottom: '6px' }}>
+                  Academic & Research Specialization (Faculty Facility)
+                </h4>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                    Primary Area of Specialization <span style={{ color: 'hsl(var(--primary))', fontSize: '0.8rem', fontWeight: 500 }}>(e.g. High Performance Computing, Big Data And Data Science, Cloud Computing, Image Processing)</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Enter your primary area of research & specialization..." 
+                    value={academics?.area_of_specialization || personal?.area_of_specialization || ''} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAcademics({ ...(academics || {}), area_of_specialization: val });
+                      setPersonal({ ...(personal || {}), area_of_specialization: val });
+                    }} 
+                  />
+                  <span style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    * This field directly populates the <strong>Area of Specialization</strong> column in NBA/AICTE Department Faculty Details Criterion 5 (Form B2).
+                  </span>
+                </div>
+              </div>
+
               <div>
                 <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', marginBottom: '14px', borderBottom: '2px solid #e0f2fe', paddingBottom: '6px' }}>
                   Institutional & Regulatory Identifiers

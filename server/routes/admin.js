@@ -145,6 +145,20 @@ router.get('/staff', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
       a.Designation, 
       a.Qualification,
       a.Date_of_joining,
+      a.area_of_specialization,
+      a.date_designated_prof,
+      COALESCE(a.nature_of_association, 'REGULAR') as nature_of_association,
+      COALESCE(a.contractual_type, '-') as contractual_type,
+      a.date_of_leaving,
+      p.pan,
+      p.aadhar,
+      p.aicte_id,
+      p.anna_univ_id,
+      p.apaar_id,
+      p.address,
+      p.dob,
+      p.gender,
+      p.type,
       a.prev_exp_academic_years,
       a.prev_exp_academic_months,
       a.prev_exp_industry_years,
@@ -209,7 +223,9 @@ router.post('/staff', authenticateToken, requireSystemAdmin, (req, res) => {
     staff_id, staff_name, password, department, designation,
     prev_exp_academic_years, prev_exp_academic_months,
     prev_exp_industry_years, prev_exp_industry_months,
-    has_no_prev_exp, no_prev_exp
+    has_no_prev_exp, no_prev_exp,
+    area_of_specialization, date_designated_prof,
+    nature_of_association, contractual_type
   } = req.body;
 
   if (!staff_id || !staff_name || !password) {
@@ -246,14 +262,19 @@ router.post('/staff', authenticateToken, requireSystemAdmin, (req, res) => {
     db.run(`
       INSERT INTO staff_academics (
         staff_id, staff_name, Department, Designation, Qualification,
+        area_of_specialization, date_designated_prof, nature_of_association, contractual_type,
         prev_exp_academic_years, prev_exp_academic_months,
         prev_exp_industry_years, prev_exp_industry_months,
         total_prev_exp_years, total_prev_exp_months, has_no_prev_exp
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE 
         Department = VALUES(Department), 
         Designation = VALUES(Designation),
+        area_of_specialization = VALUES(area_of_specialization),
+        date_designated_prof = VALUES(date_designated_prof),
+        nature_of_association = VALUES(nature_of_association),
+        contractual_type = VALUES(contractual_type),
         prev_exp_academic_years = VALUES(prev_exp_academic_years),
         prev_exp_academic_months = VALUES(prev_exp_academic_months),
         prev_exp_industry_years = VALUES(prev_exp_industry_years),
@@ -263,10 +284,103 @@ router.post('/staff', authenticateToken, requireSystemAdmin, (req, res) => {
         has_no_prev_exp = VALUES(has_no_prev_exp)
     `, [
       staff_id, staff_name, department || '', designation || '', '',
+      area_of_specialization || '', date_designated_prof || '',
+      nature_of_association || 'REGULAR', contractual_type || '-',
       acadY, acadM, indY, indM, totY, totM, noPrev
     ]);
 
     res.json({ success: true, message: 'Faculty member created successfully' });
+  });
+});
+
+// 2.5 EDIT Faculty Profile (System Admin only)
+router.put('/staff/:id', authenticateToken, requireSystemAdmin, (req, res) => {
+  const { id } = req.params;
+  const {
+    staff_name, Department, Designation, Date_of_joining,
+    email, mobile, address, pan, aadhar, type,
+    aicte_id, anna_univ_id, apaar_id,
+    prev_exp_academic_years, prev_exp_academic_months,
+    prev_exp_industry_years, prev_exp_industry_months,
+    has_no_prev_exp,
+    area_of_specialization, date_designated_prof,
+    nature_of_association, contractual_type, date_of_leaving
+  } = req.body;
+
+  const noPrev = has_no_prev_exp ? 1 : 0;
+  const acadY = noPrev ? 0 : (parseInt(prev_exp_academic_years) || 0);
+  const acadM = noPrev ? 0 : (parseInt(prev_exp_academic_months) || 0);
+  const indY = noPrev ? 0 : (parseInt(prev_exp_industry_years) || 0);
+  const indM = noPrev ? 0 : (parseInt(prev_exp_industry_months) || 0);
+
+  const totalMonths = (acadY * 12 + acadM) + (indY * 12 + indM);
+  const totY = Math.floor(totalMonths / 12);
+  const totM = totalMonths % 12;
+
+  // 1. Update staff_personal
+  db.run(`
+    INSERT INTO staff_personal (
+      staff_id, staff_name, email, mobile, address, pan, aadhar, type,
+      aicte_id, anna_univ_id, apaar_id
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      staff_name = VALUES(staff_name),
+      email = VALUES(email),
+      mobile = VALUES(mobile),
+      address = VALUES(address),
+      pan = VALUES(pan),
+      aadhar = VALUES(aadhar),
+      type = VALUES(type),
+      aicte_id = VALUES(aicte_id),
+      anna_univ_id = VALUES(anna_univ_id),
+      apaar_id = VALUES(apaar_id)
+  `, [
+    id, staff_name || '', email || '', mobile || '', address || '',
+    pan || '', aadhar || '', type || 'Regular',
+    aicte_id || '', anna_univ_id || '', apaar_id || ''
+  ], (pErr) => {
+    if (pErr) console.error('Error updating staff_personal in PUT /staff/:id:', pErr);
+
+    // 2. Update staff_academics
+    db.run(`
+      INSERT INTO staff_academics (
+        staff_id, staff_name, Department, Designation, Date_of_joining,
+        area_of_specialization, date_designated_prof, nature_of_association, contractual_type, date_of_leaving,
+        prev_exp_academic_years, prev_exp_academic_months,
+        prev_exp_industry_years, prev_exp_industry_months,
+        total_prev_exp_years, total_prev_exp_months, has_no_prev_exp
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        staff_name = VALUES(staff_name),
+        Department = VALUES(Department),
+        Designation = VALUES(Designation),
+        Date_of_joining = VALUES(Date_of_joining),
+        area_of_specialization = VALUES(area_of_specialization),
+        date_designated_prof = VALUES(date_designated_prof),
+        nature_of_association = VALUES(nature_of_association),
+        contractual_type = VALUES(contractual_type),
+        date_of_leaving = VALUES(date_of_leaving),
+        prev_exp_academic_years = VALUES(prev_exp_academic_years),
+        prev_exp_academic_months = VALUES(prev_exp_academic_months),
+        prev_exp_industry_years = VALUES(prev_exp_industry_years),
+        prev_exp_industry_months = VALUES(prev_exp_industry_months),
+        total_prev_exp_years = VALUES(total_prev_exp_years),
+        total_prev_exp_months = VALUES(total_prev_exp_months),
+        has_no_prev_exp = VALUES(has_no_prev_exp)
+    `, [
+      id, staff_name || '', Department || '', Designation || '', Date_of_joining || '',
+      area_of_specialization || '', date_designated_prof || '',
+      nature_of_association || 'REGULAR', contractual_type || '-', date_of_leaving || '',
+      acadY, acadM, indY, indM, totY, totM, noPrev
+    ], (aErr) => {
+      if (aErr) {
+        console.error('Error updating staff_academics in PUT /staff/:id:', aErr);
+        return res.status(500).json({ error: 'Failed to update faculty profile: ' + aErr.message });
+      }
+      res.json({ success: true, message: `Faculty profile for ${staff_name} (${id}) updated successfully.` });
+    });
   });
 });
 
@@ -293,18 +407,24 @@ router.delete('/staff/:id', authenticateToken, requireSystemAdmin, (req, res) =>
 // 3.5. RELIEVE / REACTIVATE Faculty member (System Admin only)
 router.put('/staff/:id/relieve', authenticateToken, requireSystemAdmin, (req, res) => {
   const { id } = req.params;
-  const { is_relieved } = req.body;
+  const { is_relieved, date_of_leaving } = req.body;
   const statusVal = is_relieved ? 1 : 0;
+  const leaveDate = statusVal === 1 ? (date_of_leaving || new Date().toISOString().split('T')[0]) : '';
 
   db.run('UPDATE staff_user SET is_relieved = ? WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [statusVal, id], function(err) {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: 'Failed to update faculty relieve status' });
     }
-    res.json({
-      success: true,
-      message: `Faculty member ${id} ${statusVal === 1 ? 'marked as relieved. Login access is now blocked.' : 'reactivated. Login access is restored.'}`,
-      is_relieved: statusVal
+
+    db.run('UPDATE staff_academics SET date_of_leaving = ? WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [leaveDate, id], (aErr) => {
+      if (aErr) console.error('Error updating date_of_leaving on relieve:', aErr);
+      res.json({
+        success: true,
+        message: `Faculty member ${id} ${statusVal === 1 ? `marked as relieved (Date of Leaving: ${leaveDate}). Login access is now blocked.` : 'reactivated. Login access is restored.'}`,
+        is_relieved: statusVal,
+        date_of_leaving: leaveDate
+      });
     });
   });
 });
