@@ -1001,10 +1001,18 @@ export default function Appraisal({ auth }) {
     const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
     const totalPartB = Math.min(40, autoPartB + calcB4 + calcB7);
 
-    // Manual C3
-    let calcC3 = Math.min(5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * 5);
-    const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0);
-    const totalPartC = Math.min(80, autoPartC + calcC3);
+    // C3: Auto vs Manual
+    const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5 };
+    let calcC3 = 0;
+    if (itemC3.mapping_type === 'auto') {
+      const src = itemC3.data_source_page || 'custom_extension-activities';
+      const recs = fpiDetails?.[src] || fpiDetails?.[src.replace('custom_', '')] || [];
+      calcC3 = fpiBreakdown?.C3 !== undefined ? fpiBreakdown.C3 : (fpiBreakdown?.c3 !== undefined ? fpiBreakdown.c3 : (fpiBreakdown?.c3_community_service !== undefined ? fpiBreakdown.c3_community_service : Math.min(parseFloat(itemC3.max_marks) || 5, recs.length * (parseFloat(itemC3.fixed_mark_per_record) || 5))));
+    } else {
+      calcC3 = Math.min(parseFloat(itemC3.max_marks) || 5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * (parseFloat(itemC3.fixed_mark_per_record) || 5));
+    }
+    const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0) + (itemC3.mapping_type === 'auto' ? calcC3 : 0);
+    const totalPartC = Math.min(80, autoPartC + (itemC3.mapping_type === 'auto' ? 0 : calcC3));
 
     // Part D
     const autoPartD = fpiBreakdown.d_responsibilities || 0;
@@ -1021,7 +1029,7 @@ export default function Appraisal({ auth }) {
     });
 
     setSelfAppraisalScore(`${grandTotal} / 200`);
-  }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown]);
+  }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown, fpiDetails, templateItems]);
 
   // Live Category-Wise and Section-Wise Manual Scores Calculation
   const manualScores = useMemo(() => {
@@ -1067,9 +1075,17 @@ export default function Appraisal({ auth }) {
     const autoPartB = (fpiBreakdown.b1_memberships || 0) + (fpiBreakdown.b2_resource || 0) + (fpiBreakdown.b3_interactions || 0) + (fpiBreakdown.b5_events || 0) + (fpiBreakdown.b6_certs || 0);
     const partB = Math.min(40, autoPartB + b4 + b7);
 
-    const c3 = Math.min(5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * 5);
-    const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0);
-    const partC = Math.min(80, autoPartC + c3);
+    const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5 };
+    let c3 = 0;
+    if (itemC3.mapping_type === 'auto') {
+      const src = itemC3.data_source_page || 'custom_extension-activities';
+      const recs = fpiDetails?.[src] || fpiDetails?.[src.replace('custom_', '')] || [];
+      c3 = fpiBreakdown?.C3 !== undefined ? fpiBreakdown.C3 : (fpiBreakdown?.c3 !== undefined ? fpiBreakdown.c3 : (fpiBreakdown?.c3_community_service !== undefined ? fpiBreakdown.c3_community_service : Math.min(parseFloat(itemC3.max_marks) || 5, recs.length * (parseFloat(itemC3.fixed_mark_per_record) || 5))));
+    } else {
+      c3 = Math.min(parseFloat(itemC3.max_marks) || 5, c3Rows.filter(r => (r.activity_name || r.event_type || r.location || r.title || r.organization || '').trim().length > 0).length * (parseFloat(itemC3.fixed_mark_per_record) || 5));
+    }
+    const autoPartC = (fpiBreakdown.c1_publications || 0) + (fpiBreakdown.c2_books || 0) + (fpiBreakdown.c4_ipr || 0) + (fpiBreakdown.c5_funding || 0) + (fpiBreakdown.c6_seed_money || 0) + (itemC3.mapping_type === 'auto' ? c3 : 0);
+    const partC = Math.min(80, autoPartC + (itemC3.mapping_type === 'auto' ? 0 : c3));
 
     const partD = Math.min(20, fpiBreakdown.d_responsibilities || 0);
 
@@ -1080,7 +1096,7 @@ export default function Appraisal({ auth }) {
       partD,
       grandTotal: Math.min(200, partA + partB + partC + partD)
     };
-  }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown]);
+  }, [a1Rows, a2Rows, a3Rows, a4Rows, a5Rows, a6Rows, a7Rows, b4Rows, b7Rows, c3Rows, fpiBreakdown, fpiDetails, templateItems]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -3395,51 +3411,128 @@ export default function Appraisal({ auth }) {
               </div>
             </div>
 
-            {/* C3: Community Service & Outreach Activities (Editable) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>c3. Organizing Community Service / Outreach Activities (Yoga / NSS / NCC / Rural Development / Awareness) (Max: 5 Marks)</span>
-                  <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.c3} / 5 Pts</span>
+            {/* C3: Community Service & Extension Activities (Dynamic Auto vs Manual) */}
+            {(() => {
+              const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3') || { mapping_type: 'manual', fixed_mark_per_record: 5, max_marks: 5, criteria_title: 'Organizing Community Service / Outreach Activities' };
+              const isAutoC3 = itemC3.mapping_type === 'auto';
+              const srcKey = itemC3.data_source_page || 'custom_extension-activities';
+              const cleanKey = srcKey.replace('custom_', '');
+              const recordsC3 = fpiDetails?.[srcKey] || fpiDetails?.[cleanKey] || fpiDetails?.dynamicDataMap?.[cleanKey] || [];
+              const scoreC3Val = manualScores.c3;
+
+              if (isAutoC3) {
+                return (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>
+                        c3. {itemC3.criteria_title || 'Organizing Community Service / Outreach Activities'} (Max: {itemC3.max_marks || 5} Marks)
+                      </h5>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                        Category Total: {scoreC3Val} / {itemC3.max_marks || 5} Pts
+                      </span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Activity / Event Title</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Category / Type</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organizing Body / Details</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s)</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Document</th>
+                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recordsC3.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>
+                              No entries logged in portal for {itemC3.criteria_title || 'Extension & Outreach'}. Activities submitted via the portal will automatically appear and calculate here.
+                            </td>
+                          </tr>
+                        ) : recordsC3.map((r, i) => {
+                          const dataObj = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : (r.data || {});
+                          const title = r.title || r.eventname || r.name || dataObj['f_1'] || dataObj['title'] || dataObj['activity_name'] || Object.values(dataObj)[0] || 'Community Outreach Activity';
+                          const type = r.type || r.eventtype || r.category || dataObj['f_2'] || dataObj['type'] || dataObj['event_type'] || Object.values(dataObj)[1] || 'Outreach';
+                          const details = r.organizer || r.body || r.location || dataObj['f_3'] || dataObj['organizer'] || dataObj['location'] || Object.values(dataObj)[2] || r.department || 'N/A';
+                          const date = r.date || r.from_date || dataObj['f_4'] || dataObj['f_5'] || dataObj['date'] || dataObj['event_date'] || Object.values(dataObj)[3] || 'N/A';
+                          const file = r.file || r.document_path || r.certificate_path;
+                          return (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: 600, color: '#0f172a' }}>{title}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}><span className="badge badge-secondary">{type}</span></td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{details}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{date}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                {file ? (
+                                  <a href={`${API_BASE_URL}/uploads/${file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }}>
+                                    View Proof
+                                  </a>
+                                ) : <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>None</span>}
+                              </td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>
+                                {itemC3.fixed_mark_per_record || 5} Pts
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                      c3 Category Total Score: {scoreC3Val} / {itemC3.max_marks || 5} Pts
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>c3. {itemC3.criteria_title || 'Organizing Community Service / Outreach Activities'} (Max: {itemC3.max_marks || 5} Marks)</span>
+                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' }}>Category Total: {manualScores.c3} / {itemC3.max_marks || 5} Pts</span>
+                    </div>
+                    <button type="button" onClick={() => addRow(setC3Rows, { activity_name: '', event_type: '', location: '', date: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                      <Plus size={12} /> Add Row
+                    </button>
+                  </div>
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Name of Activity</th>
+                          <th>Type of Event (Yoga/NSS/NCC/Outreach)</th>
+                          <th>Place / Location</th>
+                          <th>Date(s)</th>
+                          <th style={{ width: '110px' }}>Score</th>
+                          <th style={{ width: '40px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {c3Rows.map((r, i) => (
+                          <tr key={i}>
+                            <td><input type="text" className="form-control" placeholder="Activity Name" value={r.activity_name || r.title || ''} onChange={(e) => updateRow(setC3Rows, i, 'activity_name', e.target.value)} /></td>
+                            <td><input type="text" className="form-control" placeholder="Type of Event" value={r.event_type} onChange={(e) => updateRow(setC3Rows, i, 'event_type', e.target.value)} /></td>
+                            <td><input type="text" className="form-control" placeholder="Location" value={r.location} onChange={(e) => updateRow(setC3Rows, i, 'location', e.target.value)} /></td>
+                            <td><input type="text" className="form-control" placeholder="DD/MM/YYYY" value={r.date} onChange={(e) => updateRow(setC3Rows, i, 'date', e.target.value)} /></td>
+                            <td><input type="text" className="form-control" value={`${itemC3.fixed_mark_per_record || 5} pts (Auto)`} readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title={`${itemC3.fixed_mark_per_record || 5} marks per outreach activity`} /></td>
+                            <td><button type="button" onClick={() => removeRow(setC3Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                          <td colSpan={4} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>c3 Category Subtotal:</td>
+                          <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.c3} / {itemC3.max_marks || 5} Pts</td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
-                <button type="button" onClick={() => addRow(setC3Rows, { activity_name: '', event_type: '', location: '', date: '', score: '5' })} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
-                  <Plus size={12} /> Add Row
-                </button>
-              </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name of Activity</th>
-                      <th>Type of Event (Yoga/NSS/NCC/Outreach)</th>
-                      <th>Place / Location</th>
-                      <th>Date(s)</th>
-                      <th style={{ width: '110px' }}>Score</th>
-                      <th style={{ width: '40px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {c3Rows.map((r, i) => (
-                      <tr key={i}>
-                        <td><input type="text" className="form-control" placeholder="Activity Name" value={r.activity_name || r.title || ''} onChange={(e) => updateRow(setC3Rows, i, 'activity_name', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" placeholder="Type of Event" value={r.event_type} onChange={(e) => updateRow(setC3Rows, i, 'event_type', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" placeholder="Location" value={r.location} onChange={(e) => updateRow(setC3Rows, i, 'location', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" placeholder="DD/MM/YYYY" value={r.date} onChange={(e) => updateRow(setC3Rows, i, 'date', e.target.value)} /></td>
-                        <td><input type="text" className="form-control" value="5 pts (Auto)" readOnly style={{ fontWeight: 800, textAlign: 'center', background: '#f1f5f9', color: '#0284c7' }} title="5 marks per outreach activity" /></td>
-                        <td><button type="button" onClick={() => removeRow(setC3Rows, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={14} /></button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
-                      <td colSpan={4} style={{ textAlign: 'right', color: '#475569', fontSize: '0.82rem' }}>c3 Category Subtotal:</td>
-                      <td style={{ textAlign: 'center', color: '#0284c7', fontSize: '0.88rem', fontWeight: 800 }}>{manualScores.c3} / 5 Pts</td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* c4 Table (Auto-Mapped IPR / Patents) */}
             <div style={{ marginBottom: '16px' }}>
@@ -5030,8 +5123,12 @@ export default function Appraisal({ auth }) {
         const bookPubsList = fpiDetails?.books || [];
 
         const score_c1 = Math.min(c_c1.maxMarks, fpiDetails?.breakdown?.c1_publications ?? (journalPubsList.length * c_c1.unitMark));
-        const score_c2 = Math.min(c_c2.maxMarks, fpiDetails?.breakdown?.c2_books ?? ((confPubsList.length + bookPubsList.length) * c_c2.unitMark));
-        const score_c3 = Math.min(c_c3.maxMarks, vC3.length * c_c3.unitMark);
+        const itemC3 = (templateItems || []).find(i => i.criteria_code === 'C3');
+        const isAutoC3 = itemC3?.mapping_type === 'auto';
+        const autoRecordsC3 = isAutoC3 ? (fpiDetails?.[itemC3?.data_source_page] || fpiDetails?.[itemC3?.data_source_page?.replace('custom_', '')] || []) : [];
+        const score_c3 = isAutoC3
+          ? Math.min(c_c3.maxMarks, fpiDetails?.breakdown?.C3 ?? fpiDetails?.breakdown?.c3 ?? fpiDetails?.breakdown?.c3_community_service ?? (autoRecordsC3.length * c_c3.unitMark))
+          : Math.min(c_c3.maxMarks, vC3.length * c_c3.unitMark);
         const score_c4 = Math.min(c_c4.maxMarks, fpiDetails?.breakdown?.c4_ipr ?? ((fpiDetails?.ipr?.length || 0) * c_c4.unitMark));
         const score_c5 = Math.min(c_c5.maxMarks, fpiDetails?.breakdown?.c5_funding ?? ((fpiDetails?.funding?.length || 0) * c_c5.unitMark));
         const score_c6 = Math.min(c_c6.maxMarks, fpiDetails?.breakdown?.c6_seed_money ?? ((fpiDetails?.seedMoney?.length || 0) * c_c6.unitMark));
@@ -5870,44 +5967,93 @@ export default function Appraisal({ auth }) {
                     </div>
                   </div>
 
-                  {/* c3 Table (Manual) */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                      <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c3. Organizing Community service / Outreach activities (Yoga / NSS / NCC / Rural Dev) (Max: 5 Marks)</h5>
-                      <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
-                        Category Total: {score_c3} / 5 Pts
-                      </span>
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
-                      <thead>
-                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Activity Name</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Type of Event</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Location</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s)</th>
-                          <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {vC3.length === 0 ? (
-                          <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No outreach activities logged</td></tr>
-                        ) : vC3.map((r, i) => (
-                          <tr key={i}>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.activity_name || r.title || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.event_type || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.location || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.date || 'N/A'}</td>
-                            <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>5 Pts</td>
+                  {/* c3 Table (Dynamic Auto vs Manual) */}
+                  {isAutoC3 ? (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                        <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>
+                          c3. {itemC3?.criteria_title || 'Organizing Community service / Outreach activities'} (Max: {c_c3.maxMarks} Marks)
+                        </h5>
+                        <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                          Category Total: {score_c3} / {c_c3.maxMarks} Pts
+                        </span>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                        <thead>
+                          <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Activity / Event Title</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Type / Category</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Organizing Body / Details</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s)</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
-                      c3 Category Total Score: {score_c3} / 5 Pts
+                        </thead>
+                        <tbody>
+                          {autoRecordsC3.length === 0 ? (
+                            <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No {itemC3?.criteria_title || 'outreach activities'} logged</td></tr>
+                          ) : autoRecordsC3.map((r, i) => {
+                            const dataObj = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : (r.data || {});
+                            const title = r.title || r.eventname || r.name || dataObj['f_1'] || dataObj['title'] || dataObj['activity_name'] || Object.values(dataObj)[0] || 'Community Outreach Activity';
+                            const type = r.type || r.eventtype || r.category || dataObj['f_2'] || dataObj['type'] || dataObj['event_type'] || Object.values(dataObj)[1] || 'Outreach';
+                            const details = r.organizer || r.body || r.location || dataObj['f_3'] || dataObj['organizer'] || dataObj['location'] || Object.values(dataObj)[2] || r.department || 'N/A';
+                            const date = r.date || r.from_date || dataObj['f_4'] || dataObj['f_5'] || dataObj['date'] || dataObj['event_date'] || Object.values(dataObj)[3] || 'N/A';
+                            return (
+                              <tr key={i}>
+                                <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                                <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{title}</td>
+                                <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}><span className="badge badge-secondary">{type}</span></td>
+                                <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{details}</td>
+                                <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{date}</td>
+                                <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{c_c3.unitMark} Pts</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                        c3 Category Total Score: {score_c3} / {c_c3.maxMarks} Pts
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                        <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', margin: 0 }}>c3. {itemC3?.criteria_title || 'Organizing Community service / Outreach activities (Yoga / NSS / NCC / Rural Dev)'} (Max: {c_c3.maxMarks} Marks)</h5>
+                        <span className="badge badge-success" style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', fontWeight: 800 }}>
+                          Category Total: {score_c3} / {c_c3.maxMarks} Pts
+                        </span>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }} className="table-container">
+                        <thead>
+                          <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '50px', textAlign: 'center' }}>S. No.</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Activity Name</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Type of Event</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Location</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Date(s)</th>
+                            <th style={{ padding: '8px', border: '1px solid #cbd5e1', width: '90px', textAlign: 'center' }}>Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vC3.length === 0 ? (
+                            <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>No outreach activities logged</td></tr>
+                          ) : vC3.map((r, i) => (
+                            <tr key={i}>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{i + 1}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.activity_name || r.title || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.event_type || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.location || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{r.date || 'N/A'}</td>
+                              <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, color: '#0284c7' }}>{c_c3.unitMark} Pts</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderTop: 'none', padding: '6px 14px', borderRadius: '0 0 6px 6px', fontSize: '0.82rem', fontWeight: 800, color: '#0369a1' }}>
+                        c3 Category Total Score: {score_c3} / {c_c3.maxMarks} Pts
+                      </div>
+                    </div>
+                  )}
 
                   {/* c4 Table (Auto-Mapped IPR / Patents) */}
                   <div style={{ marginBottom: '16px' }}>

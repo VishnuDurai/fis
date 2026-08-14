@@ -2352,6 +2352,20 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
     const scoreC2 = Math.min(ruleC2.maxMark, rawC2);
     scoreC += scoreC2;
 
+    // c3. Community Service / Extension & Outreach Activities (if mapped to auto in template)
+    const rowC3 = templateMap['C3'] || templateMap['c3'];
+    const ruleC3 = getCriteriaRule('C3', 5, 5);
+    let scoreC3 = 0;
+    let rawC3 = 0;
+    let recordsC3 = [];
+    if (rowC3 && rowC3.mapping_type === 'auto') {
+      const src = rowC3.data_source_page || 'custom_extension-activities';
+      recordsC3 = dynamicDataMap[src] || dynamicDataMap[src.replace('custom_', '')] || [];
+      rawC3 = recordsC3.length * ruleC3.fixedMark;
+      scoreC3 = Math.min(ruleC3.maxMark, rawC3);
+      scoreC += scoreC3;
+    }
+
     // c4. IPR / Patents / Copyrights
     const ruleC4 = getCriteriaRule('C4', 10, 10);
     let rawC4 = 0;
@@ -2496,6 +2510,8 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
         b6_certs: scoreB6,
         c1_publications: scoreC1,
         c2_books: scoreC2,
+        c3_community_service: scoreC3,
+        C3: scoreC3,
         c4_ipr: scoreC4,
         c5_funding: scoreC5,
         c6_seed_money: scoreC6,
