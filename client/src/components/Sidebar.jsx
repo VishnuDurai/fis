@@ -3,21 +3,45 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, User, BookOpen, GraduationCap, Award, FileText,
-  Settings, LogOut, Users, ShieldAlert, BarChart3, HelpCircle, FileCheck,
+  LogOut, Users, ShieldAlert, BarChart3, FileCheck,
   ChevronDown, ChevronRight, Beaker, Activity, Layers, Sparkles, Folder, Star
 } from 'lucide-react';
 
 const DYNAMIC_ICONS_MAP = {
-  FileText: <FileText size={16} />,
-  Award: <Award size={16} />,
-  BookOpen: <BookOpen size={16} />,
-  Layers: <Layers size={16} />,
-  Sparkles: <Sparkles size={16} />,
-  Folder: <Folder size={16} />,
-  GraduationCap: <GraduationCap size={16} />,
-  Users: <Users size={16} />,
-  Star: <Star size={16} />,
-  ShieldAlert: <ShieldAlert size={16} />
+  FileText: { icon: <FileText size={15} strokeWidth={2.2} />, color: '#10b981' },
+  Award: { icon: <Award size={15} strokeWidth={2.2} />, color: '#eab308' },
+  BookOpen: { icon: <BookOpen size={15} strokeWidth={2.2} />, color: '#2563eb' },
+  Layers: { icon: <Layers size={15} strokeWidth={2.2} />, color: '#f59e0b' },
+  Sparkles: { icon: <Sparkles size={15} strokeWidth={2.2} />, color: '#d946ef' },
+  Folder: { icon: <Folder size={15} strokeWidth={2.2} />, color: '#0d9488' },
+  GraduationCap: { icon: <GraduationCap size={15} strokeWidth={2.2} />, color: '#6366f1' },
+  Users: { icon: <Users size={15} strokeWidth={2.2} />, color: '#0284c7' },
+  Star: { icon: <Star size={15} strokeWidth={2.2} />, color: '#ec4899' },
+  ShieldAlert: { icon: <ShieldAlert size={15} strokeWidth={2.2} />, color: '#f43f5e' }
+};
+
+const renderMenuIcon = (icon, color = '#10b981', isActive = false, isGroupHeader = false) => {
+  const size = isGroupHeader ? 28 : 24;
+  const iconSize = isGroupHeader ? 16 : 14;
+
+  return (
+    <span
+      className="sidebar-icon-badge"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        backgroundColor: isActive ? color : `${color}18`,
+        color: isActive ? '#ffffff' : color,
+        boxShadow: isActive ? `0 2px 10px ${color}66` : 'none',
+        borderRadius: isGroupHeader ? '8px' : '6px',
+        border: isActive ? `1px solid ${color}` : `1px solid ${color}22`
+      }}
+    >
+      {React.isValidElement(icon)
+        ? React.cloneElement(icon, { size: iconSize, strokeWidth: 2.2 })
+        : icon}
+    </span>
+  );
 };
 
 export default function Sidebar({ role, logout, auth }) {
@@ -83,54 +107,58 @@ export default function Sidebar({ role, logout, auth }) {
           title: 'Dashboard',
           isSingle: true,
           to: '/dashboard',
-          icon: <Home size={18} />
+          icon: <Home />,
+          color: '#0284c7'
         },
         {
           id: 'personal',
           title: 'Personal',
           isSingle: false,
-          icon: <User size={18} />,
+          icon: <User />,
+          color: '#8b5cf6',
           items: [
-            { to: '/admin/faculty', label: 'Faculty Directory', icon: <Users size={16} /> },
-            { to: '/admin/dept-admins', label: 'Dept Admins', icon: <ShieldAlert size={16} /> },
-            { to: '/admin/system-admins', label: 'System Admins', icon: <ShieldAlert size={16} /> },
-            { to: '/admin/dynamic-pages', label: 'Dynamic Page Builder', icon: <Layers size={16} /> },
-            { to: '/admin/clubs', label: 'Clubs & Incharges', icon: <Award size={16} /> },
-            { to: '/profile/personal', label: 'Personal Details', icon: <User size={16} /> }
+            { to: '/admin/faculty', label: 'Faculty Directory', icon: <Users />, color: '#3b82f6' },
+            { to: '/admin/dept-admins', label: 'Dept Admins', icon: <ShieldAlert />, color: '#8b5cf6' },
+            { to: '/admin/system-admins', label: 'System Admins', icon: <ShieldAlert />, color: '#ef4444' },
+            { to: '/admin/dynamic-pages', label: 'Dynamic Page Builder', icon: <Layers />, color: '#f59e0b' },
+            { to: '/admin/clubs', label: 'Clubs & Incharges', icon: <Sparkles />, color: '#d946ef' },
+            { to: '/profile/personal', label: 'Personal Details', icon: <User />, color: '#06b6d4' }
           ]
         },
         {
           id: 'academics',
           title: 'Academics',
           isSingle: false,
-          icon: <BookOpen size={18} />,
+          icon: <BookOpen />,
+          color: '#2563eb',
           items: [
-            { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen size={16} /> },
-            { to: '/profile/documents', label: 'Official Documents', icon: <FileText size={16} /> },
-            { to: '/profile/education', label: 'Education Details', icon: <GraduationCap size={16} /> },
-            { to: '/activities/memberships', label: 'Memberships', icon: <Users size={16} /> },
-            { to: '/responsibilities', label: 'Assign Responsibilities', icon: <FileText size={16} /> }
+            { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen />, color: '#2563eb' },
+            { to: '/profile/documents', label: 'Official Documents', icon: <Folder />, color: '#0d9488' },
+            { to: '/profile/education', label: 'Education Details', icon: <GraduationCap />, color: '#6366f1' },
+            { to: '/activities/memberships', label: 'Memberships', icon: <Users />, color: '#8b5cf6' },
+            { to: '/responsibilities', label: 'Assign Responsibilities', icon: <FileText />, color: '#d97706' }
           ]
         },
         {
           id: 'activity',
           title: 'Faculty Activity',
           isSingle: false,
-          icon: <Activity size={18} />,
+          icon: <Activity />,
+          color: '#f59e0b',
           items: [
-            { to: '/activities/interactions', label: 'Interaction Details', icon: <Users size={16} /> },
-            { to: '/activities/resource', label: 'Resource Person', icon: <Award size={16} /> },
-            { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap size={16} /> },
-            { to: '/activities/awards', label: 'Awards Received', icon: <Award size={16} /> },
-            { to: '/activities/events', label: 'Events Organized', icon: <FileText size={16} /> },
-            { to: '/activities/clubs', label: 'Clubs Activity Organized', icon: <Award size={16} /> },
-            { to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap size={16} /> },
-            { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> },
-            { to: '/activities/funding', label: 'Research Funding & Grants', icon: <FileText size={16} /> },
-            { to: '/activities/seed_money', label: 'Seed Money & Consultancy', icon: <FileText size={16} /> },
-            { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
-            { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
-            { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
+            { to: '/activities/interactions', label: 'Interaction Details', icon: <Users />, color: '#0284c7' },
+            { to: '/activities/resource', label: 'Resource Person', icon: <Award />, color: '#8b5cf6' },
+            { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap />, color: '#10b981' },
+            { to: '/activities/awards', label: 'Awards Received', icon: <Award />, color: '#eab308' },
+            { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 />, color: '#f97316' },
+            { to: '/activities/clubs', label: 'Clubs Activity Organized', icon: <Sparkles />, color: '#d946ef' },
+            { to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap />, color: '#06b6d4' },
+            { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award />, color: '#6366f1' },
+            { to: '/activities/funding', label: 'Research Funding & Grants', icon: <FileText />, color: '#10b981' },
+            { to: '/activities/seed_money', label: 'Seed Money & Consultancy', icon: <Beaker />, color: '#14b8a6' },
+            { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert />, color: '#ea580c' },
+            { to: '/activities/publications', label: 'Publications', icon: <BookOpen />, color: '#3b82f6' },
+            { to: '/activities/books', label: 'Book Published', icon: <BookOpen />, color: '#9333ea' }
           ]
         },
         {
@@ -138,14 +166,16 @@ export default function Sidebar({ role, logout, auth }) {
           title: 'Appraisal Form',
           isSingle: true,
           to: '/appraisal',
-          icon: <FileCheck size={18} />
+          icon: <FileCheck />,
+          color: '#10b981'
         },
         {
           id: 'reports',
           title: 'Reports and Dossier',
           isSingle: true,
           to: '/reports',
-          icon: <FileText size={18} />
+          icon: <BarChart3 />,
+          color: '#06b6d4'
         }
       ];
     } else if (role === 'dept_admin') {
@@ -155,58 +185,63 @@ export default function Sidebar({ role, logout, auth }) {
           title: 'Dashboard',
           isSingle: true,
           to: '/dashboard',
-          icon: <Home size={18} />
+          icon: <Home />,
+          color: '#0284c7'
         },
         {
           id: 'personal',
           title: 'Personal',
           isSingle: false,
-          icon: <User size={18} />,
+          icon: <User />,
+          color: '#8b5cf6',
           items: [
-            { to: '/admin/faculty', label: 'Dept Faculty Directory', icon: <Users size={16} /> },
-            { to: '/profile/personal', label: 'Personal Details', icon: <User size={16} /> }
+            { to: '/admin/faculty', label: 'Dept Faculty Directory', icon: <Users />, color: '#3b82f6' },
+            { to: '/profile/personal', label: 'Personal Details', icon: <User />, color: '#06b6d4' }
           ]
         },
         {
           id: 'academics',
           title: 'Academics',
           isSingle: false,
-          icon: <BookOpen size={18} />,
+          icon: <BookOpen />,
+          color: '#2563eb',
           items: [
-            { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen size={16} /> },
-            { to: '/profile/documents', label: 'Official Documents', icon: <FileText size={16} /> },
-            { to: '/profile/education', label: 'Education Details', icon: <GraduationCap size={16} /> },
-            { to: '/activities/memberships', label: 'Memberships', icon: <Users size={16} /> },
-            { to: '/responsibilities', label: 'Assigned Responsibilities', icon: <FileText size={16} /> }
+            { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen />, color: '#2563eb' },
+            { to: '/profile/documents', label: 'Official Documents', icon: <Folder />, color: '#0d9488' },
+            { to: '/profile/education', label: 'Education Details', icon: <GraduationCap />, color: '#6366f1' },
+            { to: '/activities/memberships', label: 'Memberships', icon: <Users />, color: '#8b5cf6' },
+            { to: '/responsibilities', label: 'Assigned Responsibilities', icon: <FileText />, color: '#d97706' }
           ]
         },
         {
           id: 'activity',
           title: 'Faculty Activity',
           isSingle: false,
-          icon: <Activity size={18} />,
+          icon: <Activity />,
+          color: '#f59e0b',
           items: [
-            { to: '/activities/interactions', label: 'Interaction Details', icon: <Users size={16} /> },
-            { to: '/activities/resource', label: 'Resource Person', icon: <Users size={16} /> },
-            { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap size={16} /> },
-            { to: '/activities/awards', label: 'Awards Received', icon: <Award size={16} /> },
-            { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 size={16} /> },
-            { to: '/activities/clubs', label: 'Clubs Activity Organized', icon: <Award size={16} /> }
+            { to: '/activities/interactions', label: 'Interaction Details', icon: <Users />, color: '#0284c7' },
+            { to: '/activities/resource', label: 'Resource Person', icon: <Award />, color: '#8b5cf6' },
+            { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap />, color: '#10b981' },
+            { to: '/activities/awards', label: 'Awards Received', icon: <Award />, color: '#eab308' },
+            { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 />, color: '#f97316' },
+            { to: '/activities/clubs', label: 'Clubs Activity Organized', icon: <Sparkles />, color: '#d946ef' }
           ]
         },
         {
           id: 'rnd',
           title: 'R&D',
           isSingle: false,
-          icon: <Beaker size={18} />,
+          icon: <Beaker />,
+          color: '#ec4899',
           items: [
-            { to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap size={16} /> },
-            { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> },
-            { to: '/activities/funding', label: 'Research Funding & Grants', icon: <FileText size={16} /> },
-            { to: '/activities/seed_money', label: 'Seed Money & Consultancy', icon: <FileText size={16} /> },
-            { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
-            { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
-            { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
+            { to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap />, color: '#06b6d4' },
+            { to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award />, color: '#6366f1' },
+            { to: '/activities/funding', label: 'Research Funding & Grants', icon: <FileText />, color: '#10b981' },
+            { to: '/activities/seed_money', label: 'Seed Money & Consultancy', icon: <Beaker />, color: '#14b8a6' },
+            { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert />, color: '#ea580c' },
+            { to: '/activities/publications', label: 'Publications', icon: <BookOpen />, color: '#3b82f6' },
+            { to: '/activities/books', label: 'Book Published', icon: <BookOpen />, color: '#9333ea' }
           ]
         },
         {
@@ -214,48 +249,49 @@ export default function Sidebar({ role, logout, auth }) {
           title: 'Reports and Dossier',
           isSingle: true,
           to: '/reports',
-          icon: <FileText size={18} />
+          icon: <BarChart3 />,
+          color: '#06b6d4'
         }
       ];
     } else {
       // REGULAR FACULTY PORTAL MENU
       const academicsSubItems = [
-        { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen size={16} /> },
-        { to: '/profile/documents', label: 'Official Documents', icon: <FileText size={16} /> },
-        { to: '/profile/education', label: 'Education Details', icon: <GraduationCap size={16} /> },
-        { to: '/activities/memberships', label: 'Memberships', icon: <Users size={16} /> },
-        { to: '/responsibilities', label: isHod ? 'Assign Responsibilities' : 'Assigned Responsibilities', icon: <FileText size={16} /> }
+        { to: '/profile/academic', label: 'Academic Information', icon: <BookOpen />, color: '#2563eb' },
+        { to: '/profile/documents', label: 'Official Documents', icon: <Folder />, color: '#0d9488' },
+        { to: '/profile/education', label: 'Education Details', icon: <GraduationCap />, color: '#6366f1' },
+        { to: '/activities/memberships', label: 'Memberships', icon: <Users />, color: '#8b5cf6' },
+        { to: '/responsibilities', label: isHod ? 'Assign Responsibilities' : 'Assigned Responsibilities', icon: <FileText />, color: '#d97706' }
       ];
 
       if (isInstAdminUser) {
-        academicsSubItems.push({ to: '/admin/clubs', label: 'Assign Club Coordinators', icon: <Award size={16} /> });
+        academicsSubItems.push({ to: '/admin/clubs', label: 'Assign Club Coordinators', icon: <Star />, color: '#ec4899' });
       }
 
       const activitySubItems = [
-        { to: '/activities/interactions', label: 'Interaction Details', icon: <Users size={16} /> },
-        { to: '/activities/resource', label: 'Resource Person', icon: <Users size={16} /> },
-        { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap size={16} /> },
-        { to: '/activities/awards', label: 'Awards Received', icon: <Award size={16} /> },
-        { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 size={16} /> }
+        { to: '/activities/interactions', label: 'Interaction Details', icon: <Users />, color: '#0284c7' },
+        { to: '/activities/resource', label: 'Resource Person', icon: <Award />, color: '#8b5cf6' },
+        { to: '/activities/certifications', label: 'Certifications', icon: <GraduationCap />, color: '#10b981' },
+        { to: '/activities/awards', label: 'Awards Received', icon: <Award />, color: '#eab308' },
+        { to: '/activities/events', label: 'Events Organized', icon: <BarChart3 />, color: '#f97316' }
       ];
 
       if (isClubCoord) {
-        activitySubItems.push({ to: '/activities/clubs', label: 'Clubs', icon: <Award size={16} /> });
+        activitySubItems.push({ to: '/activities/clubs', label: 'Clubs', icon: <Sparkles />, color: '#d946ef' });
       }
 
       const rndSubItems = [];
       if (!isDoctorateOrPhd) {
-        rndSubItems.push({ to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap size={16} /> });
+        rndSubItems.push({ to: '/activities/scholars', label: 'Research Scholar', icon: <GraduationCap />, color: '#06b6d4' });
       } else {
-        rndSubItems.push({ to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award size={16} /> });
+        rndSubItems.push({ to: '/activities/supervisors', label: 'Research Supervisor', icon: <Award />, color: '#6366f1' });
       }
 
       rndSubItems.push(
-        { to: '/activities/funding', label: 'Research Funding & Grants', icon: <FileText size={16} /> },
-        { to: '/activities/seed_money', label: 'Seed Money & Consultancy', icon: <FileText size={16} /> },
-        { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert size={16} /> },
-        { to: '/activities/publications', label: 'Publications', icon: <BookOpen size={16} /> },
-        { to: '/activities/books', label: 'Book Published', icon: <BookOpen size={16} /> }
+        { to: '/activities/funding', label: 'Research Funding & Grants', icon: <FileText />, color: '#10b981' },
+        { to: '/activities/seed_money', label: 'Seed Money & Consultancy', icon: <Beaker />, color: '#14b8a6' },
+        { to: '/activities/ipr', label: 'IPR / Copyrights', icon: <ShieldAlert />, color: '#ea580c' },
+        { to: '/activities/publications', label: 'Publications', icon: <BookOpen />, color: '#3b82f6' },
+        { to: '/activities/books', label: 'Book Published', icon: <BookOpen />, color: '#9333ea' }
       );
 
       baseMenu = [
@@ -264,34 +300,39 @@ export default function Sidebar({ role, logout, auth }) {
           title: 'Dashboard',
           isSingle: true,
           to: '/dashboard',
-          icon: <Home size={18} />
+          icon: <Home />,
+          color: '#0284c7'
         },
         {
           id: 'personal',
           title: 'Personal',
           isSingle: true,
           to: '/profile/personal',
-          icon: <User size={18} />
+          icon: <User />,
+          color: '#8b5cf6'
         },
         {
           id: 'academics',
           title: 'Academics',
           isSingle: false,
-          icon: <BookOpen size={18} />,
+          icon: <BookOpen />,
+          color: '#2563eb',
           items: academicsSubItems
         },
         {
           id: 'activity',
           title: 'Faculty Activity',
           isSingle: false,
-          icon: <Activity size={18} />,
+          icon: <Activity />,
+          color: '#f59e0b',
           items: activitySubItems
         },
         {
           id: 'rnd',
           title: 'R&D',
           isSingle: false,
-          icon: <Beaker size={18} />,
+          icon: <Beaker />,
+          color: '#ec4899',
           items: rndSubItems
         },
         {
@@ -299,14 +340,16 @@ export default function Sidebar({ role, logout, auth }) {
           title: 'Appraisal Form',
           isSingle: true,
           to: '/appraisal',
-          icon: <FileCheck size={18} />
+          icon: <FileCheck />,
+          color: '#10b981'
         },
         {
           id: 'reports',
           title: 'Reports and Dossier',
           isSingle: true,
           to: '/reports',
-          icon: <FileText size={18} />
+          icon: <BarChart3 />,
+          color: '#06b6d4'
         }
       ];
     }
@@ -323,8 +366,8 @@ export default function Sidebar({ role, logout, auth }) {
     });
 
     allowedDynamicPages.forEach(p => {
-      const pIcon = DYNAMIC_ICONS_MAP[p.icon] || <FileText size={16} />;
-      const subItem = { to: `/custom/${p.slug}`, label: p.title, icon: pIcon };
+      const iconConfig = DYNAMIC_ICONS_MAP[p.icon] || { icon: <FileText size={15} strokeWidth={2.2} />, color: '#10b981' };
+      const subItem = { to: `/custom/${p.slug}`, label: p.title, icon: iconConfig.icon, color: iconConfig.color };
       const cat = (p.category || '').toLowerCase().trim();
 
       if (cat === 'personal') {
@@ -333,7 +376,7 @@ export default function Sidebar({ role, logout, auth }) {
           if (sec.isSingle) {
             sec.isSingle = false;
             sec.items = [
-              { to: sec.to, label: 'Personal Details', icon: <User size={16} /> },
+              { to: sec.to, label: 'Personal Details', icon: <User />, color: '#06b6d4' },
               subItem
             ];
             delete sec.to;
@@ -356,7 +399,7 @@ export default function Sidebar({ role, logout, auth }) {
           if (sec.isSingle) {
             sec.isSingle = false;
             sec.items = [
-              { to: sec.to, label: 'Reports and Dossier', icon: <FileText size={16} /> },
+              { to: sec.to, label: 'Reports and Dossier', icon: <BarChart3 />, color: '#06b6d4' },
               subItem
             ];
             delete sec.to;
@@ -371,7 +414,8 @@ export default function Sidebar({ role, logout, auth }) {
           title: p.title,
           isSingle: true,
           to: `/custom/${p.slug}`,
-          icon: DYNAMIC_ICONS_MAP[p.icon] ? React.cloneElement(DYNAMIC_ICONS_MAP[p.icon], { size: 18 }) : <FileText size={18} />
+          icon: iconConfig.icon,
+          color: iconConfig.color
         });
       }
     });
@@ -440,35 +484,39 @@ export default function Sidebar({ role, logout, auth }) {
                 <li key={group.id} style={{ marginBottom: '6px' }}>
                   <NavLink
                     to={group.to}
+                    className="sidebar-nav-link"
                     style={({ isActive }) => ({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '12px',
-                      padding: '11px 16px',
+                      padding: '9px 14px',
                       borderRadius: 'var(--radius)',
-                      color: isActive ? '#ffffff' : 'hsl(var(--text-muted))',
-                      background: isActive ? 'hsl(var(--primary))' : 'transparent',
-                      borderLeft: isActive ? '4px solid hsl(var(--secondary))' : '4px solid transparent',
+                      color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
+                      background: isActive ? 'hsla(var(--primary), 0.1)' : 'transparent',
+                      borderLeft: isActive ? '4px solid hsl(var(--primary))' : '4px solid transparent',
                       fontWeight: isActive ? 700 : 600,
                       fontSize: '0.92rem',
-                      textDecoration: 'none',
-                      transition: 'var(--transition-smooth)'
+                      textDecoration: 'none'
                     })}
                   >
-                    {group.icon}
-                    <span>{group.title}</span>
-                    {group.id === 'appraisal' && pendingAppraisalsCount > 0 && (
-                      <span style={{
-                        marginLeft: 'auto',
-                        background: '#ff4d4f',
-                        color: '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: '10px'
-                      }}>
-                        {pendingAppraisalsCount}
-                      </span>
+                    {({ isActive }) => (
+                      <>
+                        {renderMenuIcon(group.icon, group.color, isActive, true)}
+                        <span>{group.title}</span>
+                        {group.id === 'appraisal' && pendingAppraisalsCount > 0 && (
+                          <span style={{
+                            marginLeft: 'auto',
+                            background: '#ff4d4f',
+                            color: '#ffffff',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '10px'
+                          }}>
+                            {pendingAppraisalsCount}
+                          </span>
+                        )}
+                      </>
                     )}
                   </NavLink>
                 </li>
@@ -483,13 +531,14 @@ export default function Sidebar({ role, logout, auth }) {
                 {/* Section Group Header */}
                 <button
                   type="button"
+                  className="sidebar-group-btn"
                   onClick={() => toggleGroup(group.id)}
                   style={{
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '10px 16px',
+                    padding: '8px 14px',
                     borderRadius: 'var(--radius)',
                     background: hasActiveChild ? 'hsla(var(--primary), 0.08)' : 'transparent',
                     border: 'none',
@@ -501,7 +550,7 @@ export default function Sidebar({ role, logout, auth }) {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {group.icon}
+                    {renderMenuIcon(group.icon, group.color, hasActiveChild, true)}
                     <span>{group.title}</span>
                   </div>
                   {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -509,27 +558,31 @@ export default function Sidebar({ role, logout, auth }) {
 
                 {/* Sub Items List */}
                 {isExpanded && Array.isArray(group.items) && (
-                  <ul style={{ listStyle: 'none', paddingLeft: '16px', margin: '4px 0 6px 0', borderLeft: '2px solid hsl(var(--border))', marginLeft: '24px' }}>
+                  <ul style={{ listStyle: 'none', paddingLeft: '14px', margin: '4px 0 6px 0', borderLeft: '2px solid hsl(var(--border))', marginLeft: '22px' }}>
                     {group.items.map((item, idx) => (
                       <li key={`${group.id}-item-${idx}`} style={{ marginBottom: '4px' }}>
                         <NavLink
                           to={item.to}
+                          className="sidebar-nav-link"
                           style={({ isActive }) => ({
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
-                            padding: '8px 12px',
+                            padding: '7px 12px',
                             borderRadius: 'var(--radius)',
                             color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--text-muted))',
                             background: isActive ? 'hsla(var(--primary), 0.12)' : 'transparent',
                             fontWeight: isActive ? 700 : 500,
                             fontSize: '0.86rem',
-                            textDecoration: 'none',
-                            transition: 'var(--transition-smooth)'
+                            textDecoration: 'none'
                           })}
                         >
-                          {item.icon}
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                          {({ isActive }) => (
+                            <>
+                              {renderMenuIcon(item.icon, item.color, isActive, false)}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                            </>
+                          )}
                         </NavLink>
                       </li>
                     ))}
@@ -546,9 +599,9 @@ export default function Sidebar({ role, logout, auth }) {
         <button
           onClick={handleLogout}
           className="btn btn-secondary"
-          style={{ width: '100%', justifyContent: 'center', gap: '8px', padding: '10px' }}
+          style={{ width: '100%', justifyContent: 'center', gap: '10px', padding: '9px 14px', fontSize: '0.9rem', fontWeight: 600 }}
         >
-          <LogOut size={16} />
+          {renderMenuIcon(<LogOut />, '#ef4444', false, false)}
           Logout
         </button>
       </div>
