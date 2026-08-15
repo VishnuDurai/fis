@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   FileText, 
   Printer, 
@@ -16,7 +16,12 @@ import {
   Award,
   DollarSign,
   Calendar,
-  Layers
+  Layers,
+  GraduationCap,
+  Beaker,
+  Sparkles,
+  Activity,
+  Folder
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -32,6 +37,26 @@ import {
   getFullDepartmentName,
   getDepartmentAcronym
 } from '../utils/reportGenerator.js';
+
+const SECTION_CONFIGS = [
+  { key: 'personal', label: 'Personal Details' },
+  { key: 'academics', label: 'Academic Status' },
+  { key: 'education', label: 'Education Details' },
+  { key: 'memberships', label: 'Memberships' },
+  { key: 'responsibilities', label: 'Responsibilities' },
+  { key: 'publications', label: 'Publications' },
+  { key: 'books', label: 'Books Published' },
+  { key: 'funding', label: 'Research Funding' },
+  { key: 'seed_money', label: 'Seed Money & Consultancy' },
+  { key: 'ipr', label: 'IPR / Patents' },
+  { key: 'awards', label: 'Awards Received' },
+  { key: 'certifications', label: 'Certifications' },
+  { key: 'interactions', label: 'Interactions / FDPs' },
+  { key: 'resource', label: 'Resource Person' },
+  { key: 'events', label: 'Events Organized' },
+  { key: 'clubs', label: 'Clubs Activities' },
+  { key: 'scholars', label: 'Research Scholars' }
+];
 
 export default function Reports({ auth }) {
   // Accreditation Suite State
@@ -69,16 +94,20 @@ export default function Reports({ auth }) {
     personal: true,
     academics: true,
     education: true,
+    memberships: true,
+    responsibilities: true,
     publications: true,
     books: true,
-    awards: true,
-    memberships: true,
-    resource: true,
     funding: true,
+    seed_money: true,
     ipr: true,
+    awards: true,
     certifications: true,
+    interactions: true,
+    resource: true,
     events: true,
-    responsibilities: true
+    clubs: true,
+    scholars: true
   });
 
   // Report Data Output
@@ -246,7 +275,7 @@ export default function Reports({ auth }) {
 
   // --- CUSTOM REPORT GENERATION ENGINE ---
 
-  const generateReport = async () => {
+  const generateReport = useCallback(async () => {
     setLoading(true);
     try {
       const headers = { 'Authorization': `Bearer ${auth.token}` };
@@ -279,8 +308,9 @@ export default function Reports({ auth }) {
 
       // Active activity sections to fetch
       const activityKeys = [
-        'education', 'publications', 'books', 'awards', 'memberships', 
-        'resource', 'funding', 'ipr', 'certifications', 'events', 'responsibilities'
+        'education', 'memberships', 'responsibilities', 'publications', 'books',
+        'funding', 'seed_money', 'ipr', 'awards', 'certifications', 'interactions',
+        'resource', 'events', 'clubs', 'scholars'
       ];
 
       const activeKeys = activityKeys.filter(k => sections[k]);
@@ -290,6 +320,8 @@ export default function Reports({ auth }) {
         let url = `${API_BASE_URL}/api/activities/${key}${targetQuery}`;
         if (key === 'education') {
           url = `${API_BASE_URL}/api/faculty/education${targetQuery}`;
+        } else if (key === 'responsibilities') {
+          url = `${API_BASE_URL}/api/faculty/responsibilities${targetQuery}`;
         }
 
         try {
@@ -319,7 +351,7 @@ export default function Reports({ auth }) {
 
           if (start || end) {
             rows = rows.filter(item => {
-              const dateVal = item.date_con || item.awa_date || item.from_date || item.data_of_exam || item.dateofpublication || item.generation || item.date || item.Date_of_joining || item.created_at;
+              const dateVal = item.from_date || item.sanctioned_date || item.awa_date || item.date_con || item.data_of_exam || item.dateofpublication || item.generation || item.date || item.Date_of_joining || item.date_of_certificate || item.created_at;
               if (!dateVal) return true;
 
               let itemDate = new Date(dateVal);
@@ -367,7 +399,12 @@ export default function Reports({ auth }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [auth, reportScope, selectedStaffId, selectedDept, sections, fromDate, toDate, pubCategoryFilter, eventCategoryFilter, interactionTypeFilter, searchQuery]);
+
+  // Automatically trigger report generation on mount and when target scope changes
+  useEffect(() => {
+    generateReport();
+  }, [reportScope, selectedDept, selectedStaffId]);
 
   // --- DOWNLOAD WORKBOOK (EXCEL) ---
   const handleDownloadExcel = () => {
@@ -463,8 +500,23 @@ export default function Reports({ auth }) {
 
       currentY = 4 + bannerHeight + 16;
 
-      // Render each active section as an autoTable
+      // Section mapping dictionary for PDF autoTable
       const sectionConfigs = {
+        education: {
+          title: 'Education & Academic Qualifications',
+          headers: ['Degree / Level', 'Course / Branch', 'College / Institution', 'University / Board', 'Year of Passing', 'Percentage / CGPA', 'Class Obtained'],
+          mapRow: (r) => [r.degree_type || r.degree || 'N/A', r.course || r.specialization || 'N/A', r.college || r.institution || 'N/A', r.university || r.board || 'N/A', r.year_of_passing || r.year || 'N/A', r.percentage_cgpa || r.percentage || r.cgpa || 'N/A', r.class_obtained || r.class || 'N/A']
+        },
+        memberships: {
+          title: 'Professional Society Memberships',
+          headers: ['Faculty Name', 'Dept', 'Membership ID', 'Professional Society / Body', 'Type'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.membershipid || 'N/A', r.organization || 'N/A', r.membership_type || 'Life Member']
+        },
+        responsibilities: {
+          title: 'Assigned Responsibilities',
+          headers: ['Faculty Name', 'Dept', 'Responsibility Title', 'Scope / Level', 'Academic Year', 'Assigned By'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.responsibility || r.title || 'N/A', r.level || 'Department', r.academic_year || '2025-2026', r.assigned_by || 'HOD / Principal']
+        },
         publications: {
           title: 'Research Publications',
           headers: ['Faculty Name', 'Dept', 'Type', 'Title', 'Journal / Conference', 'Date/Year', 'Indexing', 'Citations'],
@@ -480,40 +532,50 @@ export default function Reports({ auth }) {
           headers: ['Faculty Name', 'Dept', 'Project Title', 'Category & Role', 'Funding Agency', 'Amount (INR)', 'Status'],
           mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.title || 'N/A', `${r.grant_category || 'Project'} (${r.faculty_role || 'PI'})`, r.fa || r.agency || 'N/A', r.amount ? `₹ ${Number(r.amount).toLocaleString('en-IN')}` : 'N/A', r.status || 'Ongoing']
         },
+        seed_money: {
+          title: 'Funded Consultancy & Seed Money',
+          headers: ['Faculty Name', 'Dept', 'Category', 'Title / Description', 'Client / Agency', 'Role & Consultants', 'Amount (INR)', 'Status'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.entry_type || 'Seed Money', r.title || 'N/A', r.client_type || 'SREC Seed Fund', `${r.faculty_role || 'PI'}${r.consultants ? ` (${r.consultants})` : ''}`, r.amount ? `₹ ${Number(r.amount).toLocaleString('en-IN')}` : 'N/A', r.status || 'Received']
+        },
         ipr: {
           title: 'Patents & Intellectual Property Rights',
           headers: ['Faculty Name', 'Dept', 'IP Type', 'Title', 'Application/File No', 'Status', 'Filing/Pub Date'],
-          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.ip_type || 'Patent', r.patent || r.title || 'N/A', r.institution || r.app_no || 'N/A', r.patent_status || r.status || 'Published', r.filing_date || r.date || 'N/A']
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.ip_type || 'Patent', r.patent || r.title || 'N/A', r.institution || r.app_no || 'N/A', r.patent_status || r.status || 'Published', r.generation || r.date || 'N/A']
         },
         awards: {
           title: 'Awards & Recognitions',
           headers: ['Faculty Name', 'Dept', 'Award Title', 'Awarding Agency', 'Event Name', 'Award Date'],
           mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.awardname || 'N/A', r.awardby || 'N/A', r.event || 'N/A', r.awa_date || r.date || 'N/A']
         },
-        events: {
-          title: 'Events & Workshops Organized',
-          headers: ['Faculty Name', 'Dept', 'Category', 'Event Title', 'Role', 'Duration / Dates', 'Grant (INR)'],
-          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.type || 'Workshop', r.title || 'N/A', r.role || 'Coordinator', r.from_date && r.to_date ? `${r.from_date} to ${r.to_date}` : (r.from_date || 'N/A'), r.granted ? `₹ ${Number(r.granted).toLocaleString('en-IN')}` : 'Nil']
-        },
         certifications: {
-          title: 'Faculty Certifications',
-          headers: ['Faculty Name', 'Dept', 'Course Title', 'Issuing Organization', 'Score / Grade', 'Date / Period'],
-          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.course_name || r.title || 'N/A', r.organisation || 'NPTEL / Coursera', r.mark || r.grade || 'Elite', r.data_of_exam || r.from_date || 'N/A']
+          title: 'Faculty Certifications & Courses',
+          headers: ['Faculty Name', 'Dept', 'Course Title', 'Issuing Organization', 'Duration (Weeks)', 'Score / Grade', 'Date'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.course_name || r.title || 'N/A', r.organisation || 'NPTEL / Coursera', r.duration_weeks || 'N/A', r.mark || r.grade || 'Elite', r.data_of_exam || r.from_date || 'N/A']
+        },
+        interactions: {
+          title: 'Faculty Interactions / FDPs Attended',
+          headers: ['Faculty Name', 'Dept', 'Type', 'Title / Topic', 'Organizer Agency', 'Period / Dates'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.type || 'FDP', r.title || 'N/A', r.organizer || 'N/A', [r.from_date, r.to_date].filter(Boolean).join(' to ') || r.date || 'N/A']
         },
         resource: {
           title: 'Resource Person Details',
           headers: ['Faculty Name', 'Dept', 'Scope', 'Topic / Title', 'Acted As', 'Organizer', 'Period'],
-          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.type || 'National', r.title || 'N/A', r.actedas || 'Speaker', r.organizer || 'N/A', r.from_date && r.to_date ? `${r.from_date} to ${r.to_date}` : (r.from_date || 'N/A')]
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.type || 'National', r.title || 'N/A', r.actedas || 'Speaker', r.organizer || 'N/A', [r.from_date, r.to_date].filter(Boolean).join(' to ') || r.date || 'N/A']
         },
-        memberships: {
-          title: 'Professional Society Memberships',
-          headers: ['Faculty Name', 'Dept', 'Membership ID', 'Professional Body', 'Type'],
-          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.membershipid || 'N/A', r.organization || 'N/A', r.membership_type || 'Life Member']
+        events: {
+          title: 'Events & Workshops Organized',
+          headers: ['Faculty Name', 'Dept', 'Category', 'Event Title', 'Role', 'Duration / Dates', 'Grant (INR)'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.type || 'Workshop', r.title || 'N/A', r.role || 'Coordinator', [r.from_date, r.to_date].filter(Boolean).join(' to ') || r.date || 'N/A', r.granted ? `₹ ${Number(r.granted).toLocaleString('en-IN')}` : 'Nil']
         },
-        responsibilities: {
-          title: 'Institutional / Department Responsibilities',
-          headers: ['Faculty Name', 'Dept', 'Responsibility Title', 'Level / Scope', 'Academic Year', 'Assigned By'],
-          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.responsibility || 'N/A', r.level || 'Department', r.academic_year || '2025-2026', r.assigned_by || 'HOD / Principal']
+        clubs: {
+          title: 'Clubs Activities Organized',
+          headers: ['Faculty Name', 'Dept', 'Club Name', 'Event Type', 'Event Title', 'Organizer', 'Period / Dates', 'Grant (INR)'],
+          mapRow: (r) => [r.staff_name || 'N/A', r.Department || 'N/A', r.club || 'N/A', r.type || 'N/A', r.title || 'N/A', r.organizer || 'N/A', [r.from_date, r.to_date].filter(Boolean).join(' to ') || r.date || 'N/A', r.granted ? `₹ ${Number(r.granted).toLocaleString('en-IN')}` : 'Nil']
+        },
+        scholars: {
+          title: 'Research Scholars Supervised',
+          headers: ['Supervisor Name', 'Dept', 'Reg / Research ID', 'Scholar Name', 'University', 'Institution', 'Status', 'Reg Year'],
+          mapRow: (r) => [r.sup_name || 'N/A', r.Department || 'N/A', r.res_id || 'N/A', r.staff_name || 'N/A', r.university || 'Anna University', r.organisation || 'SREC', r.status || 'Ongoing', r.registration_year || r.date || 'N/A']
         }
       };
 
@@ -537,8 +599,8 @@ export default function Reports({ auth }) {
         let headersToUse = conf.headers;
         let rowsToUse = rows.map(conf.mapRow);
 
-        if (!isInstitutional) {
-          const deptIdx = 1;
+        if (!isInstitutional && conf.headers.includes('Dept')) {
+          const deptIdx = conf.headers.indexOf('Dept');
           headersToUse = conf.headers.filter((_, i) => i !== deptIdx);
           rowsToUse = rowsToUse.map(r => r.filter((_, i) => i !== deptIdx));
         }
@@ -603,310 +665,200 @@ export default function Reports({ auth }) {
     }
   };
 
+  // Print Window Trigger
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <div>
-      <Navbar title="Reports & Accreditation Suite" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
+    <div className="container" style={{ paddingBottom: '80px' }}>
+      <Navbar 
+        title="Comprehensive Performance Reports & Dossier Suite" 
+        subtitle="Generate Institution, Department, and Faculty dossiers with full export capabilities" 
+        auth={auth} 
+      />
 
-      {/* Control Panel (no-print) */}
-      <div className="card no-print" style={{ marginBottom: '32px' }}>
-        
-        {/* 1. NAAC & NBA ACCREDITATION 1-CLICK EXPORT SUITE */}
-        <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
-            <div>
-              <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#14532d', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                <ShieldCheck size={22} color="#16a34a" /> NAAC & NBA Accreditation Export Suite (Excel & PDF)
-              </h4>
-              <p style={{ fontSize: '0.85rem', color: '#166534', margin: '4px 0 0 0' }}>
-                Download pre-formatted Multi-Sheet Excel Workbooks and Official PDFs ready for NAAC SSR Criterion 3 & NBA SAR Criterion 5 inspection audits.
-              </p>
-            </div>
-
-            {/* Department Selection for Accreditation (System Admin) */}
-            {auth.role === 'admin' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ffffff', padding: '6px 14px', borderRadius: '8px', border: '1px solid #86efac' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#14532d', whiteSpace: 'nowrap' }}>
-                  Accreditation Scope:
-                </label>
-                <select
-                  className="form-control"
-                  value={accreditationDept}
-                  onChange={(e) => setAccreditationDept(e.target.value)}
-                  style={{ fontWeight: 700, padding: '4px 10px', fontSize: '0.85rem', minWidth: '220px' }}
-                >
-                  <option value="">🏫 Institutional (All Departments)</option>
-                  {departments.map(d => (
-                    <option key={d.id || d.acronym} value={d.acronym || d.name}>
-                      🏢 {d.name} ({d.acronym})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+      {/* ACCREDITATION SUITE BAR (NAAC & NBA) */}
+      <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, hsla(217, 91%, 60%, 0.08) 0%, hsla(142, 76%, 36%, 0.08) 100%)', border: '1px solid hsla(217, 91%, 60%, 0.25)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: 'hsl(var(--text-main))' }}>
+              <ShieldCheck size={20} color="#0284c7" />
+              Accreditation Compliance Exporters (NAAC & NBA Suite)
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+              Instant one-click official tables formatted strictly per NAAC Criterion 3 & NBA Criterion 5 guidelines.
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-            {/* NAAC Criterion 3 Box */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#15803d', display: 'block', marginBottom: '8px' }}>
-                📗 NAAC SSR Criterion 3 (Research & Extension)
-              </span>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => handleExportNAAC('excel')}
-                  disabled={exportingAccreditation}
-                  className="btn btn-primary"
-                  style={{ padding: '6px 12px', fontWeight: 700, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#16a34a', borderColor: '#15803d' }}
-                >
-                  <FileSpreadsheet size={15} /> Excel (.xlsx)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExportNAAC('pdf')}
-                  disabled={exportingAccreditation}
-                  className="btn btn-primary"
-                  style={{ padding: '6px 12px', fontWeight: 700, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#dc2626', borderColor: '#b91c1c' }}
-                >
-                  <FileText size={15} /> PDF (.pdf)
-                </button>
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {auth.role === 'admin' && (
+              <select
+                className="form-control"
+                style={{ minWidth: '180px', fontWeight: 700, padding: '8px 12px' }}
+                value={accreditationDept}
+                onChange={(e) => setAccreditationDept(e.target.value)}
+              >
+                <option value="">Institution (All Depts)</option>
+                {departments.map(d => (
+                  <option key={d.id || d.name} value={d.name}>{d.name} ({d.acronym})</option>
+                ))}
+              </select>
+            )}
 
-            {/* NBA Criterion 5 Box */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0369a1', display: 'block', marginBottom: '8px' }}>
-                📘 NBA SAR Criterion 5 (Faculty Contributions)
-              </span>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => handleExportNBA('excel')}
-                  disabled={exportingAccreditation}
-                  className="btn btn-primary"
-                  style={{ padding: '6px 12px', fontWeight: 700, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#0284c7', borderColor: '#0369a1' }}
-                >
-                  <FileSpreadsheet size={15} /> Excel (.xlsx)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExportNBA('pdf')}
-                  disabled={exportingAccreditation}
-                  className="btn btn-primary"
-                  style={{ padding: '6px 12px', fontWeight: 700, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#dc2626', borderColor: '#b91c1c' }}
-                >
-                  <FileText size={15} /> PDF (.pdf)
-                </button>
-              </div>
-            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleExportNAAC('excel')}
+              disabled={exportingAccreditation}
+              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <FileSpreadsheet size={16} color="#16a34a" />
+              NAAC Crit 3 (Excel)
+            </button>
 
-            {/* NBA Form B2 Box */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f766e', display: 'block', marginBottom: '8px' }}>
-                📙 NBA Criterion 5 Form B2 (Faculty Details)
-              </span>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => handleExportNBAB2('excel')}
-                  disabled={exportingAccreditation}
-                  className="btn btn-primary"
-                  style={{ padding: '6px 12px', fontWeight: 700, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#0d9488', borderColor: '#0f766e' }}
-                >
-                  <FileSpreadsheet size={15} /> Excel (.xlsx)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExportNBAB2('pdf')}
-                  disabled={exportingAccreditation}
-                  className="btn btn-primary"
-                  style={{ padding: '6px 12px', fontWeight: 700, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#dc2626', borderColor: '#b91c1c' }}
-                >
-                  <FileText size={15} /> PDF (.pdf)
-                </button>
-              </div>
-            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleExportNAAC('pdf')}
+              disabled={exportingAccreditation}
+              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <FileText size={16} color="#dc2626" />
+              NAAC Crit 3 (PDF)
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleExportNBA('excel')}
+              disabled={exportingAccreditation}
+              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <FileSpreadsheet size={16} color="#16a34a" />
+              NBA Crit 5 (Excel)
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleExportNBA('pdf')}
+              disabled={exportingAccreditation}
+              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <FileText size={16} color="#dc2626" />
+              NBA Crit 5 (PDF)
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => handleExportNBAB2('pdf')}
+              disabled={exportingAccreditation}
+              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <FileText size={16} color="#0284c7" />
+              NBA Form B2 (PDF)
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* 2. REPORT SCOPE & ENTITY SELECTION */}
-        <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <Layers size={20} color="#0284c7" /> Select Report Scope & Target
-          </h3>
+      {/* FILTER & CONFIGURATION CARD */}
+      <div className="card" style={{ marginBottom: '32px' }}>
+        <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>Configure Custom Report & Dossier</h3>
 
-          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
-            {/* System Admin Scope Options */}
-            {auth.role === 'admin' && (
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        {/* 1. REPORT SCOPE SELECTION */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          {auth.role === 'admin' && (
+            <div className="form-group">
+              <label className="form-label">Report Scope</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
                   onClick={() => setReportScope('institutional')}
-                  className="btn"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '0.88rem',
-                    fontWeight: 800,
-                    borderRadius: '8px',
-                    background: reportScope === 'institutional' ? '#0284c7' : '#ffffff',
-                    color: reportScope === 'institutional' ? '#ffffff' : '#334155',
-                    border: '1.5px solid #0284c7',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
+                  className={`btn ${reportScope === 'institutional' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, padding: '8px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
-                  <Building2 size={16} /> 🏫 Institutional Report (Whole College)
+                  <Building size={15} style={{ marginRight: '4px' }} /> Institution
                 </button>
                 <button
                   type="button"
                   onClick={() => setReportScope('department')}
-                  className="btn"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '0.88rem',
-                    fontWeight: 800,
-                    borderRadius: '8px',
-                    background: reportScope === 'department' ? '#0284c7' : '#ffffff',
-                    color: reportScope === 'department' ? '#ffffff' : '#334155',
-                    border: '1.5px solid #0284c7',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
+                  className={`btn ${reportScope === 'department' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, padding: '8px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
-                  <Building size={16} /> 🏢 Department-wise Report
+                  <Building2 size={15} style={{ marginRight: '4px' }} /> Department
                 </button>
                 <button
                   type="button"
                   onClick={() => setReportScope('faculty')}
-                  className="btn"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '0.88rem',
-                    fontWeight: 800,
-                    borderRadius: '8px',
-                    background: reportScope === 'faculty' ? '#0284c7' : '#ffffff',
-                    color: reportScope === 'faculty' ? '#ffffff' : '#334155',
-                    border: '1.5px solid #0284c7',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
+                  className={`btn ${reportScope === 'faculty' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, padding: '8px', fontSize: '0.85rem', fontWeight: 700 }}
                 >
-                  <Users size={16} /> 👤 Individual Faculty Dossier
+                  <Users size={15} style={{ marginRight: '4px' }} /> Faculty
                 </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Department Admin Scope Options */}
-            {auth.role === 'dept_admin' && (
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setReportScope('department')}
-                  className="btn"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '0.88rem',
-                    fontWeight: 800,
-                    borderRadius: '8px',
-                    background: reportScope === 'department' ? '#0284c7' : '#ffffff',
-                    color: reportScope === 'department' ? '#ffffff' : '#334155',
-                    border: '1.5px solid #0284c7',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <Building size={16} /> 🏢 Department Report ({auth.department})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReportScope('faculty')}
-                  className="btn"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '0.88rem',
-                    fontWeight: 800,
-                    borderRadius: '8px',
-                    background: reportScope === 'faculty' ? '#0284c7' : '#ffffff',
-                    color: reportScope === 'faculty' ? '#ffffff' : '#334155',
-                    border: '1.5px solid #0284c7',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <Users size={16} /> 👤 Individual Faculty Dossier
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Department Selector */}
+          {(reportScope === 'department' || (reportScope === 'faculty' && auth.role === 'admin')) && (
+            <div className="form-group">
+              <label className="form-label">Select Department</label>
+              <select
+                className="form-control"
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                disabled={auth.role === 'dept_admin'}
+                style={{ fontWeight: 600 }}
+              >
+                <option value="">-- Choose Department --</option>
+                {departments.map(d => (
+                  <option key={d.id || d.name} value={d.name}>{d.name} ({d.acronym})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Conditional Sub-selectors */}
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {reportScope === 'department' && auth.role === 'admin' && (
-              <div className="form-group" style={{ margin: 0, minWidth: '300px' }}>
-                <label className="form-label" style={{ fontWeight: 800 }}>Choose Department:</label>
-                <select
-                  className="form-control"
-                  value={selectedDept}
-                  onChange={(e) => setSelectedDept(e.target.value)}
-                  style={{ fontWeight: 700 }}
-                >
-                  <option value="">-- Select Department --</option>
-                  {departments.map(d => (
-                    <option key={d.id || d.acronym} value={d.acronym || d.name}>
-                      {d.name} ({d.acronym})
+          {/* Single Faculty Selector */}
+          {reportScope === 'faculty' && (auth.role === 'admin' || auth.role === 'dept_admin') && (
+            <div className="form-group">
+              <label className="form-label">Select Faculty Member</label>
+              <select
+                className="form-control"
+                value={selectedStaffId}
+                onChange={(e) => setSelectedStaffId(e.target.value)}
+                style={{ fontWeight: 600 }}
+              >
+                <option value="">-- Choose Faculty --</option>
+                {facultyList
+                  .filter(f => !selectedDept || (f.Department || '').toLowerCase() === selectedDept.toLowerCase())
+                  .map(f => (
+                    <option key={f.staff_id} value={f.staff_id}>
+                      {f.staff_name || f.name} ({f.staff_id}) - {f.Department}
                     </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {reportScope === 'faculty' && (
-              <div className="form-group" style={{ margin: 0, minWidth: '340px', flex: 1 }}>
-                <label className="form-label" style={{ fontWeight: 800 }}>Select Faculty Member:</label>
-                <select
-                  className="form-control"
-                  value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                  style={{ fontWeight: 700 }}
-                >
-                  <option value="">-- Choose Faculty Member --</option>
-                  {facultyList
-                    .filter(f => {
-                      if (auth.role === 'dept_admin') {
-                        return (f.Department || '').toLowerCase() === (auth.department || '').toLowerCase();
-                      }
-                      return true;
-                    })
-                    .map(f => (
-                      <option key={f.staff_id} value={f.staff_id}>
-                        {f.staff_name || f.staff_id} ({f.staff_id}) - {f.Designation || ''} [{f.Department || ''}]
-                      </option>
-                    ))}
-                </select>
-              </div>
-            )}
-          </div>
+                  ))
+                }
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* 3. FILTERS & DATE RANGE */}
-        <h3 style={{ marginBottom: '16px', fontSize: '1.15rem', fontWeight: 800 }}>Configure Date & Activity Filters</h3>
+        {/* 2. DATE RANGE & SEARCH FILTERS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           <div className="form-group">
             <label className="form-label">From Date</label>
-            <input type="date" className="form-control" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            <input 
+              type="date" 
+              className="form-control" 
+              value={fromDate} 
+              onChange={(e) => setFromDate(e.target.value)} 
+            />
           </div>
           <div className="form-group">
             <label className="form-label">To Date</label>
-            <input type="date" className="form-control" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            <input 
+              type="date" 
+              className="form-control" 
+              value={toDate} 
+              onChange={(e) => setToDate(e.target.value)} 
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Publication Category Filter</label>
@@ -934,14 +886,14 @@ export default function Reports({ auth }) {
                 className="form-control" 
                 placeholder="Filter by title, journal, keywords..." 
                 value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)} 
                 style={{ paddingLeft: '36px' }}
               />
             </div>
           </div>
         </div>
 
-        {/* 4. INCLUDE SECTIONS CHECKBOXES */}
+        {/* 3. INCLUDE SECTIONS CHECKBOXES */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <label className="form-label" style={{ fontWeight: 800, margin: 0 }}>Include Sections</label>
@@ -955,27 +907,46 @@ export default function Reports({ auth }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-            {Object.keys(sections).map((section) => (
-              <label key={section} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+            {SECTION_CONFIGS.map(({ key, label }) => (
+              <label 
+                key={key} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  cursor: 'pointer', 
+                  userSelect: 'none', 
+                  background: sections[key] ? 'hsla(var(--primary), 0.08)' : '#f8fafc', 
+                  padding: '7px 12px', 
+                  borderRadius: '6px', 
+                  border: sections[key] ? '1px solid hsla(var(--primary), 0.3)' : '1px solid #e2e8f0',
+                  transition: 'all 0.15s ease'
+                }}
+              >
                 <input 
                   type="checkbox" 
-                  checked={sections[section]} 
-                  onChange={() => handleCheckboxChange(section)}
-                  style={{ width: '16px', height: '16px' }}
+                  checked={!!sections[key]} 
+                  onChange={() => handleCheckboxChange(key)}
+                  style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--primary))' }}
                 />
-                <span style={{ textTransform: 'capitalize', fontSize: '0.9rem', fontWeight: 600 }}>
-                  {section === 'ipr' ? 'IPR / Patents' : (section === 'resource' ? 'Resource Person' : section)}
+                <span style={{ fontSize: '0.88rem', fontWeight: sections[key] ? 700 : 500, color: sections[key] ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))' }}>
+                  {label}
                 </span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* 5. GENERATE & DOWNLOAD ACTIONS */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '18px' }}>
-          <button className="btn btn-primary" onClick={generateReport} disabled={loading} style={{ padding: '10px 22px', fontWeight: 800, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={18} />
+        {/* 4. GENERATE & DOWNLOAD ACTIONS */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid hsl(var(--border))', paddingTop: '20px' }}>
+          <button 
+            className="btn btn-primary" 
+            onClick={generateReport} 
+            disabled={loading} 
+            style={{ padding: '10px 22px', fontWeight: 800, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Calendar size={18} />
             {loading ? 'Generating Report...' : '⚡ Generate Report'}
           </button>
 
@@ -984,18 +955,18 @@ export default function Reports({ auth }) {
               <button 
                 className="btn btn-secondary" 
                 onClick={handleDownloadExcel}
-                style={{ padding: '10px 18px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', border: '1.5px solid #a7f3d0' }}
+                style={{ padding: '10px 18px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <FileSpreadsheet size={18} />
+                <FileSpreadsheet size={18} color="#16a34a" />
                 Download Excel (.xlsx)
               </button>
 
               <button 
                 className="btn btn-secondary" 
                 onClick={handleDownloadPDF}
-                style={{ padding: '10px 18px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef2f2', color: '#b91c1c', border: '1.5px solid #fecaca' }}
+                style={{ padding: '10px 18px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Download size={18} />
+                <Download size={18} color="#dc2626" />
                 Download PDF (.pdf)
               </button>
 
@@ -1012,7 +983,7 @@ export default function Reports({ auth }) {
         </div>
       </div>
 
-      {/* 6. GENERATED REPORT PREVIEW */}
+      {/* 5. GENERATED REPORT PREVIEW */}
       {reportData ? (
         <div className="card report-print-area" style={{ background: '#fff', color: '#000', padding: '40px', border: '1px solid #ddd', borderRadius: 'var(--radius)' }}>
           
@@ -1047,9 +1018,9 @@ export default function Reports({ auth }) {
                     <tbody>
                       <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', width: '140px', fontWeight: 700 }}>Staff ID:</td><td style={{ border: 'none', padding: '3px' }}>{personal.staff_id}</td></tr>
                       <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Staff Name:</td><td style={{ border: 'none', padding: '3px' }}>{personal.staff_name}</td></tr>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>DOB:</td><td style={{ border: 'none', padding: '3px' }}>{personal.dob}</td></tr>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Email Address:</td><td style={{ border: 'none', padding: '3px' }}>{personal.email}</td></tr>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Mobile:</td><td style={{ border: 'none', padding: '3px' }}>{personal.mobile}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>DOB:</td><td style={{ border: 'none', padding: '3px' }}>{personal.dob || 'N/A'}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Email Address:</td><td style={{ border: 'none', padding: '3px' }}>{personal.email || 'N/A'}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Mobile:</td><td style={{ border: 'none', padding: '3px' }}>{personal.mobile || 'N/A'}</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -1062,11 +1033,11 @@ export default function Reports({ auth }) {
                   </h3>
                   <table style={{ border: 'none', width: '100%', fontSize: '0.88rem' }}>
                     <tbody>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', width: '140px', fontWeight: 700 }}>Department:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Department}</td></tr>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Designation:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Designation}</td></tr>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Highest Qual:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Qualification}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', width: '140px', fontWeight: 700 }}>Department:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Department || 'N/A'}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Designation:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Designation || 'N/A'}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Highest Qual:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Qualification || 'N/A'}</td></tr>
                       <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Specialization:</td><td style={{ border: 'none', padding: '3px' }}>{academics.area_of_specialization || 'N/A'}</td></tr>
-                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Date of Joining:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Date_of_joining}</td></tr>
+                      <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Date of Joining:</td><td style={{ border: 'none', padding: '3px' }}>{academics.Date_of_joining || 'N/A'}</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -1100,178 +1071,568 @@ export default function Reports({ auth }) {
             </div>
           )}
 
+          {/* Education Details Section */}
+          {sections.education && reportData.education && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                3. Education & Academic Qualifications ({reportData.education.length} Records)
+              </h3>
+              {reportData.education.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Degree / Level</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Course / Specialization</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>College / Institution</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>University / Board</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Year of Passing</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Percentage / CGPA</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Class Obtained</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.education.map((e, idx) => (
+                      <tr key={e.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{e.degree_type || e.degree || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.course || e.specialization || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.college || e.institution || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.university || e.board || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{e.year_of_passing || e.year || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{e.percentage_cgpa || e.percentage || e.cgpa || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.class_obtained || e.class || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No education records reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Memberships Section */}
+          {sections.memberships && reportData.memberships && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Professional Society Memberships ({reportData.memberships.length} Records)
+              </h3>
+              {reportData.memberships.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Membership ID</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Professional Society / Body</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Membership Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.memberships.map((m, idx) => (
+                      <tr key={m.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{m.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{m.membershipid || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{m.organization || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{m.membership_type || 'Life Member'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No professional membership records reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Assigned Responsibilities Section */}
+          {sections.responsibilities && reportData.responsibilities && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Institutional & Department Responsibilities ({reportData.responsibilities.length} Records)
+              </h3>
+              {reportData.responsibilities.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Responsibility Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Scope / Level</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Academic Year</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Assigned By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.responsibilities.map((r, idx) => (
+                      <tr key={r.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{r.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.responsibility || r.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.level || 'Department'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{r.academic_year || '2025-2026'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.assigned_by || 'HOD / Principal'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No responsibilities reported.</p>
+              )}
+            </div>
+          )}
+
           {/* Publications Section */}
-          {sections.publications && reportData.publications && reportData.publications.length > 0 && (
+          {sections.publications && reportData.publications && (
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
                 Research Publications ({reportData.publications.length} Records)
               </h3>
-              <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Type</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Title</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Journal / Publisher</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Date</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Indexing</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Citations</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.publications.map((p, idx) => (
-                    <tr key={p.id || idx}>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{p.staff_name || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.Department || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.type_pub || 'Journal'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.title}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.journel || p.organizer || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.date_con || p.year || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.index_pub || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{p.citations || 0}</td>
+              {reportData.publications.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Type</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Journal / Publisher</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Date</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Indexing</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Citations</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportData.publications.map((p, idx) => (
+                      <tr key={p.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{p.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.Department || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.type_pub || 'Journal'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.title}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.journel || p.organizer || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.date_con || p.year || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{p.index_pub || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{p.citations || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No publication records reported.</p>
+              )}
             </div>
           )}
 
           {/* Books Section */}
-          {sections.books && reportData.books && reportData.books.length > 0 && (
+          {sections.books && reportData.books && (
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
                 Books Published ({reportData.books.length} Records)
               </h3>
-              <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Book Title</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Co-Authors</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Publisher</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Edition</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>ISBN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.books.map((b, idx) => (
-                    <tr key={b.id || idx}>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{b.staff_name || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.Department || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.title}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.coauthor || 'None'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.publisher}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.edition || '1st'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.isbn || 'N/A'}</td>
+              {reportData.books.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Book Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Co-Authors</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Publisher</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Edition</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>ISBN</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportData.books.map((b, idx) => (
+                      <tr key={b.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{b.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.Department || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.title}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.coauthor || 'None'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.publisher}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.edition || '1st'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{b.isbn || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No books published reported.</p>
+              )}
             </div>
           )}
 
           {/* Research Funding Section */}
-          {sections.funding && reportData.funding && reportData.funding.length > 0 && (
+          {sections.funding && reportData.funding && (
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
                 Research Projects & Funding Grants ({reportData.funding.length} Records)
               </h3>
-              <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Project Title</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Category & Role</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Funding Agency</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Amount (INR)</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.funding.map((f, idx) => (
-                    <tr key={f.id || idx}>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{f.staff_name || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.Department || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.title}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.grant_category || 'Project'} ({f.faculty_role || 'PI'})</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.fa || f.agency || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>₹ {f.amount?.toLocaleString('en-IN')}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.status}</td>
+              {reportData.funding.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Project Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Category & Role</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Funding Agency</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Amount (INR)</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportData.funding.map((f, idx) => (
+                      <tr key={f.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{f.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.Department || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.title}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.grant_category || 'Project'} ({f.faculty_role || 'PI'})</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.fa || f.agency || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>₹ {f.amount ? Number(f.amount).toLocaleString('en-IN') : 0}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{f.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No research funding grants reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Seed Money & Consultancy Section */}
+          {sections.seed_money && reportData.seed_money && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Funded Consultancy Projects & Seed Money for Research ({reportData.seed_money.length} Records)
+              </h3>
+              {reportData.seed_money.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Category</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Title / Nature of Consultation</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Client / Sponsoring Agency</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Role & Consultants</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Amount (INR)</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Date / Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.seed_money.map((sm, idx) => (
+                      <tr key={sm.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{sm.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{sm.entry_type || 'Seed Money'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{sm.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{sm.client_type || 'SREC Seed Fund'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{sm.faculty_role || 'PI'}{sm.consultants ? ` (${sm.consultants})` : ''}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>₹ {Number(sm.amount || 0).toLocaleString('en-IN')}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{sm.status || 'Received'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{[sm.sanctioned_date, sm.duration].filter(Boolean).join(' | ') || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No seed money or consultancy records reported.</p>
+              )}
             </div>
           )}
 
           {/* Patents / IPR Section */}
-          {sections.ipr && reportData.ipr && reportData.ipr.length > 0 && (
+          {sections.ipr && reportData.ipr && (
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
                 Patents & Intellectual Property Rights ({reportData.ipr.length} Records)
               </h3>
-              <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>IP Type</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Title</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Application/File No</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.ipr.map((ip, idx) => (
-                    <tr key={ip.id || idx}>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{ip.staff_name || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.Department || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.ip_type || 'Patent'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.patent || ip.title || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.institution || ip.app_no || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.patent_status || ip.status || 'Published'}</td>
+              {reportData.ipr.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>IP Type</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Application/File No</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportData.ipr.map((ip, idx) => (
+                      <tr key={ip.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{ip.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.Department || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.ip_type || 'Patent'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.patent || ip.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.institution || ip.app_no || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ip.patent_status || ip.status || 'Published'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No patents or IPR records reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Awards Received Section */}
+          {sections.awards && reportData.awards && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Awards & Recognitions Received ({reportData.awards.length} Records)
+              </h3>
+              {reportData.awards.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Award Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Awarding Body / Agency</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Name of Event</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Date of Award</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.awards.map((a, idx) => (
+                      <tr key={a.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{a.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{a.awardname || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{a.awardby || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{a.event || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{a.awa_date || a.date || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No award records reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Certifications Section */}
+          {sections.certifications && reportData.certifications && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Faculty Certifications & Online Courses ({reportData.certifications.length} Records)
+              </h3>
+              {reportData.certifications.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Course Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Issuing Organization</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Duration (Weeks)</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Score / Grade</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Exam Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.certifications.map((c, idx) => (
+                      <tr key={c.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{c.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.course_name || c.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.organisation || 'NPTEL / Coursera'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{c.duration_weeks || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{c.mark || c.score || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.data_of_exam || c.date || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No certification records reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Faculty Interactions Section */}
+          {sections.interactions && reportData.interactions && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Faculty Interactions (FDPs, Seminars, Workshops Attended) ({reportData.interactions.length} Records)
+              </h3>
+              {reportData.interactions.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Interaction Type</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Title / Topic</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Organizer Agency</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Period / Dates</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.interactions.map((it, idx) => (
+                      <tr key={it.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{it.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{it.type || 'FDP'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{it.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{it.organizer || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{[it.from_date, it.to_date].filter(Boolean).join(' to ') || it.date || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No interaction records reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Resource Person Section */}
+          {sections.resource && reportData.resource && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Resource Person & Invited Talks Delivered ({reportData.resource.length} Records)
+              </h3>
+              {reportData.resource.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Topic / Lecture Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Scope</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Acted As</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Organizer Agency</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Beneficiaries</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Period / Dates</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.resource.map((r, idx) => (
+                      <tr key={r.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{r.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.type || 'National'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.actedas || 'Speaker'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{r.organizer || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{r.ben || 0}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{[r.from_date, r.to_date].filter(Boolean).join(' to ') || r.date || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No resource person records reported.</p>
+              )}
             </div>
           )}
 
           {/* Events Organized Section */}
-          {sections.events && reportData.events && reportData.events.length > 0 && (
+          {sections.events && reportData.events && (
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
                 Events / Workshops Organized ({reportData.events.length} Records)
               </h3>
-              <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Category</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Event Title</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Role</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Period</th>
-                    <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Grant (INR)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.events.map((ev, idx) => (
-                    <tr key={ev.id || idx}>
-                      <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{ev.staff_name || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.Department || 'N/A'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.type}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.title}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.role || 'Coordinator'}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.from_date} to {ev.to_date}</td>
-                      <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.granted ? `₹ ${Number(ev.granted).toLocaleString('en-IN')}` : 'Nil'}</td>
+              {reportData.events.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Faculty</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Dept</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Category</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Event Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Role</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Period</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Grant (INR)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportData.events.map((ev, idx) => (
+                      <tr key={ev.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{ev.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.Department || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.type}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.title}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.role || 'Coordinator'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{[ev.from_date, ev.to_date].filter(Boolean).join(' to ') || ev.date || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{ev.granted ? `₹ ${Number(ev.granted).toLocaleString('en-IN')}` : 'Nil'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No events organized reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Clubs Activities Section */}
+          {sections.clubs && reportData.clubs && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Clubs Activities Organized ({reportData.clubs.length} Records)
+              </h3>
+              {reportData.clubs.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Club Name</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Event Type</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Event Title</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Organizer</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Period / Dates</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Grant (INR)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.clubs.map((c, idx) => (
+                      <tr key={c.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{c.club || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.type || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.title || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.organizer || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{[c.from_date, c.to_date].filter(Boolean).join(' to ') || c.date || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{c.granted ? `₹ ${Number(c.granted).toLocaleString('en-IN')}` : 'Nil'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No club activities reported.</p>
+              )}
+            </div>
+          )}
+
+          {/* Research Scholars Section */}
+          {sections.scholars && reportData.scholars && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                Research Scholars Supervised ({reportData.scholars.length} Records)
+              </h3>
+              {reportData.scholars.length > 0 ? (
+                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Research ID / Reg No</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Scholar Name</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>University</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Organization</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Supervisor Type</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
+                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Reg Year</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.scholars.map((s, idx) => (
+                      <tr key={s.id || idx}>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{s.res_id || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.staff_name || 'N/A'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.university || 'Anna University'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.organisation || 'SREC'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.supervisor_type || 'Internal'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.status || 'Ongoing'}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.registration_year || s.date || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No research scholars reported.</p>
+              )}
             </div>
           )}
 
