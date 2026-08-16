@@ -184,7 +184,7 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
       showSuccess(`PDF report "${filename || pageTitle}" generated and downloaded!`);
     } catch (err) {
       console.error('PDF Export Error:', err);
-      showError('Failed to generate PDF report.');
+      showError(`Failed to generate PDF report: ${err?.message || err}`);
     } finally {
       setDownloading(false);
     }
