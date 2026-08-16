@@ -403,7 +403,9 @@ router.post('/personal/verify-email-otp', authenticateToken, (req, res) => {
 
 // 2. UPDATE Personal Details (supports inline updates and full form updates)
 router.post('/personal/update', authenticateToken, (req, res) => {
-  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId) : req.user.staffId;
+  const staffId = (req.user.role === 'admin' || req.user.role === 'dept_admin')
+    ? (req.body.staffId || req.user.staffId || req.user.staff_id)
+    : (req.user.staffId || req.user.staff_id);
   const { name, value, pk, ...fullFields } = req.body;
 
   // Inline update
@@ -423,15 +425,16 @@ router.post('/personal/update', authenticateToken, (req, res) => {
     const { staff_name, dob, gender, address, mobile, email, pan, aadhar, type, aicte_id, anna_univ_id, apaar_id } = req.body;
 
     if (req.user.role === 'faculty') {
-      db.get('SELECT staff_name, email, type FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, existing) => {
-        const finalName = existing ? existing.staff_name : staff_name;
-        const finalType = existing ? existing.type : type;
+      db.get('SELECT staff_name, email, type, dob, gender, address, mobile, pan, aadhar, aicte_id, anna_univ_id, apaar_id FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, existing) => {
+        const finalName = existing ? existing.staff_name : (staff_name || '');
+        const finalType = existing ? existing.type : (type || '');
 
         const currentSavedEmail = existing ? (existing.email || '').trim().toLowerCase() : '';
-        const requestedEmail = (email || '').trim().toLowerCase();
+        const hasEmailInPayload = email !== undefined && email !== null;
+        const requestedEmail = hasEmailInPayload ? (email || '').trim().toLowerCase() : currentSavedEmail;
 
-        // If faculty changed their email, check if it has been verified via OTP
-        if (requestedEmail !== currentSavedEmail) {
+        // If faculty changed their email explicitly, check if it has been verified via OTP
+        if (hasEmailInPayload && requestedEmail && requestedEmail !== currentSavedEmail) {
           const verified = verifiedEmailStore.get(staffId.trim().toUpperCase());
           if (!verified || verified !== requestedEmail) {
             return res.status(400).json({
@@ -440,28 +443,54 @@ router.post('/personal/update', authenticateToken, (req, res) => {
           }
         }
 
-        const finalEmail = requestedEmail ? email.trim() : (existing ? existing.email : '');
+        const finalEmail = hasEmailInPayload ? (email ? email.trim() : (existing ? existing.email : '')) : (existing ? existing.email : '');
+        const finalDob = dob !== undefined ? dob : (existing ? existing.dob : '');
+        const finalGender = gender !== undefined ? gender : (existing ? existing.gender : 'Male');
+        const finalAddress = address !== undefined ? address : (existing ? existing.address : '');
+        const finalMobile = mobile !== undefined ? mobile : (existing ? existing.mobile : '');
+        const finalPan = pan !== undefined ? pan : (existing ? existing.pan : '');
+        const finalAadhar = aadhar !== undefined ? aadhar : (existing ? existing.aadhar : '');
+        const finalAicte = aicte_id !== undefined ? aicte_id : (existing ? existing.aicte_id : '');
+        const finalAnnaUniv = anna_univ_id !== undefined ? anna_univ_id : (existing ? existing.anna_univ_id : '');
+        const finalApaar = apaar_id !== undefined ? apaar_id : (existing ? existing.apaar_id : '');
 
         db.run(`
           UPDATE staff_personal 
           SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
               aicte_id = ?, anna_univ_id = ?, apaar_id = ?
           WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
-        `, [finalName, dob, gender, address, mobile, finalEmail, pan, aadhar, finalType, aicte_id || '', anna_univ_id || '', apaar_id || '', staffId], function(err) {
-          if (err) return res.status(500).json({ error: 'Failed to update profile' });
-          verifiedEmailStore.delete(staffId.trim().toUpperCase());
+        `, [finalName, finalDob, finalGender, finalAddress, finalMobile, finalEmail, finalPan, finalAadhar, finalType, finalAicte, finalAnnaUniv, finalApaar, staffId], function(err) {
+          if (err) return res.status(500).json({ error: 'Failed to update profile: ' + err.message });
+          if (hasEmailInPayload && requestedEmail !== currentSavedEmail) {
+            verifiedEmailStore.delete(staffId.trim().toUpperCase());
+          }
           res.json({ success: true, message: 'Profile updated successfully' });
         });
       });
     } else {
-      db.run(`
-        UPDATE staff_personal 
-        SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
-            aicte_id = ?, anna_univ_id = ?, apaar_id = ?
-        WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
-      `, [staff_name, dob, gender, address, mobile, email, pan, aadhar, type, aicte_id || '', anna_univ_id || '', apaar_id || '', staffId], function(err) {
-        if (err) return res.status(500).json({ error: 'Failed to update profile' });
-        res.json({ success: true, message: 'Profile updated successfully' });
+      db.get('SELECT staff_name, email, type, dob, gender, address, mobile, pan, aadhar, aicte_id, anna_univ_id, apaar_id FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, existing) => {
+        const finalName = staff_name !== undefined ? staff_name : (existing ? existing.staff_name : '');
+        const finalType = type !== undefined ? type : (existing ? existing.type : '');
+        const finalEmail = email !== undefined ? email : (existing ? existing.email : '');
+        const finalDob = dob !== undefined ? dob : (existing ? existing.dob : '');
+        const finalGender = gender !== undefined ? gender : (existing ? existing.gender : 'Male');
+        const finalAddress = address !== undefined ? address : (existing ? existing.address : '');
+        const finalMobile = mobile !== undefined ? mobile : (existing ? existing.mobile : '');
+        const finalPan = pan !== undefined ? pan : (existing ? existing.pan : '');
+        const finalAadhar = aadhar !== undefined ? aadhar : (existing ? existing.aadhar : '');
+        const finalAicte = aicte_id !== undefined ? aicte_id : (existing ? existing.aicte_id : '');
+        const finalAnnaUniv = anna_univ_id !== undefined ? anna_univ_id : (existing ? existing.anna_univ_id : '');
+        const finalApaar = apaar_id !== undefined ? apaar_id : (existing ? existing.apaar_id : '');
+
+        db.run(`
+          UPDATE staff_personal 
+          SET staff_name = ?, dob = ?, gender = ?, address = ?, mobile = ?, email = ?, pan = ?, aadhar = ?, type = ?,
+              aicte_id = ?, anna_univ_id = ?, apaar_id = ?
+          WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
+        `, [finalName, finalDob, finalGender, finalAddress, finalMobile, finalEmail, finalPan, finalAadhar, finalType, finalAicte, finalAnnaUniv, finalApaar, staffId], function(err) {
+          if (err) return res.status(500).json({ error: 'Failed to update profile: ' + err.message });
+          res.json({ success: true, message: 'Profile updated successfully' });
+        });
       });
     }
   }
@@ -531,8 +560,10 @@ router.get('/academics', authenticateToken, (req, res) => {
 
 // 4. UPDATE Academic Details
 router.post('/academics/update', authenticateToken, (req, res) => {
-  const staffId = req.user.role === 'admin' ? (req.body.staffId || req.user.staffId || req.user.staff_id) : (req.user.staffId || req.user.staff_id);
-  const isAdmin = req.user.role === 'admin';
+  const staffId = (req.user.role === 'admin' || req.user.role === 'dept_admin')
+    ? (req.body.staffId || req.user.staffId || req.user.staff_id)
+    : (req.user.staffId || req.user.staff_id);
+  const isAdmin = req.user.role === 'admin' || req.user.role === 'dept_admin';
   const {
     Date_of_joining, Department, Designation, Qualification,
     orcid_id, scholar_id, scopus_id, wos_id, h_index, i10_index, total_citations,
@@ -573,7 +604,7 @@ router.post('/academics/update', authenticateToken, (req, res) => {
     ], function(err) {
       if (err) {
         console.error('Academics admin update error:', err);
-        return res.status(500).json({ error: 'Failed to update academic info' });
+        return res.status(500).json({ error: 'Failed to update academic info: ' + err.message });
       }
       res.json({ success: true });
     });
@@ -595,7 +626,7 @@ router.post('/academics/update', authenticateToken, (req, res) => {
     ], function(err) {
       if (err) {
         console.error('Academics faculty update error:', err);
-        return res.status(500).json({ error: 'Failed to update academic info' });
+        return res.status(500).json({ error: 'Failed to update academic info: ' + err.message });
       }
       res.json({ success: true });
     });

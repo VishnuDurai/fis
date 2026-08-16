@@ -109,15 +109,17 @@ export default function AcademicInfo({ auth }) {
           headers,
           body: JSON.stringify({
             staffId: targetStaffId,
-            dob: targetItem?.dob || '',
-            gender: targetItem?.gender || 'Male',
-            address: targetItem?.address || '',
-            mobile: targetItem?.mobile || '',
-            pan: targetItem?.pan || '',
-            aadhar: targetItem?.aadhar || '',
-            aicte_id: targetItem?.aicte_id || '',
-            anna_univ_id: targetItem?.anna_univ_id || '',
-            apaar_id: targetItem?.apaar_id || ''
+            staff_name: targetItem?.staff_name || personal?.staff_name || '',
+            email: targetItem?.email || personal?.email || '',
+            dob: targetItem?.dob || personal?.dob || '',
+            gender: targetItem?.gender || personal?.gender || 'Male',
+            address: targetItem?.address || personal?.address || '',
+            mobile: targetItem?.mobile || personal?.mobile || '',
+            pan: targetItem?.pan || personal?.pan || '',
+            aadhar: targetItem?.aadhar || personal?.aadhar || '',
+            aicte_id: targetItem?.aicte_id || personal?.aicte_id || '',
+            anna_univ_id: targetItem?.anna_univ_id || personal?.anna_univ_id || '',
+            apaar_id: targetItem?.apaar_id || personal?.apaar_id || ''
           })
         }),
         fetch(`${API_BASE_URL}/api/faculty/academics/update`, {
@@ -145,8 +147,13 @@ export default function AcademicInfo({ auth }) {
         })
       ]);
 
-      if (!res1.ok || !res2.ok) {
-        throw new Error('Failed to update academic information');
+      if (!res1.ok) {
+        const err1 = await res1.json().catch(() => ({}));
+        throw new Error(err1.error || 'Failed to update personal/regulatory details');
+      }
+      if (!res2.ok) {
+        const err2 = await res2.json().catch(() => ({}));
+        throw new Error(err2.error || 'Failed to update academic details');
       }
 
       showSuccess('Academic & Publication identification information saved successfully!');
