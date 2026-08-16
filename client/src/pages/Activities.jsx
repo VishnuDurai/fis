@@ -887,19 +887,33 @@ export default function Activities({ auth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch DOI metadata.');
 
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      let monthName = '';
+      if (data.month) {
+        const mIdx = parseInt(data.month, 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          monthName = monthNames[mIdx];
+        }
+      }
+
       setFormData(prev => ({
         ...prev,
         title: data.title || prev.title,
-        name: data.journal || prev.name,
-        authors: data.authors || prev.authors,
-        category: data.category || prev.category || 'Journal',
-        year: data.year ? (data.month ? `${data.year}-${data.month}` : String(data.year)) : prev.year,
-        volume: data.volume || prev.volume,
-        issue: data.issue || prev.issue,
-        page: data.page || prev.page,
-        issn: data.issn || prev.issn,
-        publisher: data.publisher || prev.publisher,
-        doi: data.doi || prev.doi
+        journel: data.journal || prev.journel,
+        co_authors: data.authors || prev.co_authors,
+        type_pub: data.category === 'Conference' ? 'Conference' : (prev.type_pub || 'Journal'),
+        date_con: data.year ? `${data.year}-${String(data.month || '01').padStart(2, '0')}-01` : prev.date_con,
+        month_pub: monthName || prev.month_pub || 'January',
+        volume_pub: data.volume || prev.volume_pub,
+        issue_no: data.issue || prev.issue_no,
+        pp: data.page || prev.pp,
+        issn_no: data.issn || prev.issn_no,
+        organizer: data.publisher || prev.organizer,
+        doi: data.doi || prev.doi,
+        paper_url: data.doi_url || prev.paper_url
       }));
       showSuccess(`Auto-filled details for: "${(data.title || '').slice(0, 45)}..."`);
     } catch (err) {

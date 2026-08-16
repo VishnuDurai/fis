@@ -122,6 +122,21 @@ router.get('/all-supervisors', authenticateToken, (req, res) => {
   });
 });
 
+// DOI AUTO-FILL ENDPOINT: Queries CrossRef REST API for publication metadata
+router.get('/fetch-doi', authenticateToken, async (req, res) => {
+  const { doi } = req.query;
+  if (!doi || !doi.trim()) {
+    return res.status(400).json({ error: 'DOI query parameter is required.' });
+  }
+
+  try {
+    const metadata = await fetchPublicationByDoi(doi);
+    res.json(metadata);
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to fetch DOI metadata from CrossRef.' });
+  }
+});
+
 // Helper middleware to validate type
 function validateType(req, res, next) {
   const { type } = req.params;
@@ -438,21 +453,6 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
     }
     res.json({ success: true, message: 'Activity record updated successfully' });
   });
-});
-
-// DOI AUTO-FILL ENDPOINT: Queries CrossRef REST API for publication metadata
-router.get('/fetch-doi', authenticateToken, async (req, res) => {
-  const { doi } = req.query;
-  if (!doi || !doi.trim()) {
-    return res.status(400).json({ error: 'DOI query parameter is required.' });
-  }
-
-  try {
-    const metadata = await fetchPublicationByDoi(doi);
-    res.json(metadata);
-  } catch (err) {
-    res.status(400).json({ error: err.message || 'Failed to fetch DOI metadata from CrossRef.' });
-  }
 });
 
 export default router;
