@@ -245,16 +245,17 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
 // 2. ADD Activity with optional file upload
 router.post('/:type', authenticateToken, validateType, upload.single('file'), (req, res) => {
   const { type } = req.params;
-  const staffId = req.user.staffId;
+  const isPrivileged = req.user.role === 'admin' || req.user.role === 'dept_admin';
+  const targetStaffId = (isPrivileged && req.body.staff_id) ? req.body.staff_id : req.user.staffId;
   const config = tableMap[type];
 
   // Get staff name for inserting
-  db.get('SELECT staff_name FROM staff_personal WHERE staff_id = ?', [staffId], (err, personalRow) => {
+  db.get('SELECT staff_name FROM staff_personal WHERE staff_id = ?', [targetStaffId], (err, personalRow) => {
     if (err) return res.status(500).json({ error: 'Database error' });
-    const staffName = personalRow ? personalRow.staff_name : '';
+    const staffName = req.body.staff_name || (personalRow ? personalRow.staff_name : '');
 
     const data = { ...req.body };
-    data.staff_id = staffId;
+    data.staff_id = targetStaffId;
     data.staff_name = staffName;
     data.date = new Date().toLocaleDateString('en-GB'); // dd-mm-yyyy
 
@@ -361,7 +362,10 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
   const params = [];
 
   Object.keys(req.body).forEach(key => {
-    if (config.cols.includes(key) && key !== 'staff_id' && key !== 'id') {
+    if (config.cols.includes(key) && key !== 'id') {
+      if (key === 'staff_id' && req.user.role !== 'admin' && req.user.role !== 'dept_admin') {
+        return;
+      }
       updateCols.push(`${key} = ?`);
       let val = req.body[key];
       if (val === undefined || val === null || val === '') {

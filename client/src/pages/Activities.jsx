@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Trash2, Download, FileSignature, Search, Edit } from 'lucide-react';
+import { Plus, Trash2, Download, FileSignature, Search, Edit, GraduationCap, CheckCircle2, UserCheck } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
@@ -451,13 +451,17 @@ const activityConfigs = {
   },
   supervisors: {
     title: 'Research Supervisorship',
-    headers: ['Supervisor Ref No', 'Recognition Month & Year', 'Internal Scholars Count', 'External Scholars Count', 'Attachment'],
+    headers: ['Supervisor Ref No', 'Recognized University', 'Area of Specialization', 'Recognition Month & Year', 'Internal Scholars Count', 'External Scholars Count', 'Attachment'],
     fields: [
       { name: 'res_sup_id', label: 'Supervisor Reference Number', type: 'text', required: true },
+      { name: 'university', label: 'Recognized University', type: 'text', required: true },
+      { name: 'supj', label: 'Area of Specialization / Research Domains', type: 'text', required: false },
       { name: 'recognition_month_year', label: 'Recognition Month & Year', type: 'month', required: true }
     ],
     renderRow: (row) => [
       row.res_sup_id || 'N/A',
+      row.university || 'Anna University',
+      row.supj || 'N/A',
       row.recognition_month_year || row.date || 'N/A',
       row.internal || 0,
       row.external || 0
@@ -518,6 +522,23 @@ export default function Activities({ auth }) {
   const [selectedPubCategory, setSelectedPubCategory] = useState('');
   const [selectedEventCategory, setSelectedEventCategory] = useState('');
   const [selectedInteractionType, setSelectedInteractionType] = useState('');
+
+  // Doctorate / Ph.D Faculty Filtering for Supervisorship
+  const isDoctorateFaculty = (fac) => {
+    if (!fac) return false;
+    const name = (fac.staff_name || fac.name || '').toLowerCase();
+    const qual = (fac.Qualification || fac.qualification || '').toLowerCase();
+    return name.includes('dr.') || name.startsWith('dr ') || qual.includes('ph.d') || qual.includes('phd') || qual.includes('doctor');
+  };
+
+  const eligibleDoctorates = useMemo(() => {
+    if (!deptFaculty || deptFaculty.length === 0) return [];
+    let list = deptFaculty.filter(isDoctorateFaculty);
+    if (selectedDepartment) {
+      list = list.filter(f => (f.Department || '').trim().toLowerCase() === selectedDepartment.trim().toLowerCase());
+    }
+    return list.sort((a, b) => (a.staff_name || '').localeCompare(b.staff_name || ''));
+  }, [deptFaculty, selectedDepartment]);
 
   // Research Supervisorship Mapped Scholars State
   const [mappedScholars, setMappedScholars] = useState([]);
@@ -760,6 +781,11 @@ export default function Activities({ auth }) {
       config.fields.forEach(f => {
         initial[f.name] = f.type === 'select' ? f.options[0] : '';
       });
+      if (type === 'supervisors') {
+        initial.university = 'Anna University';
+        initial.staff_id = (auth.role === 'admin' || auth.role === 'dept_admin') ? '' : auth.staffId;
+        initial.staff_name = (auth.role === 'admin' || auth.role === 'dept_admin') ? '' : auth.name;
+      }
       if (type === 'scholars') {
         initial.staff_name = auth.name || '';
         initial.organisation = 'Sri Ramakrishna Engineering College';
@@ -783,6 +809,14 @@ export default function Activities({ auth }) {
     config.fields.forEach(f => {
       initial[f.name] = item[f.name] || (f.type === 'select' ? f.options[0] : '');
     });
+    if (type === 'supervisors') {
+      initial.staff_id = item.staff_id || auth.staffId;
+      initial.staff_name = item.staff_name || auth.name;
+      initial.university = item.university || 'Anna University';
+      initial.supj = item.supj || '';
+      initial.res_sup_id = item.res_sup_id || '';
+      initial.recognition_month_year = item.recognition_month_year || item.date || '';
+    }
     if (type === 'scholars') {
       initial.staff_name = item.staff_name || auth.name || '';
       initial.organisation = item.organisation || 'Sri Ramakrishna Engineering College';
@@ -1048,7 +1082,7 @@ export default function Activities({ auth }) {
             auth={auth}
             records={filteredActivities}
           />
-          {auth.role !== 'dept_admin' && (
+          {(auth.role !== 'dept_admin' || type === 'supervisors') && (
             <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
               <Plus size={16} />
               {showAddForm ? 'Close Form' : `Add ${itemLabel}`}
@@ -1059,9 +1093,55 @@ export default function Activities({ auth }) {
 
       {showAddForm && (
         <div className="card" style={{ marginBottom: '32px' }}>
-          <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>Create Entry</h3>
+          <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>{editItem ? 'Edit Entry' : 'Create Entry'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
+              {type === 'supervisors' && (auth.role === 'admin' || auth.role === 'dept_admin') && (
+                <div className="form-group" style={{ gridColumn: 'span 2', background: '#f0fdf4', padding: '16px 20px', borderRadius: '10px', border: '1.5px solid #86efac' }}>
+                  <label className="form-label" style={{ color: '#166534', fontWeight: 800, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <GraduationCap size={20} color="#16a34a" />
+                    Select Faculty Member (Holding Ph.D. / Dr. Title) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <p style={{ margin: '2px 0 10px 0', fontSize: '0.8rem', color: '#15803d' }}>
+                    Search and select from faculty members verified with Ph.D. qualification or Dr. salutation to register or update their recognized research supervisorship details.
+                  </p>
+                  <select
+                    className="form-control"
+                    value={formData.staff_id || ''}
+                    onChange={(e) => {
+                      const sId = e.target.value;
+                      const selectedFac = deptFaculty.find(f => f.staff_id === sId);
+                      const existing = activitiesList.find(a => a.staff_id === sId);
+                      setFormData(prev => ({
+                        ...prev,
+                        staff_id: sId,
+                        staff_name: selectedFac ? (selectedFac.staff_name || selectedFac.name) : prev.staff_name,
+                        university: existing?.university || prev.university || 'Anna University',
+                        supj: existing?.supj || prev.supj || '',
+                        res_sup_id: existing ? (existing.res_sup_id || '') : (sId ? prev.res_sup_id : ''),
+                        recognition_month_year: existing ? (existing.recognition_month_year || existing.date || '') : (sId ? prev.recognition_month_year : '')
+                      }));
+                      if (existing) {
+                        setEditItem(existing);
+                      } else {
+                        setEditItem(null);
+                      }
+                    }}
+                    required
+                    style={{ background: '#ffffff', fontWeight: 700, borderColor: '#86efac', fontSize: '0.9rem', padding: '10px 14px' }}
+                  >
+                    <option value="">-- Search & Select Doctorate / Ph.D Faculty Member ({eligibleDoctorates.length} Available) --</option>
+                    {eligibleDoctorates.map(fac => {
+                      const existingSup = activitiesList.find(a => a.staff_id === fac.staff_id);
+                      return (
+                        <option key={fac.staff_id} value={fac.staff_id}>
+                          {fac.staff_name} [{fac.staff_id}] - {fac.Department || 'Dept'}{fac.Designation ? ` (${fac.Designation})` : ''} {existingSup ? `✓ [Registered: ${existingSup.res_sup_id}]` : '⭐ [Eligible Ph.D/Dr. Candidate]'}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
               {(() => {
                 let list = config.fields || [];
                 if (sysPageConfig && Array.isArray(sysPageConfig.fields) && sysPageConfig.fields.length > 0) {
@@ -1733,7 +1813,7 @@ export default function Activities({ auth }) {
                 {config.headers.map((h, i) => (
                   <th key={i}>{h}</th>
                 ))}
-                {auth.role !== 'dept_admin' && <th>Actions</th>}
+                {(auth.role !== 'dept_admin' || type === 'supervisors') && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -1770,7 +1850,7 @@ export default function Activities({ auth }) {
                         )}
                       </td>
                     )}
-                    {auth.role !== 'dept_admin' && (
+                    {(auth.role !== 'dept_admin' || type === 'supervisors') && (
                       <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <button 
                           onClick={() => openEditModal(item)} 
