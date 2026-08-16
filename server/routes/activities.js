@@ -165,16 +165,36 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
       query = `SELECT t.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation ${extraSelect} FROM staff_supervisor t LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id)) LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id)) WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?))`;
       params = [req.user.staffId];
     }
-  } else if (type === 'scholars' && !isAdmin && !isDeptAdmin && (!reqStaffId || reqStaffId === req.user.staffId)) {
-    query = `
-      SELECT t.*, ${staffNameSelect} as staff_name, a.Department, a.Designation
+  } else if (type === 'scholars') {
+    const scholarSelect = `
+      SELECT t.*, 
+             ${staffNameSelect} as staff_name, 
+             a.Department, 
+             a.Designation,
+             sup_a.Department as supervisor_dept,
+             sup_a.Designation as supervisor_desig,
+             COALESCE(sup_p.staff_name, sup_a.staff_name, t.sup_name) as supervisor_name,
+             sup_s.res_sup_id as supervisor_ref_no
       FROM staff_scholars t
       LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
-      WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?))
-         OR (t.sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(t.sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE CONCAT('%', LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')), '%'))
+      LEFT JOIN staff_personal sup_p ON 
+          LOWER(REPLACE(REPLACE(REPLACE(REPLACE(sup_p.staff_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) = 
+          LOWER(REPLACE(REPLACE(REPLACE(REPLACE(t.sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', ''))
+      LEFT JOIN staff_academics sup_a ON LOWER(TRIM(sup_a.staff_id)) = LOWER(TRIM(sup_p.staff_id))
+      LEFT JOIN staff_supervisor sup_s ON LOWER(TRIM(sup_s.staff_id)) = LOWER(TRIM(sup_p.staff_id))
     `;
-    params = [req.user.staffId, req.user.name || ''];
+
+    if (reqStaffId && reqStaffId !== req.user.staffId) {
+      query = `${scholarSelect} WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?)) OR (t.sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(t.sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE CONCAT('%', LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')), '%'))`;
+      params = [reqStaffId, reqStaffId];
+    } else if (isAdmin || isDeptAdmin) {
+      query = scholarSelect;
+      params = [];
+    } else {
+      query = `${scholarSelect} WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?)) OR (t.sup_name IS NOT NULL AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(t.sup_name, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')) LIKE CONCAT('%', LOWER(REPLACE(REPLACE(REPLACE(REPLACE(?, 'Dr.', ''), 'Dr', ''), '.', ''), ' ', '')), '%'))`;
+      params = [req.user.staffId, req.user.name || ''];
+    }
   } else if (reqStaffId && reqStaffId !== req.user.staffId) {
     query = `
       SELECT t.*, ${staffNameSelect} as staff_name, a.Department, a.Designation
@@ -232,7 +252,10 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
 
         if (isDeptAdmin) {
           const targetDept = (req.user.department || '').trim();
-          const filtered = processedRows.filter(r => matchesDepartment(r.Department, targetDept, deptsList || []));
+          const filtered = processedRows.filter(r => 
+            matchesDepartment(r.Department, targetDept, deptsList || []) ||
+            (type === 'scholars' && matchesDepartment(r.supervisor_dept, targetDept, deptsList || []))
+          );
           return res.json(filtered);
         }
 

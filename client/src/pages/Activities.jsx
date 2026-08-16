@@ -544,14 +544,73 @@ export default function Activities({ auth }) {
   const [mappedScholars, setMappedScholars] = useState([]);
   const [showExternalScholarModal, setShowExternalScholarModal] = useState(false);
   const [editingExtScholar, setEditingExtScholar] = useState(null);
+  const [selectedScholarSupervisorDept, setSelectedScholarSupervisorDept] = useState('');
+  const [selectedScholarSupervisor, setSelectedScholarSupervisor] = useState('');
+  const [scholarSearchQuery, setScholarSearchQuery] = useState('');
   const [extScholarForm, setExtScholarForm] = useState({
     res_id: '',
     staff_name: '',
     organisation: '',
     registration_year: '',
-    status: 'Provisionally Registered'
+    status: 'Provisionally Registered',
+    sup_name: ''
   });
   const [extScholarFile, setExtScholarFile] = useState(null);
+
+  const scholarSupervisorDepts = useMemo(() => {
+    const set = new Set();
+    mappedScholars.forEach(s => {
+      if (s.supervisor_dept && s.supervisor_dept.trim()) {
+        set.add(s.supervisor_dept.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [mappedScholars]);
+
+  const scholarSupervisorsList = useMemo(() => {
+    const map = new Map();
+    mappedScholars.forEach(s => {
+      const name = (s.supervisor_name || s.sup_name || '').trim();
+      if (name) {
+        const dept = s.supervisor_dept || '';
+        const desig = s.supervisor_desig || '';
+        const key = name.toLowerCase().replace(/dr\.?/g, '').replace(/\./g, '').replace(/\s+/g, '');
+        if (!map.has(key)) {
+          map.set(key, { name, dept, desig });
+        }
+      }
+    });
+    let list = Array.from(map.values());
+    if (selectedScholarSupervisorDept) {
+      list = list.filter(sup => (sup.dept || '').trim().toLowerCase() === selectedScholarSupervisorDept.trim().toLowerCase());
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [mappedScholars, selectedScholarSupervisorDept]);
+
+  const filteredMappedScholars = useMemo(() => {
+    return mappedScholars.filter(s => {
+      if (selectedScholarSupervisorDept) {
+        const sDept = (s.supervisor_dept || '').trim().toLowerCase();
+        const target = selectedScholarSupervisorDept.trim().toLowerCase();
+        if (sDept !== target) return false;
+      }
+      if (selectedScholarSupervisor) {
+        const sSup = (s.supervisor_name || s.sup_name || '').toLowerCase().replace(/dr\.?/g, '').replace(/\./g, '').replace(/\s+/g, '');
+        const target = selectedScholarSupervisor.toLowerCase().replace(/dr\.?/g, '').replace(/\./g, '').replace(/\s+/g, '');
+        if (!sSup.includes(target) && !target.includes(sSup)) return false;
+      }
+      if (scholarSearchQuery) {
+        const q = scholarSearchQuery.toLowerCase().trim();
+        const matchName = (s.staff_name || '').toLowerCase().includes(q);
+        const matchReg = (s.res_id || '').toLowerCase().includes(q);
+        const matchSup = (s.supervisor_name || s.sup_name || '').toLowerCase().includes(q);
+        const matchDept = (s.supervisor_dept || '').toLowerCase().includes(q);
+        const matchOrg = (s.organisation || '').toLowerCase().includes(q);
+        if (!matchName && !matchReg && !matchSup && !matchDept && !matchOrg) return false;
+      }
+      return true;
+    });
+  }, [mappedScholars, selectedScholarSupervisorDept, selectedScholarSupervisor, scholarSearchQuery]);
 
   const fetchMappedScholars = async () => {
     if (type === 'supervisors') {
@@ -582,7 +641,8 @@ export default function Activities({ auth }) {
       staff_name: '',
       organisation: '',
       registration_year: '',
-      status: 'Provisionally Registered'
+      status: 'Provisionally Registered',
+      sup_name: selectedScholarSupervisor || (activitiesList.length > 0 ? (activitiesList[0].staff_name || auth.name) : auth.name) || auth.name
     });
     setExtScholarFile(null);
     setShowExternalScholarModal(true);
@@ -595,7 +655,8 @@ export default function Activities({ auth }) {
       staff_name: scholar.staff_name || '',
       organisation: scholar.organisation || '',
       registration_year: scholar.registration_year || '',
-      status: scholar.status || 'Provisionally Registered'
+      status: scholar.status || 'Provisionally Registered',
+      sup_name: scholar.supervisor_name || scholar.sup_name || auth.name
     });
     setExtScholarFile(null);
     setShowExternalScholarModal(true);
@@ -629,7 +690,7 @@ export default function Activities({ auth }) {
       data.append('registration_year', extScholarForm.registration_year);
       data.append('status', extScholarForm.status);
       data.append('supervisor_type', 'External');
-      data.append('sup_name', auth.name);
+      data.append('sup_name', extScholarForm.sup_name || auth.name);
       data.append('university', 'Anna University');
       data.append('desgination', 'External Scholar');
       if (extScholarFile) {
@@ -1891,26 +1952,115 @@ export default function Activities({ auth }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <ReportButtons 
                 pageTitle="Registered Research Scholars" 
-                departmentName={auth.dept || auth.department || selectedDepartment || 'Information Technology'} 
-                headers={['Scholar Reg No', 'Scholar Full Name', 'Scholar Type', 'Institution', 'Reg Date / Year', 'Research Status']} 
-                rows={mappedScholars.map(s => [
+                departmentName={selectedScholarSupervisorDept || auth.dept || auth.department || selectedDepartment || 'All Departments'} 
+                headers={['Scholar Reg No', 'Scholar Full Name', 'Scholar Type', 'Institution', 'Supervisor Name', 'Supervisor Designation', 'Supervisor Department', 'Reg Date / Year', 'Research Status']} 
+                rows={filteredMappedScholars.map(s => [
                   s.res_id || 'N/A',
                   s.staff_name || '',
                   (s.supervisor_type || 'Internal').toLowerCase() === 'internal' ? 'Internal (Auto-Mapped)' : 'External Scholar',
                   s.organisation || ((s.supervisor_type || 'Internal').toLowerCase() === 'internal' ? 'Sri Ramakrishna Engineering College' : 'N/A'),
+                  s.supervisor_name || s.sup_name || 'N/A',
+                  s.supervisor_desig || s.desgination || 'Supervisor',
+                  s.supervisor_dept || 'N/A',
                   s.registration_year || s.date || 'N/A',
                   s.status || 'Pursuing'
                 ])} 
                 auth={auth}
               />
               <button 
-                type="button"
+                type="button" 
                 className="btn btn-secondary" 
                 onClick={handleOpenAddExtScholar}
                 style={{ background: '#0284c7', color: '#ffffff', borderColor: '#0284c7', fontWeight: 700, padding: '8px 16px', fontSize: '0.85rem' }}
               >
                 <Plus size={16} /> Add External Scholar
               </button>
+            </div>
+          </div>
+
+          {/* 1. Scholar Filter Controls Card */}
+          <div className="card" style={{ marginBottom: '20px', padding: '16px 20px', background: '#f0f9ff', border: '1.5px solid #bae6fd' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  🔍 Filter Scholars:
+                </span>
+                <span style={{ fontSize: '0.8rem', background: '#e0f2fe', color: '#0284c7', padding: '3px 10px', borderRadius: '12px', fontWeight: 700, border: '1px solid #7dd3fc' }}>
+                  Showing {filteredMappedScholars.length} of {mappedScholars.length} Scholars
+                </span>
+              </div>
+              {(selectedScholarSupervisorDept || selectedScholarSupervisor || scholarSearchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedScholarSupervisorDept('');
+                    setSelectedScholarSupervisor('');
+                    setScholarSearchQuery('');
+                  }}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.8rem', padding: '4px 14px', fontWeight: 700, background: '#ffffff', color: '#0284c7', borderColor: '#7dd3fc' }}
+                >
+                  ✕ Display All Scholars
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', alignItems: 'center' }}>
+              {/* Filter by Supervisor Department */}
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>
+                  Research Supervisor Department:
+                </label>
+                <select
+                  className="form-control"
+                  value={selectedScholarSupervisorDept}
+                  onChange={(e) => {
+                    setSelectedScholarSupervisorDept(e.target.value);
+                    setSelectedScholarSupervisor('');
+                  }}
+                  style={{ background: '#ffffff', fontWeight: 600, fontSize: '0.88rem' }}
+                >
+                  <option value="">-- All Supervisor Departments ({scholarSupervisorDepts.length}) --</option>
+                  {scholarSupervisorDepts.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter by Research Supervisor Alone */}
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>
+                  Research Supervisor:
+                </label>
+                <select
+                  className="form-control"
+                  value={selectedScholarSupervisor}
+                  onChange={(e) => setSelectedScholarSupervisor(e.target.value)}
+                  style={{ background: '#ffffff', fontWeight: 600, fontSize: '0.88rem' }}
+                >
+                  <option value="">-- All Research Supervisors ({scholarSupervisorsList.length}) --</option>
+                  {scholarSupervisorsList.map(sup => (
+                    <option key={sup.name} value={sup.name}>
+                      {sup.name}{sup.dept ? ` (${sup.dept})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quick Search Input */}
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>
+                  Search Scholar / Keyword:
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search by scholar name, reg no, institution..."
+                  value={scholarSearchQuery}
+                  onChange={(e) => setScholarSearchQuery(e.target.value)}
+                  style={{ background: '#ffffff', fontSize: '0.88rem' }}
+                />
+              </div>
             </div>
           </div>
 
@@ -1929,6 +2079,34 @@ export default function Activities({ auth }) {
                   <div>
                     <label className="form-label">Scholar Full Name <span style={{ color: 'red' }}>*</span></label>
                     <input type="text" className="form-control" required value={extScholarForm.staff_name} onChange={(e) => setExtScholarForm({ ...extScholarForm, staff_name: e.target.value })} placeholder="Full name of scholar" />
+                  </div>
+                  <div>
+                    <label className="form-label">Research Supervisor Name <span style={{ color: 'red' }}>*</span></label>
+                    {scholarSupervisorsList.length > 0 ? (
+                      <select
+                        className="form-control"
+                        required
+                        value={extScholarForm.sup_name}
+                        onChange={(e) => setExtScholarForm({ ...extScholarForm, sup_name: e.target.value })}
+                        style={{ background: '#ffffff', fontWeight: 600 }}
+                      >
+                        <option value="">-- Select Research Supervisor --</option>
+                        {scholarSupervisorsList.map(sup => (
+                          <option key={sup.name} value={sup.name}>
+                            {sup.name}{sup.dept ? ` (${sup.dept})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required 
+                        value={extScholarForm.sup_name} 
+                        onChange={(e) => setExtScholarForm({ ...extScholarForm, sup_name: e.target.value })} 
+                        placeholder="Supervisor Name (e.g. Dr. V. Karpagam)" 
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="form-label">External Institution / Organization <span style={{ color: 'red' }}>*</span></label>
@@ -1980,26 +2158,31 @@ export default function Activities({ auth }) {
             <table>
               <thead>
                 <tr style={{ background: '#0284c7', color: '#ffffff' }}>
-                  <th style={{ color: '#ffffff', width: '50px' }}>S.No</th>
+                  <th style={{ color: '#ffffff', width: '45px' }}>S.No</th>
                   <th style={{ color: '#ffffff' }}>Scholar Reg No</th>
                   <th style={{ color: '#ffffff' }}>Scholar Full Name</th>
                   <th style={{ color: '#ffffff' }}>Scholar Type</th>
                   <th style={{ color: '#ffffff' }}>Institution</th>
+                  <th style={{ color: '#ffffff' }}>Supervisor Name</th>
+                  <th style={{ color: '#ffffff' }}>Supervisor Designation</th>
+                  <th style={{ color: '#ffffff' }}>Supervisor Department</th>
                   <th style={{ color: '#ffffff' }}>Reg Date / Year</th>
                   <th style={{ color: '#ffffff' }}>Research Status</th>
                   <th style={{ color: '#ffffff' }}>Attachment</th>
-                  <th style={{ color: '#ffffff', textAlign: 'center', width: '150px' }}>Actions</th>
+                  <th style={{ color: '#ffffff', textAlign: 'center', width: '140px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {mappedScholars.length === 0 ? (
+                {filteredMappedScholars.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', color: '#64748b', fontStyle: 'italic', padding: '24px' }}>
-                      No research scholars mapped yet under your supervisorship.
+                    <td colSpan="12" style={{ textAlign: 'center', color: '#64748b', fontStyle: 'italic', padding: '28px' }}>
+                      {mappedScholars.length === 0 
+                        ? 'No research scholars mapped yet under supervisorship.' 
+                        : 'No research scholars match the selected supervisor / department filters. Click "Display All Scholars" to view all records.'}
                     </td>
                   </tr>
                 ) : (
-                  mappedScholars.map((s, i) => {
+                  filteredMappedScholars.map((s, i) => {
                     const isInternal = (s.supervisor_type || 'Internal').toLowerCase() === 'internal';
                     return (
                       <tr key={s.id || i}>
@@ -2012,6 +2195,19 @@ export default function Activities({ auth }) {
                           </span>
                         </td>
                         <td>{s.organisation || (isInternal ? 'Sri Ramakrishna Engineering College' : 'N/A')}</td>
+                        <td style={{ fontWeight: 700, color: '#0369a1' }}>
+                          {s.supervisor_name || s.sup_name || 'N/A'}
+                        </td>
+                        <td>
+                          <span className="badge badge-success" style={{ fontSize: '0.78rem' }}>
+                            {s.supervisor_desig || s.desgination || 'Supervisor'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="badge badge-secondary" style={{ fontSize: '0.78rem' }}>
+                            {s.supervisor_dept || 'N/A'}
+                          </span>
+                        </td>
                         <td>{s.registration_year || s.date || 'N/A'}</td>
                         <td><span className="badge badge-secondary">{s.status || 'Pursuing'}</span></td>
                         <td>
@@ -2030,7 +2226,7 @@ export default function Activities({ auth }) {
                                 type="button" 
                                 className="btn btn-secondary" 
                                 onClick={() => handleEditExternalScholar(s)} 
-                                style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                                style={{ padding: '4px 8px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
                                 title="Edit External Scholar"
                               >
                                 <Edit size={13} /> Edit
@@ -2039,7 +2235,7 @@ export default function Activities({ auth }) {
                                 type="button" 
                                 className="btn btn-danger" 
                                 onClick={() => handleDeleteExternalScholar(s.id)} 
-                                style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                                style={{ padding: '4px 8px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
                                 title="Delete External Scholar"
                               >
                                 <Trash2 size={13} /> Delete
