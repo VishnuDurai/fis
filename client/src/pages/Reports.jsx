@@ -796,11 +796,11 @@ export default function Reports({ auth }) {
 
       {/* NBA TIER-1 SAR EVALUATION & CRITERION 5 SUITE MODAL */}
       {showNbaTier1Modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1240px', width: '96vw', height: '92vh', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '18px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ flexShrink: 0, padding: '16px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldCheck size={22} color="#38bdf8" />
@@ -861,7 +861,7 @@ export default function Reports({ auth }) {
             </div>
 
             {/* KPI Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', padding: '16px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', padding: '14px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.3 Faculty Qualification (FQ)</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
@@ -901,8 +901,8 @@ export default function Reports({ auth }) {
               </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div style={{ display: 'flex', gap: '4px', padding: '0 24px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', overflowX: 'auto' }}>
+            {/* Tab Navigation - Pill Style with Flex Wrap and Clear Visibility */}
+            <div style={{ flexShrink: 0, display: 'flex', gap: '8px', padding: '10px 24px', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
                 { id: 'overview', label: '📊 SAR Overview' },
                 { id: 'fq', label: '🎓 5.3 Faculty Qualification (FQ)' },
@@ -910,31 +910,40 @@ export default function Reports({ auth }) {
                 { id: 'cadre', label: '🏛️ 5.2 Cadre Proportion' },
                 { id: 'b2', label: '📋 Form B2: Faculty Details Roster' },
                 { id: 'activities', label: '⚡ 5.1-5.5 Contributions & Activities' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setNbaActiveTab(tab.id)}
-                  style={{
-                    padding: '10px 16px',
-                    fontSize: '0.84rem',
-                    fontWeight: nbaActiveTab === tab.id ? 800 : 600,
-                    color: nbaActiveTab === tab.id ? '#0284c7' : '#475569',
-                    background: nbaActiveTab === tab.id ? '#ffffff' : 'transparent',
-                    border: 'none',
-                    borderBottom: nbaActiveTab === tab.id ? '2.5px solid #0284c7' : '2.5px solid transparent',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
+              ].map(tab => {
+                const isActive = nbaActiveTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setNbaActiveTab(tab.id)}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '0.85rem',
+                      fontWeight: isActive ? 800 : 600,
+                      color: isActive ? '#ffffff' : '#334155',
+                      background: isActive ? '#0284c7' : '#ffffff',
+                      border: isActive ? '1px solid #0284c7' : '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      boxShadow: isActive ? '0 2px 6px rgba(2, 132, 199, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      lineHeight: '1.3',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Tab Content Area */}
             <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+
               {loadingNbaTier1 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>Calculating NBA Tier-1 Metrics...</div>
