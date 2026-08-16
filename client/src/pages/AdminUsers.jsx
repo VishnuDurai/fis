@@ -8,7 +8,7 @@ import ReportButtons from '../components/ReportButtons.jsx';
 import PhdCompletionModal from '../components/PhdCompletionModal.jsx';
 import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
-import { downloadExperienceCertificate, downloadRelievingOrder, downloadSalaryCertificate } from '../utils/certificateGenerator.js';
+import { downloadExperienceCertificate, downloadRelievingOrder, downloadSalaryCertificate, parseDateSafe, resolveFacultyDetails } from '../utils/certificateGenerator.js';
 import { validateStaffId, validateEmail, validateMobile, validatePan, validateAadhar, validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
 export default function AdminUsers({ auth, initialTab }) {
@@ -1187,18 +1187,34 @@ export default function AdminUsers({ auth, initialTab }) {
     }
   };
 
+  const formatToInputDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = parseDateSafe(dateStr);
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleOpenCertificateModal = (faculty, defaultType = 'experience') => {
     setCertificateTarget(faculty);
     setCertificateType(defaultType);
+    const resolved = resolveFacultyDetails(faculty);
     const today = new Date().toISOString().split('T')[0];
     const curMonth = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const prefilledDoj = formatToInputDate(faculty.Date_of_joining || faculty.doj || faculty.joining_date) || today;
+    const prefilledRelief = formatToInputDate(faculty.date_of_leaving) || today;
     setCertOptions({
       refNo: '',
+      salutation: resolved.salutation,
+      gender: resolved.isFemale ? 'female' : 'male',
       issueDate: today,
+      doj: prefilledDoj,
       conduct: 'Good',
       purpose: defaultType === 'salary' ? 'Official Bank Loan / Financial Verification' : (defaultType === 'experience' ? 'Higher Studies / Professional Credentials' : ''),
-      resignationDate: faculty.date_of_leaving || today,
-      relievingDate: faculty.date_of_leaving || today,
+      resignationDate: prefilledRelief,
+      relievingDate: prefilledRelief,
       salaryMonth: curMonth
     });
   };
@@ -3971,6 +3987,44 @@ export default function AdminUsers({ auth, initialTab }) {
             {/* Form Fields */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
               
+              {/* Faculty Salutation & Gender / Pronouns Selection */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700 }}>Faculty Salutation *</label>
+                  <select
+                    className="form-control"
+                    value={certOptions.salutation}
+                    onChange={(e) => {
+                      const newSal = e.target.value;
+                      const isFem = newSal === 'Mrs.' || newSal === 'Ms.' || newSal === 'Miss.';
+                      setCertOptions({
+                        ...certOptions,
+                        salutation: newSal,
+                        gender: isFem ? 'female' : (newSal === 'Mr.' ? 'male' : certOptions.gender)
+                      });
+                    }}
+                  >
+                    <option value="Dr.">Dr.</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Prof.">Prof.</option>
+                    <option value="Lt. Dr.">Lt. Dr.</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700 }}>Gender & Pronouns *</label>
+                  <select
+                    className="form-control"
+                    value={certOptions.gender}
+                    onChange={(e) => setCertOptions({ ...certOptions, gender: e.target.value })}
+                  >
+                    <option value="male">Male (He / His / Him)</option>
+                    <option value="female">Female (She / Her / Her)</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Common Reference & Issue Date */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                 <div>
@@ -3999,12 +4053,18 @@ export default function AdminUsers({ auth, initialTab }) {
               {/* 1. EXPERIENCE CERTIFICATE FORM */}
               {certificateType === 'experience' && (
                 <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ fontSize: '0.85rem', color: '#334155', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <div><strong>Date of Joining:</strong> {certificateTarget.Date_of_joining || 'N/A'}</div>
-                    <div><strong>Service Status:</strong> {certificateTarget.is_relieved ? `Relieved on ${certificateTarget.date_of_leaving || 'N/A'}` : 'Active Regular Faculty'}</div>
-                  </div>
-
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Date of Joining (DOJ) *</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={certOptions.doj}
+                        onChange={(e) => setCertOptions({ ...certOptions, doj: e.target.value })}
+                        required
+                      />
+                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Original in record: {certificateTarget.Date_of_joining || 'N/A'}</span>
+                    </div>
                     <div>
                       <label className="form-label" style={{ fontWeight: 700 }}>Conduct & Character Endorsement</label>
                       <select
@@ -4018,16 +4078,17 @@ export default function AdminUsers({ auth, initialTab }) {
                         <option value="Satisfactory">Satisfactory</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="form-label" style={{ fontWeight: 700 }}>Purpose / Stated Reason (Optional)</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="e.g. Higher Studies / Professional Credentials"
-                        value={certOptions.purpose}
-                        onChange={(e) => setCertOptions({ ...certOptions, purpose: e.target.value })}
-                      />
-                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 700 }}>Purpose / Stated Reason (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. Higher Studies / Professional Credentials"
+                      value={certOptions.purpose}
+                      onChange={(e) => setCertOptions({ ...certOptions, purpose: e.target.value })}
+                    />
                   </div>
                 </div>
               )}

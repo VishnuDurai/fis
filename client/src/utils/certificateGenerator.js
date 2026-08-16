@@ -21,15 +21,50 @@ const fetchImageAsBase64 = async (url) => {
 };
 
 /**
- * Format a date string into readable DD/MM/YYYY or DD Month YYYY
+ * Robust date parser supporting DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, and ISO date strings
+ */
+export const parseDateSafe = (dateStr) => {
+  if (!dateStr || dateStr === 'N/A' || dateStr === 'null' || dateStr === 'undefined') return null;
+  if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
+
+  const str = String(dateStr).trim();
+
+  // 1. Check DD-MM-YYYY or DD/MM/YYYY format (e.g. '01-06-2015' -> 1st June 2015)
+  const ddmmyyyyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const day = parseInt(ddmmyyyyMatch[1], 10);
+    const month = parseInt(ddmmyyyyMatch[2], 10) - 1; // 0-indexed
+    const year = parseInt(ddmmyyyyMatch[3], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // 2. Check YYYY-MM-DD format (e.g. '2015-06-01')
+  const yyyymmddMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (yyyymmddMatch) {
+    const year = parseInt(yyyymmddMatch[1], 10);
+    const month = parseInt(yyyymmddMatch[2], 10) - 1;
+    const day = parseInt(yyyymmddMatch[3], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+/**
+ * Format a date string into readable DD Month YYYY (e.g. 01 June 2015)
  */
 export const formatDateDisplay = (dateStr) => {
-  if (!dateStr || dateStr === 'N/A' || dateStr === 'null' || dateStr === 'undefined') return 'N/A';
+  const d = parseDateSafe(dateStr);
+  if (!d) return dateStr || 'N/A';
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
     const day = String(d.getDate()).padStart(2, '0');
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
     const month = monthNames[d.getMonth()];
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
@@ -39,10 +74,9 @@ export const formatDateDisplay = (dateStr) => {
 };
 
 export const formatDateShort = (dateStr) => {
-  if (!dateStr || dateStr === 'N/A' || dateStr === 'null' || dateStr === 'undefined') return 'N/A';
+  const d = parseDateSafe(dateStr);
+  if (!d) return dateStr || 'N/A';
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
@@ -53,13 +87,72 @@ export const formatDateShort = (dateStr) => {
 };
 
 /**
+ * Resolves proper salutation (Dr., Mr., Mrs., Ms., Prof., Lt. Dr.), clean display name, and pronouns
+ */
+export const resolveFacultyDetails = (faculty, options = {}) => {
+  const rawName = (faculty.staff_name || faculty.name || 'Faculty Member').trim();
+  const genderFromDb = (faculty.gender || '').toLowerCase();
+  
+  let salutation = options.salutation || '';
+  let cleanName = rawName;
+
+  if (!salutation) {
+    // Check if name has a prefix
+    const prefixMatch = rawName.match(/^(Dr\.|Mr\.|Mrs\.|Ms\.|Miss\.|Prof\.|Lt\.Dr\.)\s*/i);
+    if (prefixMatch) {
+      const p = prefixMatch[1];
+      if (/^Dr\./i.test(p)) salutation = 'Dr.';
+      else if (/^Mr\./i.test(p)) salutation = 'Mr.';
+      else if (/^Mrs\./i.test(p)) salutation = 'Mrs.';
+      else if (/^Ms\.|Miss\./i.test(p)) salutation = 'Ms.';
+      else if (/^Prof\./i.test(p)) salutation = 'Prof.';
+      else if (/^Lt\.Dr\./i.test(p)) salutation = 'Lt. Dr.';
+    } else {
+      if (genderFromDb === 'female') salutation = 'Ms.';
+      else salutation = 'Mr.';
+    }
+  }
+
+  // Strip leading salutations from cleanName if present to format properly
+  const baseName = rawName.replace(/^(Dr\.|Mr\.|Mrs\.|Ms\.|Miss\.|Prof\.|Lt\.Dr\.)\s*/i, '').trim();
+  const displayName = `${salutation} ${baseName}`.trim();
+
+  // Determine gender for pronoun usage
+  let isFemale = false;
+  if (options.gender) {
+    isFemale = options.gender.toLowerCase() === 'female';
+  } else if (genderFromDb === 'female' || salutation === 'Mrs.' || salutation === 'Ms.' || salutation === 'Miss.') {
+    isFemale = true;
+  } else {
+    isFemale = false;
+  }
+
+  const pronouns = {
+    subject: isFemale ? 'she' : 'he',
+    Subject: isFemale ? 'She' : 'He',
+    possessive: isFemale ? 'her' : 'his',
+    Possessive: isFemale ? 'Her' : 'His',
+    object: isFemale ? 'her' : 'him',
+    Object: isFemale ? 'Her' : 'Him'
+  };
+
+  return {
+    salutation,
+    baseName,
+    displayName,
+    isFemale,
+    pronouns
+  };
+};
+
+/**
  * Calculate precise tenure in Years, Months, Days between two dates
  */
 export const calculateTenure = (startDateStr, endDateStr) => {
-  if (!startDateStr || startDateStr === 'N/A') return 'N/A';
+  const start = parseDateSafe(startDateStr);
+  if (!start) return 'N/A';
   try {
-    const start = new Date(startDateStr);
-    const end = endDateStr && endDateStr !== 'Till Date' ? new Date(endDateStr) : new Date();
+    const end = endDateStr && endDateStr !== 'Till Date' ? (parseDateSafe(endDateStr) || new Date()) : new Date();
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 'N/A';
 
     let years = end.getFullYear() - start.getFullYear();
@@ -139,7 +232,7 @@ const drawOfficialHeaderAndBorders = async (doc) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Subtle page double border for high-security certificate appearance
+  // Double border for high-security certificate appearance
   doc.setDrawColor(30, 41, 59); // Slate 800
   doc.setLineWidth(0.75);
   doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
@@ -216,16 +309,18 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
   doc.line((pageWidth - titleWidth) / 2, 71.5, (pageWidth + titleWidth) / 2, 71.5);
 
   // Faculty details resolution
-  const staffName = (faculty.staff_name || faculty.name || 'Faculty Member').trim();
+  const { displayName, pronouns } = resolveFacultyDetails(faculty, options);
   const staffId = (faculty.staff_id || 'N/A').trim();
   const designation = (faculty.Designation || faculty.designation || 'Assistant Professor').trim();
   const fullDeptName = getFullDepartmentName(faculty.Department || faculty.department || 'Engineering');
-  const dojFormatted = formatDateDisplay(faculty.Date_of_joining || faculty.doj || faculty.joining_date);
+  
+  const rawDoj = options.doj || options.dateOfJoining || faculty.Date_of_joining || faculty.doj || faculty.joining_date;
+  const dojFormatted = formatDateDisplay(rawDoj);
   
   const isRelieved = Boolean(faculty.is_relieved);
-  const leavingDate = faculty.date_of_leaving || options.dateOfLeaving;
-  const reliefDateFormatted = (isRelieved && leavingDate) ? formatDateDisplay(leavingDate) : null;
-  const tenureText = calculateTenure(faculty.Date_of_joining || faculty.doj || faculty.joining_date, isRelieved ? leavingDate : null);
+  const rawLeavingDate = options.dateOfLeaving || options.relievingDate || faculty.date_of_leaving;
+  const reliefDateFormatted = (isRelieved && rawLeavingDate) ? formatDateDisplay(rawLeavingDate) : null;
+  const tenureText = calculateTenure(rawDoj, isRelieved ? rawLeavingDate : null);
   const conduct = options.conduct || 'Good';
 
   // Body Paragraph
@@ -234,8 +329,8 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
   doc.setTextColor(15, 23, 42);
 
   const para1 = isRelieved
-    ? `This is to certify that Dr. / Mr. / Ms. ${staffName} (Staff ID: ${staffId}) was working as a regular full-time faculty member in this institution, designated as ${designation} in the Department of ${fullDeptName}, from ${dojFormatted} to ${reliefDateFormatted}.`
-    : `This is to certify that Dr. / Mr. / Ms. ${staffName} (Staff ID: ${staffId}) is currently working as a regular full-time faculty member in this institution, designated as ${designation} in the Department of ${fullDeptName}, since ${dojFormatted}.`;
+    ? `This is to certify that ${displayName} (Staff ID: ${staffId}) was working as a regular full-time faculty member in this institution, designated as ${designation} in the Department of ${fullDeptName}, from ${dojFormatted} to ${reliefDateFormatted}.`
+    : `This is to certify that ${displayName} (Staff ID: ${staffId}) is currently working as a regular full-time faculty member in this institution, designated as ${designation} in the Department of ${fullDeptName}, since ${dojFormatted}.`;
 
   const splitPara1 = doc.splitTextToSize(para1, pageWidth - 36);
   doc.text(splitPara1, 18, 84, { lineHeightFactor: 1.5 });
@@ -244,16 +339,16 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
   const nextY = 84 + para1Height + 6;
 
   const para2 = isRelieved
-    ? `During his / her total tenure of ${tenureText} at Sri Ramakrishna Engineering College, his / her character, conduct, and professional performance were found to be ${conduct}.`
-    : `As of date, he / she has completed a total service tenure of ${tenureText} at Sri Ramakrishna Engineering College. His / her character, conduct, and professional commitment have been found to be ${conduct}.`;
+    ? `During ${pronouns.possessive} total tenure of ${tenureText} at Sri Ramakrishna Engineering College, ${pronouns.possessive} character, conduct, and professional performance were found to be ${conduct}.`
+    : `As of date, ${pronouns.subject} has completed a total service tenure of ${tenureText} at Sri Ramakrishna Engineering College. ${pronouns.Possessive} character, conduct, and professional commitment have been found to be ${conduct}.`;
 
   const splitPara2 = doc.splitTextToSize(para2, pageWidth - 36);
   doc.text(splitPara2, 18, nextY, { lineHeightFactor: 1.5 });
 
   const para3Y = nextY + (splitPara2.length * 7) + 6;
   const para3 = options.purpose 
-    ? `This certificate is issued upon his / her request for the purpose of ${options.purpose}.`
-    : `This certificate is issued upon his / her request for official purposes without any liability on the part of the institution.`;
+    ? `This certificate is issued upon ${pronouns.possessive} request for the purpose of ${options.purpose}.`
+    : `This certificate is issued upon ${pronouns.possessive} request for official purposes without any liability on the part of the institution.`;
 
   const splitPara3 = doc.splitTextToSize(para3, pageWidth - 36);
   doc.text(splitPara3, 18, para3Y, { lineHeightFactor: 1.5 });
@@ -267,7 +362,7 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
     styles: { font: 'times', fontSize: 10, cellPadding: 3, textColor: [30, 41, 59] },
     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
     body: [
-      [{ content: 'Faculty Name', fontStyle: 'bold', width: 45 }, staffName],
+      [{ content: 'Faculty Name', fontStyle: 'bold', width: 45 }, displayName],
       [{ content: 'Staff ID', fontStyle: 'bold' }, staffId],
       [{ content: 'Designation', fontStyle: 'bold' }, designation],
       [{ content: 'Department', fontStyle: 'bold' }, fullDeptName],
@@ -284,8 +379,8 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
   doc.setFontSize(10.5);
   doc.setTextColor(15, 23, 42);
 
-  // Left Signatory: Administrative Officer / HR
-  doc.text('ADMINISTRATIVE OFFICER / HR', 20, footerY);
+  // Left Signatory: HR alone
+  doc.text('HR', 20, footerY);
   doc.setFont('times', 'normal');
   doc.setFontSize(9.5);
   doc.text('Sri Ramakrishna Engineering College', 20, footerY + 5);
@@ -309,7 +404,7 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
   doc.text('Sri Ramakrishna Engineering College', pageWidth - 20, footerY + 5, { align: 'right' });
   doc.text('Coimbatore - 641 022', pageWidth - 20, footerY + 9, { align: 'right' });
 
-  const safeFilename = `Experience_Certificate_${staffId}_${staffName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+  const safeFilename = `Experience_Certificate_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
   doc.save(safeFilename);
 };
 
@@ -352,34 +447,36 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
   doc.setLineWidth(0.4);
   doc.line(20, 80, pageWidth - 20, 80);
 
-  const staffName = (faculty.staff_name || faculty.name || 'Faculty Member').trim();
+  const { displayName, pronouns } = resolveFacultyDetails(faculty, options);
   const staffId = (faculty.staff_id || 'N/A').trim();
   const designation = (faculty.Designation || faculty.designation || 'Assistant Professor').trim();
   const fullDeptName = getFullDepartmentName(faculty.Department || faculty.department || 'Engineering');
   const deptAcronym = getDepartmentAcronym(faculty.Department || faculty.department);
-  const dojFormatted = formatDateDisplay(faculty.Date_of_joining || faculty.doj || faculty.joining_date);
+  
+  const rawDoj = options.doj || options.dateOfJoining || faculty.Date_of_joining || faculty.doj || faculty.joining_date;
+  const dojFormatted = formatDateDisplay(rawDoj);
   const relievingDate = options.relievingDate || faculty.date_of_leaving || new Date().toISOString().split('T')[0];
   const relievingDateFormatted = formatDateDisplay(relievingDate);
-  const tenureText = calculateTenure(faculty.Date_of_joining || faculty.doj, relievingDate);
+  const tenureText = calculateTenure(rawDoj, relievingDate);
 
   // Order Paragraph 1
   doc.setFont('times', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
 
-  const orderText1 = `With reference to the resignation letter cited, Dr. / Mr. / Ms. ${staffName} (Staff ID: ${staffId}), ${designation} in the Department of ${fullDeptName}, is hereby relieved from his / her duties on the afternoon of ${relievingDateFormatted}.`;
+  const orderText1 = `With reference to the resignation letter cited, ${displayName} (Staff ID: ${staffId}), ${designation} in the Department of ${fullDeptName}, is hereby relieved from ${pronouns.possessive} duties on the afternoon of ${relievingDateFormatted}.`;
   const splitOrder1 = doc.splitTextToSize(orderText1, pageWidth - 36);
   doc.text(splitOrder1, 18, 88, { lineHeightFactor: 1.5 });
 
   // Order Paragraph 2 (No Dues Clearance)
   const p2Y = 88 + (splitOrder1.length * 7) + 4;
-  const orderText2 = `He / She has completed all handover formalities and obtained necessary "No Dues Clearances" from the Department of ${fullDeptName}, Central Library, Laboratories, Accounts Section, and the Central Administrative Office.`;
+  const orderText2 = `${pronouns.Subject} has completed all handover formalities and obtained necessary "No Dues Clearances" from the Department of ${fullDeptName}, Central Library, Laboratories, Accounts Section, and the Central Administrative Office.`;
   const splitOrder2 = doc.splitTextToSize(orderText2, pageWidth - 36);
   doc.text(splitOrder2, 18, p2Y, { lineHeightFactor: 1.5 });
 
   // Order Paragraph 3 (Appreciation)
   const p3Y = p2Y + (splitOrder2.length * 7) + 4;
-  const orderText3 = `The Management, Principal, and Faculty of Sri Ramakrishna Engineering College place on record their sincere appreciation for his / her dedicated service and valuable contributions to the institution during his / her tenure of ${tenureText}. We wish him / her all success in his / her future endeavors.`;
+  const orderText3 = `The Management, Principal, and Faculty of Sri Ramakrishna Engineering College place on record their sincere appreciation for ${pronouns.possessive} dedicated service and valuable contributions to the institution during ${pronouns.possessive} tenure of ${tenureText}. We wish ${pronouns.object} all success in ${pronouns.possessive} future endeavors.`;
   const splitOrder3 = doc.splitTextToSize(orderText3, pageWidth - 36);
   doc.text(splitOrder3, 18, p3Y, { lineHeightFactor: 1.5 });
 
@@ -391,7 +488,7 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
     theme: 'grid',
     styles: { font: 'times', fontSize: 9.5, cellPadding: 2.5, textColor: [30, 41, 59] },
     body: [
-      [{ content: 'Faculty Name', fontStyle: 'bold', width: 45 }, staffName],
+      [{ content: 'Faculty Name', fontStyle: 'bold', width: 45 }, displayName],
       [{ content: 'Staff ID', fontStyle: 'bold' }, staffId],
       [{ content: 'Designation & Department', fontStyle: 'bold' }, `${designation}, ${fullDeptName}`],
       [{ content: 'Date of Joining', fontStyle: 'bold' }, dojFormatted],
@@ -409,7 +506,7 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
   doc.setFont('times', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
-  doc.text(`1. The Individual (Dr. / Mr. / Ms. ${staffName})`, 22, copyY + 5);
+  doc.text(`1. The Individual (${displayName})`, 22, copyY + 5);
   doc.text(`2. Head of the Department - ${deptAcronym}`, 22, copyY + 9.5);
   doc.text('3. Accounts & Payroll Section', 22, copyY + 14);
   doc.text('4. Personal File / Establishment Section', 22, copyY + 18.5);
@@ -433,7 +530,7 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
   doc.setFontSize(9);
   doc.text('Sri Ramakrishna Engineering College', pageWidth - 20, footerY + 5, { align: 'right' });
 
-  const safeFilename = `Relieving_Order_${staffId}_${staffName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+  const safeFilename = `Relieving_Order_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
   doc.save(safeFilename);
 };
 
@@ -474,11 +571,13 @@ export const downloadSalaryCertificate = async (faculty, salaryData = {}, option
   doc.text(`(Issued for: ${purpose})`, pageWidth / 2, 75.5, { align: 'center' });
 
   // Faculty details resolution
-  const staffName = (faculty.staff_name || faculty.name || 'Faculty Member').trim();
+  const { displayName, pronouns } = resolveFacultyDetails(faculty, options);
   const staffId = (faculty.staff_id || 'N/A').trim();
   const designation = (faculty.Designation || faculty.designation || 'Assistant Professor').trim();
   const fullDeptName = getFullDepartmentName(faculty.Department || faculty.department || 'Engineering');
-  const dojFormatted = formatDateDisplay(faculty.Date_of_joining || faculty.doj || faculty.joining_date);
+  
+  const rawDoj = options.doj || options.dateOfJoining || faculty.Date_of_joining || faculty.doj || faculty.joining_date;
+  const dojFormatted = formatDateDisplay(rawDoj);
 
   // Body Paragraph
   doc.setFont('times', 'normal');
@@ -486,11 +585,11 @@ export const downloadSalaryCertificate = async (faculty, salaryData = {}, option
   doc.setTextColor(15, 23, 42);
 
   const monthYear = options.salaryMonth || new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
-  const introPara = `This is to certify that Dr. / Mr. / Ms. ${staffName} (Staff ID: ${staffId}) is a regular full-time employee of Sri Ramakrishna Engineering College, working as ${designation} in the Department of ${fullDeptName} since ${dojFormatted}.`;
+  const introPara = `This is to certify that ${displayName} (Staff ID: ${staffId}) is a regular full-time employee of Sri Ramakrishna Engineering College, working as ${designation} in the Department of ${fullDeptName} since ${dojFormatted}.`;
   const splitIntro = doc.splitTextToSize(introPara, pageWidth - 36);
   doc.text(splitIntro, 18, 83, { lineHeightFactor: 1.5 });
 
-  const statementPara = `His / Her monthly salary breakdown and earnings structure for the month of ${monthYear} are as detailed below:`;
+  const statementPara = `${pronouns.Possessive} monthly salary breakdown and earnings structure for the month of ${monthYear} are as detailed below:`;
   doc.text(statementPara, 18, 83 + (splitIntro.length * 7) + 2);
 
   // Earnings & Deductions items
@@ -590,6 +689,6 @@ export const downloadSalaryCertificate = async (faculty, salaryData = {}, option
   doc.text('Sri Ramakrishna Engineering College', pageWidth - 20, footerY + 5, { align: 'right' });
   doc.text('Coimbatore - 641 022', pageWidth - 20, footerY + 9, { align: 'right' });
 
-  const safeFilename = `Salary_Certificate_${staffId}_${staffName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+  const safeFilename = `Salary_Certificate_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
   doc.save(safeFilename);
 };
