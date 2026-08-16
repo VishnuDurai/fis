@@ -1313,7 +1313,7 @@ router.get('/appraisals/pending-counts', authenticateToken, (req, res) => {
           pendingPrincipalHrCount,
           isDeptAdmin,
           isInstAdmin,
-          userPendingCount: isInstAdmin ? pendingPrincipalHrCount : (isDeptAdmin ? pendingHodCount : 0)
+          userPendingCount: isInstAdmin ? pendingPrincipalHrCount : 0
         });
       });
     } else {

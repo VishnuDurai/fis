@@ -643,7 +643,7 @@ export default function Home({ auth }) {
                   </button>
                 )}
 
-                {(auth.role === 'admin' || auth.role === 'dept_admin' || auth.isHod || auth.isSupervisorEligible) && (
+                {(auth.role === 'admin' || auth.isInstitutionalAdmin || (auth.designation || '').toLowerCase().includes('principal') || (auth.designation || '').toLowerCase().includes('hr')) && (
                   <button className="btn btn-secondary" onClick={() => navigate('/appraisal')} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 600 }}>
                     <FileCheck size={16} />
                     Appraisals Review
