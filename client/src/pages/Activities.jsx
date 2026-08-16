@@ -546,6 +546,7 @@ export default function Activities({ auth }) {
   const [editingExtScholar, setEditingExtScholar] = useState(null);
   const [selectedScholarSupervisorDept, setSelectedScholarSupervisorDept] = useState('');
   const [selectedScholarSupervisor, setSelectedScholarSupervisor] = useState('');
+  const [selectedScholarStatusFilter, setSelectedScholarStatusFilter] = useState('');
   const [scholarSearchQuery, setScholarSearchQuery] = useState('');
   const [extScholarForm, setExtScholarForm] = useState({
     res_id: '',
@@ -599,6 +600,13 @@ export default function Activities({ auth }) {
         const target = selectedScholarSupervisor.toLowerCase().replace(/dr\.?/g, '').replace(/\./g, '').replace(/\s+/g, '');
         if (!sSup.includes(target) && !target.includes(sSup)) return false;
       }
+      if (selectedScholarStatusFilter === 'pursuing') {
+        const st = (s.status || '').toLowerCase();
+        if (st.includes('awarded') || st.includes('completed')) return false;
+      } else if (selectedScholarStatusFilter === 'completed') {
+        const st = (s.status || '').toLowerCase();
+        if (!st.includes('awarded') && !st.includes('completed')) return false;
+      }
       if (scholarSearchQuery) {
         const q = scholarSearchQuery.toLowerCase().trim();
         const matchName = (s.staff_name || '').toLowerCase().includes(q);
@@ -610,7 +618,7 @@ export default function Activities({ auth }) {
       }
       return true;
     });
-  }, [mappedScholars, selectedScholarSupervisorDept, selectedScholarSupervisor, scholarSearchQuery]);
+  }, [mappedScholars, selectedScholarSupervisorDept, selectedScholarSupervisor, selectedScholarStatusFilter, scholarSearchQuery]);
 
   const fetchMappedScholars = async () => {
     if (type === 'supervisors') {
@@ -1989,12 +1997,13 @@ export default function Activities({ auth }) {
                   Showing {filteredMappedScholars.length} of {mappedScholars.length} Scholars
                 </span>
               </div>
-              {(selectedScholarSupervisorDept || selectedScholarSupervisor || scholarSearchQuery) && (
+              {(selectedScholarSupervisorDept || selectedScholarSupervisor || selectedScholarStatusFilter || scholarSearchQuery) && (
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedScholarSupervisorDept('');
                     setSelectedScholarSupervisor('');
+                    setSelectedScholarStatusFilter('');
                     setScholarSearchQuery('');
                   }}
                   className="btn btn-secondary"
@@ -2005,11 +2014,11 @@ export default function Activities({ auth }) {
               )}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', alignItems: 'center' }}>
               {/* Filter by Supervisor Department */}
               <div>
                 <label style={{ display: 'block', fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>
-                  Research Supervisor Department:
+                  Supervisor Department:
                 </label>
                 <select
                   className="form-control"
@@ -2020,7 +2029,7 @@ export default function Activities({ auth }) {
                   }}
                   style={{ background: '#ffffff', fontWeight: 600, fontSize: '0.88rem' }}
                 >
-                  <option value="">-- All Supervisor Departments ({scholarSupervisorDepts.length}) --</option>
+                  <option value="">-- All Departments ({scholarSupervisorDepts.length}) --</option>
                   {scholarSupervisorDepts.map(dept => (
                     <option key={dept} value={dept}>{dept}</option>
                   ))}
@@ -2038,12 +2047,29 @@ export default function Activities({ auth }) {
                   onChange={(e) => setSelectedScholarSupervisor(e.target.value)}
                   style={{ background: '#ffffff', fontWeight: 600, fontSize: '0.88rem' }}
                 >
-                  <option value="">-- All Research Supervisors ({scholarSupervisorsList.length}) --</option>
+                  <option value="">-- All Supervisors ({scholarSupervisorsList.length}) --</option>
                   {scholarSupervisorsList.map(sup => (
                     <option key={sup.name} value={sup.name}>
                       {sup.name}{sup.dept ? ` (${sup.dept})` : ''}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              {/* Filter by Research Scholar Status */}
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>
+                  Scholar Research Status:
+                </label>
+                <select
+                  className="form-control"
+                  value={selectedScholarStatusFilter}
+                  onChange={(e) => setSelectedScholarStatusFilter(e.target.value)}
+                  style={{ background: '#ffffff', fontWeight: 600, fontSize: '0.88rem' }}
+                >
+                  <option value="">-- All Statuses (Active & Awarded) --</option>
+                  <option value="pursuing">Pursuing Scholars Only (Active)</option>
+                  <option value="completed">Degree Awarded / Completed Only</option>
                 </select>
               </div>
 

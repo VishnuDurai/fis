@@ -5,6 +5,7 @@ import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, Arro
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import PhdCompletionModal from '../components/PhdCompletionModal.jsx';
 import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
 import { validateStaffId, validateEmail, validateMobile, validatePan, validateAadhar, validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
@@ -26,7 +27,16 @@ export default function AdminUsers({ auth, initialTab }) {
   const [resetCustomPassword, setResetCustomPassword] = useState('faculty123');
   
   // Edit Faculty Form fields
+  const [editSalutation, setEditSalutation] = useState('Mr.');
+  const [editCoreName, setEditCoreName] = useState('');
+  const [originalSalutation, setOriginalSalutation] = useState('');
   const [editStaffName, setEditStaffName] = useState('');
+  const [showPhdPromptModal, setShowPhdPromptModal] = useState(false);
+  const [phdDetails, setPhdDetails] = useState({
+    phd_completion_month_year: '',
+    phd_university: 'Anna University',
+    phd_specialization: ''
+  });
   const [editDept, setEditDept] = useState('');
   const [editDesg, setEditDesg] = useState('');
   const [editOriginalDesg, setEditOriginalDesg] = useState('');
@@ -552,6 +562,39 @@ export default function AdminUsers({ auth, initialTab }) {
     return str;
   };
 
+  const parseSalutationAndName = (fullName) => {
+    if (!fullName) return { salutation: 'Mr.', coreName: '' };
+    const str = String(fullName).trim();
+    const match = str.match(/^(Dr\.|Dr|Mr\.|Mr|Mrs\.|Mrs|Ms\.|Ms|Prof\.|Prof)\s*(.*)$/i);
+    if (match) {
+      let sal = match[1];
+      if (!sal.endsWith('.')) sal += '.';
+      sal = sal.charAt(0).toUpperCase() + sal.slice(1).toLowerCase();
+      if (sal.toLowerCase() === 'dr.') sal = 'Dr.';
+      if (sal.toLowerCase() === 'mr.') sal = 'Mr.';
+      if (sal.toLowerCase() === 'mrs.') sal = 'Mrs.';
+      if (sal.toLowerCase() === 'ms.') sal = 'Ms.';
+      if (sal.toLowerCase() === 'prof.') sal = 'Prof.';
+      return { salutation: sal, coreName: match[2].trim() };
+    }
+    return { salutation: 'Mr.', coreName: str };
+  };
+
+  const handleSalutationChange = (newSal) => {
+    setEditSalutation(newSal);
+    const formatted = `${newSal} ${editCoreName}`.trim();
+    setEditStaffName(formatted);
+    if (newSal === 'Dr.' && originalSalutation !== 'Dr.') {
+      setShowPhdPromptModal(true);
+    }
+  };
+
+  const handleCoreNameChange = (newCore) => {
+    setEditCoreName(newCore);
+    const formatted = `${editSalutation} ${newCore}`.trim();
+    setEditStaffName(formatted);
+  };
+
   const handleOpenEditFaculty = async (faculty) => {
     setEditFacultyTarget(faculty);
     try {
@@ -561,7 +604,18 @@ export default function AdminUsers({ auth, initialTab }) {
       const data = res.ok ? await res.json() : [];
       const p = data[0] || {};
 
-      setEditStaffName(faculty.staff_name || p.staff_name || '');
+      const fullName = faculty.staff_name || p.staff_name || '';
+      const { salutation, coreName } = parseSalutationAndName(fullName);
+      setEditSalutation(salutation);
+      setOriginalSalutation(salutation);
+      setEditCoreName(coreName);
+      setEditStaffName(fullName);
+      setPhdDetails({
+        phd_completion_month_year: '',
+        phd_university: 'Anna University',
+        phd_specialization: faculty.area_of_specialization || p.area_of_specialization || ''
+      });
+
       setEditDept(faculty.Department || p.Department || '');
       setEditDesg(faculty.Designation || p.Designation || '');
       setEditOriginalDesg(faculty.Designation || p.Designation || '');
@@ -599,6 +653,12 @@ export default function AdminUsers({ auth, initialTab }) {
 
     if (!editStaffName || !editStaffName.trim()) {
       showError('Faculty Full Name is required.');
+      return;
+    }
+
+    // If promoting to Dr. and completion month/year not entered yet, prompt modal
+    if (editSalutation === 'Dr.' && originalSalutation !== 'Dr.' && !phdDetails.phd_completion_month_year) {
+      setShowPhdPromptModal(true);
       return;
     }
 
@@ -653,7 +713,10 @@ export default function AdminUsers({ auth, initialTab }) {
           prev_exp_academic_months: editHasNoPrevExp ? 0 : (parseInt(editPrevAcadMonths) || 0),
           prev_exp_industry_years: editHasNoPrevExp ? 0 : (parseInt(editPrevIndYears) || 0),
           prev_exp_industry_months: editHasNoPrevExp ? 0 : (parseInt(editPrevIndMonths) || 0),
-          has_no_prev_exp: editHasNoPrevExp ? 1 : 0
+          has_no_prev_exp: editHasNoPrevExp ? 1 : 0,
+          phd_completion_month_year: phdDetails.phd_completion_month_year,
+          phd_university: phdDetails.phd_university,
+          phd_specialization: phdDetails.phd_specialization || editSpecialization
         })
       });
 
@@ -2566,8 +2629,50 @@ export default function AdminUsers({ auth, initialTab }) {
             <form onSubmit={handleSaveFacultyEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="form-label">Faculty Full Name <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
-                  <input type="text" className="form-control" value={editStaffName} onChange={(e) => setEditStaffName(e.target.value)} required />
+                  <label className="form-label">Salutation & Faculty Full Name <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select
+                      className="form-control"
+                      style={{
+                        width: '105px',
+                        fontWeight: 700,
+                        background: editSalutation === 'Dr.' ? '#f0fdf4' : '#ffffff',
+                        color: editSalutation === 'Dr.' ? '#15803d' : '#0f172a',
+                        borderColor: editSalutation === 'Dr.' ? '#86efac' : undefined
+                      }}
+                      value={editSalutation}
+                      onChange={(e) => handleSalutationChange(e.target.value)}
+                    >
+                      <option value="Dr.">Dr.</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Ms.">Ms.</option>
+                      <option value="Prof.">Prof.</option>
+                    </select>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      style={{ flex: 1 }}
+                      value={editCoreName} 
+                      onChange={(e) => handleCoreNameChange(e.target.value)} 
+                      placeholder="e.g. A. SOUNDARRAJAN"
+                      required 
+                    />
+                  </div>
+                  {editSalutation === 'Dr.' && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '5px', background: '#f0fdf4', padding: '4px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                      <span style={{ fontSize: '0.74rem', color: '#15803d', fontWeight: 600 }}>
+                        {phdDetails.phd_completion_month_year ? `🎓 Ph.D: ${phdDetails.phd_completion_month_year} (${phdDetails.phd_university})` : '🎓 Ph.D completion details required'}
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPhdPromptModal(true)} 
+                        style={{ background: 'transparent', border: 'none', color: '#15803d', fontSize: '0.74rem', cursor: 'pointer', textDecoration: 'underline', fontWeight: 700 }}
+                      >
+                        {phdDetails.phd_completion_month_year ? 'Edit Ph.D Info' : '+ Enter Ph.D Info'}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="form-label">Department <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
@@ -2941,6 +3046,22 @@ export default function AdminUsers({ auth, initialTab }) {
           </div>
         </div>
       )}
+
+      {/* Ph.D COMPLETION PROMPT MODAL */}
+      <PhdCompletionModal
+        isOpen={showPhdPromptModal}
+        onClose={() => setShowPhdPromptModal(false)}
+        facultyName={editStaffName}
+        defaultMonthYear={phdDetails.phd_completion_month_year}
+        defaultUniversity={phdDetails.phd_university}
+        defaultSpecialization={phdDetails.phd_specialization}
+        onConfirm={(details) => {
+          setPhdDetails(details);
+          setShowPhdPromptModal(false);
+          showSuccess('Ph.D degree details captured. Click "Save Faculty Details" to apply.');
+        }}
+      />
+
       {/* RESET PASSWORD MODAL FOR SYSTEM ADMIN */}
       {resetPasswordTarget && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>

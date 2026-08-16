@@ -6,6 +6,7 @@ import db from '../db.js';
 import { authenticateToken } from './auth.js';
 import { calculateExperience, getHighestQualification } from './admin.js';
 import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } from '../utils/fileStorage.js';
+import { processDoctoratePromotion } from '../doctorateHelper.js';
 
 const router = express.Router();
 
@@ -489,7 +490,15 @@ router.post('/personal/update', authenticateToken, (req, res) => {
           WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))
         `, [finalName, finalDob, finalGender, finalAddress, finalMobile, finalEmail, finalPan, finalAadhar, finalType, finalAicte, finalAnnaUniv, finalApaar, staffId], function(err) {
           if (err) return res.status(500).json({ error: 'Failed to update profile: ' + err.message });
-          res.json({ success: true, message: 'Profile updated successfully' });
+          
+          const { phd_completion_month_year, phd_university, phd_specialization } = req.body;
+          processDoctoratePromotion(staffId, finalName, {
+            phd_completion_month_year,
+            phd_university,
+            phd_specialization
+          }, () => {
+            res.json({ success: true, message: 'Profile updated successfully' });
+          });
         });
       });
     }
@@ -606,7 +615,15 @@ router.post('/academics/update', authenticateToken, (req, res) => {
         console.error('Academics admin update error:', err);
         return res.status(500).json({ error: 'Failed to update academic info: ' + err.message });
       }
-      res.json({ success: true });
+
+      const { phd_completion_month_year, phd_university, phd_specialization, staff_name } = req.body;
+      processDoctoratePromotion(staffId, staff_name, {
+        phd_completion_month_year,
+        phd_university,
+        phd_specialization: phd_specialization || area_of_specialization
+      }, () => {
+        res.json({ success: true, message: 'Academic details updated successfully' });
+      });
     });
   } else {
     // Faculty user updating own academic info (can update area_of_specialization and bibliometric identifiers)

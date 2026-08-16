@@ -9,6 +9,7 @@ import db from '../db.js';
 import { authenticateToken } from './auth.js';
 import { moveFacultyDirectory, zipDirectory, SREC_ROOT, getFacultyStorageDir, sanitizeName, getFacultyDepartment } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
+import { processDoctoratePromotion } from '../doctorateHelper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -379,8 +380,18 @@ router.put('/staff/:id', authenticateToken, requireSystemAdmin, (req, res) => {
         console.error('Error updating staff_academics in PUT /staff/:id:', aErr);
         return res.status(500).json({ error: 'Failed to update faculty profile: ' + aErr.message });
       }
-      res.json({ success: true, message: `Faculty profile for ${staff_name} (${id}) updated successfully.` });
-    });
+
+      const {
+        phd_completion_month_year, phd_university, phd_specialization
+      } = req.body;
+
+      processDoctoratePromotion(id, staff_name, {
+        phd_completion_month_year,
+        phd_university,
+        phd_specialization: phd_specialization || area_of_specialization
+      }, () => {
+        res.json({ success: true, message: `Faculty profile for ${staff_name} (${id}) updated successfully.` });
+      });
   });
 });
 
