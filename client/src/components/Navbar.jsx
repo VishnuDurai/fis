@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell, Sun, Moon, Search } from 'lucide-react';
+import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell, Sun, Moon, Search, Megaphone, X } from 'lucide-react';
 
 export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState([]);
   const profileMenuRef = useRef(null);
   const notifMenuRef = useRef(null);
   const searchRef = useRef(null);
@@ -82,6 +84,15 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data) setNotifData(data);
+      })
+      .catch(err => console.error(err));
+
+      fetch(`${API_BASE_URL}/api/admin/announcements/active`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) setAnnouncements(data);
       })
       .catch(err => console.error(err));
     }
@@ -169,14 +180,57 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
     : 'Faculty';
 
   return (
-    <header style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      paddingBottom: '24px', 
-      marginBottom: '32px',
-      borderBottom: '1px solid hsl(var(--border))' 
-    }}>
+    <>
+      {/* IN-APP ANNOUNCEMENTS BROADCAST BANNER */}
+      {announcements && announcements.filter(a => !dismissedAnnouncements.includes(a.id)).length > 0 && (
+        <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {announcements.filter(a => !dismissedAnnouncements.includes(a.id)).map(a => (
+            <div 
+              key={a.id}
+              style={{
+                background: a.category === 'Urgent' ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                padding: '12px 18px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                <Megaphone size={18} style={{ flexShrink: 0 }} />
+                <div>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', marginRight: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    [{a.category || 'Announcement'}] {a.title}:
+                  </span>
+                  <span style={{ fontSize: '0.88rem', opacity: 0.95 }}>
+                    {a.message}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDismissedAnnouncements(prev => [...prev, a.id])}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <header style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        paddingBottom: '24px', 
+        marginBottom: '32px',
+        borderBottom: '1px solid hsl(var(--border))' 
+      }}>
       <div>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{title}</h1>
         <p style={{ color: 'hsl(var(--text-muted))', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -546,5 +600,6 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
         </div>
       </div>
     </header>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import { matchesTargetAcademicYear } from './faculty.js';
 
 import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
+import { fetchPublicationByDoi } from '../utils/doiHelper.js';
 
 const router = express.Router();
 
@@ -437,6 +438,21 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
     }
     res.json({ success: true, message: 'Activity record updated successfully' });
   });
+});
+
+// DOI AUTO-FILL ENDPOINT: Queries CrossRef REST API for publication metadata
+router.get('/fetch-doi', authenticateToken, async (req, res) => {
+  const { doi } = req.query;
+  if (!doi || !doi.trim()) {
+    return res.status(400).json({ error: 'DOI query parameter is required.' });
+  }
+
+  try {
+    const metadata = await fetchPublicationByDoi(doi);
+    res.json(metadata);
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to fetch DOI metadata from CrossRef.' });
+  }
 });
 
 export default router;

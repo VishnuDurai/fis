@@ -22,6 +22,7 @@ import {
   Sparkles,
   Activity,
   Folder,
+  FolderDown,
   X
 } from 'lucide-react';
 
@@ -553,6 +554,36 @@ export default function Reports({ auth }) {
     window.print();
   };
 
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
+  const handleDownloadDossierZip = async () => {
+    setDownloadingZip(true);
+    try {
+      const deptQuery = (reportScope === 'department' || auth.role === 'dept_admin') ? (selectedDept || auth.dept || '') : '';
+      const res = await fetch(`${API_BASE_URL}/api/admin/dossier-package-zip?department=${encodeURIComponent(deptQuery)}&academic_year=${encodeURIComponent(academicYear || '')}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to download dossier ZIP package.');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `NBA_NAAC_Dossier_Package_${(deptQuery || 'INSTITUTION').replace(/[^a-zA-Z0-9]/g, '_')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess('NBA / NAAC Dossier Package (.ZIP) downloaded successfully with all supporting proof documents!');
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
   return (
     <div className="container" style={{ paddingBottom: '80px' }}>
       <Navbar 
@@ -780,6 +811,19 @@ export default function Reports({ auth }) {
                 <Printer size={18} />
                 Print / Save PDF
               </button>
+
+              {(auth.role === 'admin' || auth.role === 'dept_admin') && (
+                <button 
+                  type="button"
+                  className="btn btn-secondary" 
+                  onClick={handleDownloadDossierZip}
+                  disabled={downloadingZip}
+                  style={{ padding: '10px 18px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f0fdf4', color: '#15803d', borderColor: '#86efac' }}
+                >
+                  <FolderDown size={18} color="#16a34a" />
+                  {downloadingZip ? 'Building ZIP Package...' : '📦 Download NBA/NAAC Dossier Package (.ZIP)'}
+                </button>
+              )}
             </>
           )}
         </div>

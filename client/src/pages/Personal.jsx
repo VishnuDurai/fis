@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, X, User, Download, FileText, Check, Mail, ShieldCheck, AlertCircle, RefreshCw, PhoneCall } from 'lucide-react';
+import { Search, Eye, X, User, Download, FileText, Check, Mail, ShieldCheck, AlertCircle, RefreshCw, PhoneCall, TrendingUp } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import EditableField from '../components/EditableField.jsx';
 import Dropzone from '../components/Dropzone.jsx';
@@ -14,6 +14,7 @@ export default function Personal({ auth }) {
   const [personal, setPersonal] = useState(null);
   const [academics, setAcademics] = useState(null);
   const [personalList, setPersonalList] = useState([]);
+  const [careerHistory, setCareerHistory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFacultyTarget, setSelectedFacultyTarget] = useState(null);
 
@@ -188,12 +189,14 @@ export default function Personal({ auth }) {
           setPersonalList(data || []);
           if (data && data.length > 0) {
             setPersonal(data[0]);
+            fetchCareerHistory(data[0].staff_id);
           }
         }
       } else {
-        const [pRes, aRes] = await Promise.all([
+        const [pRes, aRes, cRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/faculty/personal?staffId=${auth.staffId}`, { headers }),
-          fetch(`${API_BASE_URL}/api/faculty/academics?staffId=${auth.staffId}`, { headers })
+          fetch(`${API_BASE_URL}/api/faculty/academics?staffId=${auth.staffId}`, { headers }),
+          fetch(`${API_BASE_URL}/api/faculty/career-history?staffId=${auth.staffId}`, { headers })
         ]);
 
         if (pRes.ok) {
@@ -208,11 +211,30 @@ export default function Personal({ auth }) {
           const aData = await aRes.json();
           setAcademics(aData && aData.length > 0 ? aData[0] : null);
         }
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          setCareerHistory(Array.isArray(cData) ? cData : []);
+        }
       }
     } catch (err) {
       console.error('Error fetching profile details:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCareerHistory = async (sId) => {
+    if (!sId) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/career-history?staffId=${sId}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCareerHistory(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -496,7 +518,10 @@ export default function Personal({ auth }) {
                             <button
                               className="btn btn-secondary"
                               style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-                              onClick={() => setSelectedFacultyTarget(item)}
+                              onClick={() => {
+                                setSelectedFacultyTarget(item);
+                                fetchCareerHistory(item.staff_id);
+                              }}
                             >
                               <Eye size={14} /> {auth.role === 'dept_admin' ? 'View Details' : 'View & Edit'}
                             </button>
@@ -598,7 +623,8 @@ export default function Personal({ auth }) {
         loading ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>Loading personal profile...</div>
         ) : personal ? (
-          <div className="card" style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <>
+            <div className="card" style={{ maxWidth: '850px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
               <h3 style={{ fontSize: '1.25rem', margin: 0 }}>
                 Personal Details
@@ -829,6 +855,80 @@ export default function Personal({ auth }) {
               </div>
             </form>
           </div>
+
+          {/* CAREER PROGRESSION & DESIGNATION HISTORY TIMELINE */}
+          <div className="card" style={{ marginTop: '28px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#f0fdf4', color: '#16a34a', padding: '10px', borderRadius: '10px' }}>
+                  <TrendingUp size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
+                    Career Progression & Designation History
+                  </h3>
+                  <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                    Official institutional service timeline and promotion milestones
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {careerHistory.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontStyle: 'italic' }}>
+                No designation history milestones recorded yet.
+              </div>
+            ) : (
+              <div style={{ position: 'relative', paddingLeft: '28px', borderLeft: '2.5px solid #16a34a', marginLeft: '12px' }}>
+                {careerHistory.map((item, idx) => (
+                  <div key={item.id || idx} style={{ position: 'relative', marginBottom: '24px' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '-37px',
+                      top: '0px',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      background: '#16a34a',
+                      border: '3px solid #ffffff',
+                      boxShadow: '0 0 0 2px #16a34a'
+                    }} />
+
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a' }}>
+                          {item.designation}
+                        </span>
+                        <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: 700, fontSize: '0.78rem', padding: '3px 8px', borderRadius: '6px' }}>
+                          Effective: {item.effective_date ? new Date(item.effective_date).toLocaleDateString('en-GB') : 'N/A'}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.85rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <span>🏛️ <strong>Dept:</strong> {item.department || personal?.Department || 'SREC'}</span>
+                        {item.order_no && <span>📜 <strong>Order No:</strong> {item.order_no}</span>}
+                        {item.remarks && <span>💬 <em>{item.remarks}</em></span>}
+                      </div>
+
+                      {item.order_file && (
+                        <div style={{ marginTop: '8px' }}>
+                          <a 
+                            href={`${API_BASE_URL}/uploads/document/${item.order_file}?token=${auth?.token || localStorage.getItem("srec_token") || ""}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#0284c7', fontWeight: 600 }}
+                          >
+                            <Download size={14} /> View Promotion / Appointment Order
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          </>
         ) : (
           <div style={{ textAlign: 'center', padding: '40px' }}>Personal details not found.</div>
         )

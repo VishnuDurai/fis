@@ -595,6 +595,44 @@ const createTables = async () => {
       fields LONGTEXT,
       publication_type_constraints LONGTEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`,
+    // 38. staff_designation_history
+    `CREATE TABLE IF NOT EXISTS staff_designation_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      staff_id VARCHAR(100) NOT NULL,
+      designation VARCHAR(150) NOT NULL,
+      department VARCHAR(150) NOT NULL,
+      effective_date DATE NOT NULL,
+      order_no VARCHAR(100),
+      order_file TEXT,
+      remarks TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // 39. system_audit_log
+    `CREATE TABLE IF NOT EXISTS system_audit_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      actor_id VARCHAR(100),
+      actor_name VARCHAR(150),
+      actor_role VARCHAR(50),
+      action_type VARCHAR(100),
+      target_id VARCHAR(100),
+      target_name VARCHAR(150),
+      details TEXT,
+      ip_address VARCHAR(50),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // 40. system_announcements
+    `CREATE TABLE IF NOT EXISTS system_announcements (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      category VARCHAR(50) DEFAULT 'General',
+      target_audience VARCHAR(50) DEFAULT 'ALL',
+      department VARCHAR(100),
+      is_active INT DEFAULT 1,
+      valid_until DATE,
+      created_by VARCHAR(100),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 

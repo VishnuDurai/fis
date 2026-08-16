@@ -567,6 +567,46 @@ router.get('/academics', authenticateToken, (req, res) => {
   });
 });
 
+// 3b. GET Career Progression & Designation History
+router.get('/career-history', authenticateToken, (req, res) => {
+  const staffId = (req.user.role === 'admin' || req.user.role === 'dept_admin')
+    ? (req.query.staffId || req.user.staffId)
+    : req.user.staffId;
+
+  db.all(
+    'SELECT * FROM staff_designation_history WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY effective_date ASC',
+    [staffId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error fetching career history' });
+
+      // If no history exists, synthesize base entry from staff_academics
+      if (!rows || rows.length === 0) {
+        db.get(
+          'SELECT staff_id, Department, Designation, Date_of_joining FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+          [staffId],
+          (aErr, acad) => {
+            if (acad && acad.Date_of_joining) {
+              return res.json([{
+                id: 'base_doj',
+                staff_id: acad.staff_id,
+                designation: acad.Designation || 'Assistant Professor',
+                department: acad.Department || 'Department',
+                effective_date: acad.Date_of_joining,
+                order_no: 'Initial Joining',
+                order_file: null,
+                remarks: 'Joined Sri Ramakrishna Engineering College'
+              }]);
+            }
+            res.json([]);
+          }
+        );
+      } else {
+        res.json(rows);
+      }
+    }
+  );
+});
+
 // 4. UPDATE Academic Details
 router.post('/academics/update', authenticateToken, (req, res) => {
   const staffId = (req.user.role === 'admin' || req.user.role === 'dept_admin')

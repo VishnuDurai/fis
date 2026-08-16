@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, FileText, Upload, Award, KeyRound, Layers, User, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, FileText, Upload, Award, KeyRound, Layers, User, AlertTriangle, History, Megaphone, TrendingUp, Radio } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
@@ -166,7 +166,33 @@ export default function AdminUsers({ auth, initialTab }) {
   const [editClubCoFacultyId, setEditClubCoFacultyId] = useState('');
 
   // Tab State
-  const [activeTab, setActiveTab] = useState(initialTab || 'faculty'); // 'faculty' | 'dept_admins' | 'system_admins' | 'clubs' | 'lookups'
+  const [activeTab, setActiveTab] = useState(initialTab || 'faculty'); // 'faculty' | 'dept_admins' | 'system_admins' | 'clubs' | 'lookups' | 'audit_logs' | 'announcements'
+
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
+
+  // Announcements State
+  const [announcementsList, setAnnouncementsList] = useState([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(false);
+  const [showAddAnnouncementModal, setShowAddAnnouncementModal] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementCategory, setAnnouncementCategory] = useState('General');
+  const [announcementAudience, setAnnouncementAudience] = useState('ALL');
+  const [announcementDept, setAnnouncementDept] = useState('');
+  const [announcementValidUntil, setAnnouncementValidUntil] = useState('');
+
+  // Career Progression Management State
+  const [careerTargetFaculty, setCareerTargetFaculty] = useState(null);
+  const [facultyCareerHistory, setFacultyCareerHistory] = useState([]);
+  const [loadingCareerHistory, setLoadingCareerHistory] = useState(false);
+  const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
+  const [newMilestoneDesg, setNewMilestoneDesg] = useState('');
+  const [newMilestoneDate, setNewMilestoneDate] = useState('');
+  const [newMilestoneOrderNo, setNewMilestoneOrderNo] = useState('');
+  const [newMilestoneRemarks, setNewMilestoneRemarks] = useState('');
 
   useEffect(() => {
     if (initialTab) {
@@ -259,7 +285,161 @@ export default function AdminUsers({ auth, initialTab }) {
 
   useEffect(() => {
     fetchData();
+    fetchAuditLogs();
+    fetchAnnouncements();
   }, [auth]);
+
+  const fetchAuditLogs = async () => {
+    setLoadingAuditLogs(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/audit-logs`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogs(data || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    setLoadingAnnouncements(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/announcements/active`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnnouncementsList(data || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAnnouncements(false);
+    }
+  };
+
+  const handleCreateAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!announcementTitle.trim() || !announcementMessage.trim()) {
+      showError('Announcement title and message are required.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/announcements`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth.token}`
+        },
+        body: JSON.stringify({
+          title: announcementTitle.trim(),
+          message: announcementMessage.trim(),
+          category: announcementCategory,
+          target_audience: announcementAudience,
+          department: announcementDept,
+          valid_until: announcementValidUntil || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to post announcement');
+      showSuccess('Announcement broadcasted successfully!');
+      setShowAddAnnouncementModal(false);
+      setAnnouncementTitle('');
+      setAnnouncementMessage('');
+      fetchAnnouncements();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this broadcast announcement?')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/announcements/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete announcement');
+      showSuccess('Announcement deleted.');
+      fetchAnnouncements();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const openCareerHistoryModal = async (faculty) => {
+    setCareerTargetFaculty(faculty);
+    setLoadingCareerHistory(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/faculty/career-history?staffId=${faculty.staff_id}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFacultyCareerHistory(data || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingCareerHistory(false);
+    }
+  };
+
+  const handleAddMilestone = async (e) => {
+    e.preventDefault();
+    if (!newMilestoneDesg || !newMilestoneDate || !careerTargetFaculty) {
+      showError('Designation and Effective Date are required.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/career-history`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth.token}`
+        },
+        body: JSON.stringify({
+          staff_id: careerTargetFaculty.staff_id,
+          designation: newMilestoneDesg,
+          department: careerTargetFaculty.Department || '',
+          effective_date: newMilestoneDate,
+          order_no: newMilestoneOrderNo,
+          remarks: newMilestoneRemarks
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add milestone');
+      showSuccess('Career milestone added successfully!');
+      setShowAddMilestoneModal(false);
+      setNewMilestoneDesg('');
+      setNewMilestoneDate('');
+      setNewMilestoneOrderNo('');
+      setNewMilestoneRemarks('');
+      openCareerHistoryModal(careerTargetFaculty);
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteMilestone = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this career milestone?')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/career-history/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete milestone');
+      showSuccess('Milestone removed.');
+      openCareerHistoryModal(careerTargetFaculty);
+    } catch (err) {
+      showError(err.message);
+    }
+  };
 
   const handleAddClub = async (e) => {
     e.preventDefault();
@@ -1215,6 +1395,48 @@ export default function AdminUsers({ auth, initialTab }) {
             >
               Manage Lookup Lists
             </button>
+            {auth.role === 'admin' && (
+              <button 
+                className="btn" 
+                style={{ 
+                  background: activeTab === 'audit_logs' ? 'hsl(var(--primary))' : 'transparent',
+                  color: activeTab === 'audit_logs' ? '#ffffff' : '#64748b',
+                  border: 'none',
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() => { setActiveTab('audit_logs'); fetchAuditLogs(); }}
+              >
+                <History size={15} />
+                Audit Trail Logs
+              </button>
+            )}
+            <button 
+              className="btn" 
+              style={{ 
+                background: activeTab === 'announcements' ? 'hsl(var(--primary))' : 'transparent',
+                color: activeTab === 'announcements' ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => { setActiveTab('announcements'); fetchAnnouncements(); }}
+            >
+              <Megaphone size={15} />
+              Announcements
+            </button>
             <button 
               className="btn" 
               style={{ 
@@ -1890,6 +2112,15 @@ export default function AdminUsers({ auth, initialTab }) {
                                       Edit
                                     </button>
                                     <button 
+                                      onClick={() => openCareerHistoryModal(f)} 
+                                      title="Manage Career Progression & Designation Milestones"
+                                      className="btn btn-secondary"
+                                      style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac' }}
+                                    >
+                                      <TrendingUp size={14} />
+                                      Career
+                                    </button>
+                                    <button 
                                       onClick={() => { setTransferTarget(f); setTargetDept(departments[0]?.name || ''); }} 
                                       title="Transfer Department"
                                       className="btn btn-secondary"
@@ -2460,6 +2691,439 @@ export default function AdminUsers({ auth, initialTab }) {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* System Audit Trail Logs Tab Content */}
+      {activeTab === 'audit_logs' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <History size={20} />
+                  System Audit Trail & Security Logs ({auditLogs.length})
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '4px' }}>
+                  Immutable tamper-evident record of administrative operations, faculty promotions, salutation promotions, and password resets.
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <ReportButtons 
+                  pageTitle="System Audit Trail & Security Logs" 
+                  departmentName="Sri Ramakrishna Engineering College" 
+                  headers={['Timestamp', 'Actor ID', 'Actor Name', 'Role', 'Action Type', 'Target', 'IP Address', 'Details']} 
+                  rows={auditLogs.map(l => [
+                    l.created_at ? new Date(l.created_at).toLocaleString('en-GB') : 'N/A',
+                    l.actor_id || '',
+                    l.actor_name || '',
+                    l.actor_role || '',
+                    l.action_type || '',
+                    l.target_id || l.target_name || '',
+                    l.ip_address || '',
+                    l.details || ''
+                  ])} 
+                  auth={auth}
+                />
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={fetchAuditLogs}
+                  disabled={loadingAuditLogs}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}
+                >
+                  <History size={14} /> Refresh Logs
+                </button>
+              </div>
+            </div>
+
+            {/* Audit Search Bar */}
+            <div style={{ position: 'relative', marginBottom: '20px', maxWidth: '450px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="Search audit trail by actor, action type, staff ID, IP..." 
+                value={auditSearchQuery} 
+                onChange={(e) => setAuditSearchQuery(e.target.value)} 
+                style={{ paddingLeft: '38px', fontSize: '0.9rem' }}
+              />
+            </div>
+
+            {/* Audit Logs Table */}
+            <div className="table-container">
+              <table style={{ width: '100%', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', width: '160px' }}>Timestamp</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>Actor (Initiator)</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>Action Event</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>Target Faculty / Entity</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>Operation Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                        {loadingAuditLogs ? 'Loading audit trail logs...' : 'No system audit events recorded yet.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    auditLogs
+                      .filter(l => {
+                        const q = auditSearchQuery.toLowerCase();
+                        return (
+                          (l.actor_id || '').toLowerCase().includes(q) ||
+                          (l.actor_name || '').toLowerCase().includes(q) ||
+                          (l.action_type || '').toLowerCase().includes(q) ||
+                          (l.target_id || '').toLowerCase().includes(q) ||
+                          (l.target_name || '').toLowerCase().includes(q) ||
+                          (l.details || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .map((log, idx) => (
+                        <tr key={log.id || idx}>
+                          <td style={{ color: '#64748b', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                            {log.created_at ? new Date(log.created_at).toLocaleString('en-GB') : 'N/A'}
+                          </td>
+                          <td>
+                            <strong style={{ color: '#0f172a', display: 'block' }}>{log.actor_name || log.actor_id}</strong>
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>[{log.actor_role || 'admin'}] {log.actor_id}</span>
+                          </td>
+                          <td>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: log.action_type?.includes('DELETE') ? '#fee2e2' : log.action_type?.includes('PROMOTION') ? '#dcfce7' : '#e0f2fe',
+                              color: log.action_type?.includes('DELETE') ? '#991b1b' : log.action_type?.includes('PROMOTION') ? '#166534' : '#0369a1'
+                            }}>
+                              {log.action_type}
+                            </span>
+                          </td>
+                          <td>
+                            {log.target_id ? (
+                              <span style={{ fontWeight: 600, color: '#334155' }}>
+                                {log.target_name ? `${log.target_name} (${log.target_id})` : log.target_id}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#94a3b8' }}>-</span>
+                            )}
+                          </td>
+                          <td style={{ maxWidth: '350px', wordBreak: 'break-word', color: '#475569', fontSize: '0.8rem' }}>
+                            {log.details || '-'}
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Announcements Center Tab Content */}
+      {activeTab === 'announcements' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Megaphone size={20} />
+                  In-App Announcements Broadcast Center ({announcementsList.length})
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '4px' }}>
+                  Broadcast instant notifications, circulars, and reminders across all 3 portals (Faculty, Dept Admin, Institutional Admin).
+                </p>
+              </div>
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowAddAnnouncementModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 600 }}
+              >
+                <Plus size={18} />
+                Create Broadcast Announcement
+              </button>
+            </div>
+
+            {/* Active Announcements List */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+              {announcementsList.length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748b', fontStyle: 'italic' }}>
+                  No active broadcast announcements. Click "Create Broadcast Announcement" to send an alert.
+                </div>
+              ) : (
+                announcementsList.map(a => (
+                  <div key={a.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          background: a.category === 'Urgent' ? '#fee2e2' : a.category === 'Circular' ? '#fef3c7' : '#e0f2fe',
+                          color: a.category === 'Urgent' ? '#991b1b' : a.category === 'Circular' ? '#b45309' : '#0369a1'
+                        }}>
+                          {a.category || 'General'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                          Audience: <strong>{a.target_audience}</strong> {a.department ? `(${a.department})` : ''}
+                        </span>
+                      </div>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>
+                        {a.title}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: '1.5' }}>
+                        {a.message}
+                      </p>
+                    </div>
+
+                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                        Posted by {a.created_by || 'Admin'} • {a.created_at ? new Date(a.created_at).toLocaleDateString('en-GB') : 'Today'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnouncement(a.id)}
+                        className="btn btn-danger"
+                        style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Trash2 size={13} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Announcement Modal */}
+      {showAddAnnouncementModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="card" style={{ maxWidth: '540px', width: '100%', background: '#ffffff', color: '#111827', border: '1px solid hsl(var(--border))', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'hsl(var(--primary))' }}>Broadcast Announcement</h3>
+              <button onClick={() => setShowAddAnnouncementModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreateAnnouncement} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label className="form-label">Announcement Title <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="e.g. NBA Peer Team Visit Schedule" 
+                  value={announcementTitle} 
+                  onChange={(e) => setAnnouncementTitle(e.target.value)} 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="form-label">Category</label>
+                <select className="form-control" value={announcementCategory} onChange={(e) => setAnnouncementCategory(e.target.value)}>
+                  <option value="General">General Notice</option>
+                  <option value="Circular">Official Circular</option>
+                  <option value="Urgent">Urgent Alert</option>
+                  <option value="Appraisal">Appraisal Deadline</option>
+                  <option value="Accreditation">NBA / NAAC Update</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Target Audience</label>
+                <select className="form-control" value={announcementAudience} onChange={(e) => setAnnouncementAudience(e.target.value)}>
+                  <option value="ALL">All Portals & Roles (Campus-Wide)</option>
+                  <option value="FACULTY_ONLY">Faculty Members Only</option>
+                  <option value="HOD_ONLY">Department Admins / HODs Only</option>
+                  <option value="DEPT_SPECIFIC">Specific Department Only</option>
+                </select>
+              </div>
+              {announcementAudience === 'DEPT_SPECIFIC' && (
+                <div>
+                  <label className="form-label">Select Target Department</label>
+                  <select className="form-control" value={announcementDept} onChange={(e) => setAnnouncementDept(e.target.value)}>
+                    <option value="">-- Choose Department --</option>
+                    {departments.map(d => (
+                      <option key={d.id || d.name} value={d.name}>{d.name} ({d.acronym})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="form-label">Broadcast Message <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
+                <textarea 
+                  className="form-control" 
+                  rows="3" 
+                  placeholder="Enter broadcast message description..." 
+                  value={announcementMessage} 
+                  onChange={(e) => setAnnouncementMessage(e.target.value)} 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="form-label">Valid Until (Optional Expiry Date)</label>
+                <input 
+                  type="date" 
+                  className="form-control" 
+                  value={announcementValidUntil} 
+                  onChange={(e) => setAnnouncementValidUntil(e.target.value)} 
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddAnnouncementModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Broadcast Alert</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Career Progression & Milestones Modal */}
+      {careerTargetFaculty && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' }}>
+          <div className="card" style={{ maxWidth: '650px', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', color: '#111827', borderRadius: '12px', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#f0fdf4', color: '#16a34a', padding: '8px', borderRadius: '8px' }}>
+                  <TrendingUp size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
+                    Career Progression: {careerTargetFaculty.staff_name}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    Staff ID: {careerTargetFaculty.staff_id} • {careerTargetFaculty.Department}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setCareerTargetFaculty(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
+
+            {/* Add Milestone Form Toggle */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => setShowAddMilestoneModal(!showAddMilestoneModal)}
+                style={{ fontSize: '0.82rem', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={15} /> {showAddMilestoneModal ? 'Close Form' : 'Add Promotion Milestone'}
+              </button>
+            </div>
+
+            {showAddMilestoneModal && (
+              <form onSubmit={handleAddMilestone} style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>Record Designation Promotion / Milestone</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Designation *</label>
+                    <select 
+                      className="form-control" 
+                      value={newMilestoneDesg} 
+                      onChange={(e) => setNewMilestoneDesg(e.target.value)}
+                      required
+                    >
+                      <option value="">-- Select Designation --</option>
+                      {designations.map(d => (
+                        <option key={d.id || d.name} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Effective Date *</label>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      value={newMilestoneDate} 
+                      onChange={(e) => setNewMilestoneDate(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Office Order No.</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="e.g. SREC/EST/2024/042" 
+                      value={newMilestoneOrderNo} 
+                      onChange={(e) => setNewMilestoneOrderNo(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Remarks</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="e.g. Promoted to Associate Professor" 
+                      value={newMilestoneRemarks} 
+                      onChange={(e) => setNewMilestoneRemarks(e.target.value)} 
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddMilestoneModal(false)} style={{ fontSize: '0.8rem', padding: '6px 12px' }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '6px 16px' }}>Save Milestone</button>
+                </div>
+              </form>
+            )}
+
+            {/* Milestones List */}
+            {loadingCareerHistory ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>Loading history...</div>
+            ) : facultyCareerHistory.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontStyle: 'italic' }}>
+                No career milestones recorded yet for this faculty member.
+              </div>
+            ) : (
+              <div style={{ position: 'relative', paddingLeft: '24px', borderLeft: '2px solid #16a34a', marginLeft: '8px' }}>
+                {facultyCareerHistory.map((m, i) => (
+                  <div key={m.id || i} style={{ position: 'relative', marginBottom: '18px' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '-31px',
+                      top: '0px',
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      background: '#16a34a',
+                      border: '2px solid #ffffff',
+                      boxShadow: '0 0 0 2px #16a34a'
+                    }} />
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>{m.designation}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                          Effective: <strong>{m.effective_date ? new Date(m.effective_date).toLocaleDateString('en-GB') : 'N/A'}</strong>
+                          {m.order_no ? ` • Order: ${m.order_no}` : ''}
+                          {m.remarks ? ` • ${m.remarks}` : ''}
+                        </div>
+                      </div>
+                      {typeof m.id === 'number' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMilestone(m.id)}
+                          style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
+                          title="Delete Milestone"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setCareerTargetFaculty(null)}>
+                Close
+              </button>
             </div>
           </div>
         </div>

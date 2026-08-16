@@ -509,6 +509,8 @@ export default function Activities({ auth }) {
   // Form states
   const [formData, setFormData] = useState({});
   const [file, setFile] = useState(null);
+  const [doiInput, setDoiInput] = useState('');
+  const [fetchingDoi, setFetchingDoi] = useState(false);
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -872,6 +874,41 @@ export default function Activities({ auth }) {
     }
   }, [type]);
 
+  const handleFetchDoi = async () => {
+    if (!doiInput || !doiInput.trim()) {
+      showError('Please enter a valid DOI (e.g. 10.1016/j.engappai.2024.108920).');
+      return;
+    }
+    setFetchingDoi(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/activities/fetch-doi?doi=${encodeURIComponent(doiInput.trim())}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch DOI metadata.');
+
+      setFormData(prev => ({
+        ...prev,
+        title: data.title || prev.title,
+        name: data.journal || prev.name,
+        authors: data.authors || prev.authors,
+        category: data.category || prev.category || 'Journal',
+        year: data.year ? (data.month ? `${data.year}-${data.month}` : String(data.year)) : prev.year,
+        volume: data.volume || prev.volume,
+        issue: data.issue || prev.issue,
+        page: data.page || prev.page,
+        issn: data.issn || prev.issn,
+        publisher: data.publisher || prev.publisher,
+        doi: data.doi || prev.doi
+      }));
+      showSuccess(`Auto-filled details for: "${(data.title || '').slice(0, 45)}..."`);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setFetchingDoi(false);
+    }
+  };
+
   const openEditModal = (item) => {
     setEditItem(item);
     const initial = {};
@@ -1209,6 +1246,37 @@ export default function Activities({ auth }) {
                       );
                     })}
                   </select>
+                </div>
+              )}
+
+              {type === 'publications' && (
+                <div className="form-group" style={{ gridColumn: 'span 2', background: '#f0f9ff', padding: '16px 20px', borderRadius: '10px', border: '1.5px solid #bae6fd' }}>
+                  <label className="form-label" style={{ color: '#0369a1', fontWeight: 800, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    ⚡ Instant Publication Auto-Fill via DOI (CrossRef)
+                  </label>
+                  <p style={{ margin: '2px 0 10px 0', fontSize: '0.8rem', color: '#0284c7' }}>
+                    Paste the Digital Object Identifier (DOI) to automatically extract Paper Title, Journal/Conference Name, Authors, Year, Volume, Issue, and ISSN.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Paste DOI (e.g. 10.1016/j.engappai.2024.108920 or https://doi.org/10.1109/...)" 
+                      value={doiInput}
+                      onChange={(e) => setDoiInput(e.target.value)}
+                      style={{ flex: 1, fontSize: '0.88rem', background: '#ffffff', fontWeight: 600 }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleFetchDoi(); } }}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn btn-primary" 
+                      onClick={handleFetchDoi}
+                      disabled={fetchingDoi}
+                      style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, background: '#0284c7', borderColor: '#0284c7' }}
+                    >
+                      {fetchingDoi ? 'Fetching CrossRef...' : '⚡ Fetch & Auto-Fill'}
+                    </button>
+                  </div>
                 </div>
               )}
               {(() => {

@@ -294,6 +294,197 @@ function NbaRetentionChart({ retention = {} }) {
   );
 }
 
+function DepartmentRadarChart({ radarData, selectedDept }) {
+  if (!radarData || !radarData.departments || radarData.departments.length === 0) return null;
+
+  const currentDeptObj = radarData.departments.find(d => 
+    (d.department || '').toLowerCase().trim() === (selectedDept || '').toLowerCase().trim()
+  ) || radarData.departments[0];
+
+  const instAvg = radarData.institutionalAverage || { teaching: 85, research: 50, grants: 40, ipr: 35, fdp: 60 };
+  const deptMetrics = currentDeptObj?.metrics || { teaching: 85, research: 50, grants: 40, ipr: 35, fdp: 60 };
+
+  const axes = [
+    { label: 'Teaching & LMS', key: 'teaching', angle: -90 },
+    { label: 'Publications', key: 'research', angle: -18 },
+    { label: 'Grants & Funding', key: 'grants', angle: 54 },
+    { label: 'Patents & IPR', key: 'ipr', angle: 126 },
+    { label: 'FDPs & Upskilling', key: 'fdp', angle: 198 }
+  ];
+
+  const size = 320;
+  const center = size / 2;
+  const radius = 105;
+
+  const getCoordinates = (value, angleDeg) => {
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const r = (value / 100) * radius;
+    const x = center + r * Math.cos(angleRad);
+    const y = center + r * Math.sin(angleRad);
+    return { x, y };
+  };
+
+  const deptPoints = axes.map(a => {
+    const pt = getCoordinates(deptMetrics[a.key] || 0, a.angle);
+    return `${pt.x},${pt.y}`;
+  }).join(' ');
+
+  const instPoints = axes.map(a => {
+    const pt = getCoordinates(instAvg[a.key] || 0, a.angle);
+    return `${pt.x},${pt.y}`;
+  }).join(' ');
+
+  return (
+    <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🎯 5-Pillar Department Performance Radar vs Institutional Benchmark
+          </h4>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            Comparing <strong>{currentDeptObj?.department || 'Department'}</strong> against College-Wide Average Benchmark (0-100 index)
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.82rem', fontWeight: 700 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#0284c7' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#0284c7', display: 'inline-block' }} /> {currentDeptObj?.department || 'Dept'}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#8b5cf6' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(139, 92, 246, 0.4)', border: '1.5px dashed #8b5cf6', display: 'inline-block' }} /> Institutional Average
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '24px' }}>
+        <div style={{ width: `${size}px`, height: `${size}px`, position: 'relative' }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            {[0.2, 0.4, 0.6, 0.8, 1.0].map((level, idx) => {
+              const gridPts = axes.map(a => {
+                const pt = getCoordinates(level * 100, a.angle);
+                return `${pt.x},${pt.y}`;
+              }).join(' ');
+              return (
+                <polygon 
+                  key={idx} 
+                  points={gridPts} 
+                  fill="none" 
+                  stroke="#e2e8f0" 
+                  strokeWidth="1.2" 
+                />
+              );
+            })}
+
+            {axes.map((a, i) => {
+              const pt = getCoordinates(100, a.angle);
+              return (
+                <line 
+                  key={i} 
+                  x1={center} 
+                  y1={center} 
+                  x2={pt.x} 
+                  y2={pt.y} 
+                  stroke="#cbd5e1" 
+                  strokeWidth="1" 
+                  strokeDasharray="2,2" 
+                />
+              );
+            })}
+
+            <polygon 
+              points={instPoints} 
+              fill="rgba(139, 92, 246, 0.12)" 
+              stroke="#8b5cf6" 
+              strokeWidth="2" 
+              strokeDasharray="4,4" 
+            />
+
+            <polygon 
+              points={deptPoints} 
+              fill="rgba(2, 132, 199, 0.22)" 
+              stroke="#0284c7" 
+              strokeWidth="2.5" 
+            />
+
+            {axes.map((a, i) => {
+              const pt = getCoordinates(deptMetrics[a.key] || 0, a.angle);
+              return (
+                <circle 
+                  key={i} 
+                  cx={pt.x} 
+                  cy={pt.y} 
+                  r="4.5" 
+                  fill="#0284c7" 
+                  stroke="#ffffff" 
+                  strokeWidth="2" 
+                />
+              );
+            })}
+
+            {axes.map((a, i) => {
+              const labelPt = getCoordinates(120, a.angle);
+              return (
+                <text 
+                  key={i} 
+                  x={labelPt.x} 
+                  y={labelPt.y + 4} 
+                  textAnchor="middle" 
+                  fontSize="10" 
+                  fontWeight="700" 
+                  fill="#334155"
+                >
+                  {a.label}
+                </text>
+              );
+            })}
+          </svg>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', flex: 1, minWidth: '280px' }}>
+          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '14px' }}>
+            <div style={{ fontSize: '0.76rem', color: '#0369a1', fontWeight: 800 }}>PUBLICATIONS</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>
+              {currentDeptObj?.raw?.publications || 0}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+              Pillar Score: <strong>{deptMetrics.research}</strong> / 100
+            </div>
+          </div>
+
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '14px' }}>
+            <div style={{ fontSize: '0.76rem', color: '#15803d', fontWeight: 800 }}>GRANTS & FUNDING</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
+              ₹ {((currentDeptObj?.raw?.grantsTotal || 0) / 100000).toFixed(1)} L
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+              Pillar Score: <strong>{deptMetrics.grants}</strong> / 100
+            </div>
+          </div>
+
+          <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '14px' }}>
+            <div style={{ fontSize: '0.76rem', color: '#7c3aed', fontWeight: 800 }}>PATENTS & IPR</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#9333ea', marginTop: '2px' }}>
+              {currentDeptObj?.raw?.patents || 0}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+              Pillar Score: <strong>{deptMetrics.ipr}</strong> / 100
+            </div>
+          </div>
+
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '14px' }}>
+            <div style={{ fontSize: '0.76rem', color: '#b45309', fontWeight: 800 }}>FDPS & UPSKILLING</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>
+              {currentDeptObj?.raw?.fdps || 0}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+              Pillar Score: <strong>{deptMetrics.fdp}</strong> / 100
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AccreditationSuite({ auth }) {
   const { showError, showSuccess } = useAlert();
   
@@ -307,6 +498,7 @@ export default function AccreditationSuite({ auth }) {
   const [nbaSfrRatio, setNbaSfrRatio] = useState(15);
   const [nbaActiveTab, setNbaActiveTab] = useState('overview');
   const [nbaTier1Data, setNbaTier1Data] = useState(null);
+  const [radarData, setRadarData] = useState(null);
   const [loadingNbaTier1, setLoadingNbaTier1] = useState(false);
   const [exportingAccreditation, setExportingAccreditation] = useState(false);
 
@@ -352,6 +544,23 @@ export default function AccreditationSuite({ auth }) {
       setLoadingNbaTier1(false);
     }
   };
+
+  const fetchRadarAnalytics = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${auth.token}` };
+      const res = await fetch(`${API_BASE_URL}/api/admin/department-radar-analytics`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setRadarData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch radar analytics:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRadarAnalytics();
+  }, [auth]);
 
   useEffect(() => {
     fetchNbaTier1Analytics(nbaAssessmentYear, nbaSfrRatio, accreditationDept);
@@ -590,6 +799,9 @@ export default function AccreditationSuite({ auth }) {
                     This suite dynamically evaluates institutional academic records for <strong>{nbaTier1Data.department}</strong> and executes exact mathematical formulas mandated by the <strong>NBA Tier-1 Self Assessment Report (SAR)</strong> for Autonomous & Tier-1 Engineering Institutions.
                   </p>
                 </div>
+
+                {/* Department vs Institutional Average 5-Pillar Radar Chart */}
+                <DepartmentRadarChart radarData={radarData} selectedDept={nbaTier1Data.department || accreditationDept} />
 
                 {/* All 3 Visual Graphs in Numerical Order: 5.2 -> 5.3 -> 5.6 */}
                 <NbaCadreChart qualificationTable={nbaTier1Data.qualificationTable} />

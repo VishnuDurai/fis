@@ -10,6 +10,8 @@ import { authenticateToken } from './auth.js';
 import { moveFacultyDirectory, zipDirectory, SREC_ROOT, getFacultyStorageDir, sanitizeName, getFacultyDepartment } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
 import { processDoctoratePromotion } from '../doctorateHelper.js';
+import { generateDossierPackageZip } from '../utils/dossierZipExporter.js';
+import { logAuditEvent } from '../utils/auditLogger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1956,6 +1958,228 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
     console.error('NBA Tier-1 Analytics Error:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// ONE-CLICK NBA / NAAC DOSSIER COMPLETE ZIP EXPORTER
+router.get('/dossier-package-zip', authenticateToken, requireAdminOrDeptAdmin, async (req, res) => {
+  const department = (req.user.role === 'dept_admin') ? (req.user.department || req.query.department || '') : (req.query.department || '');
+  const academicYear = req.query.academic_year || '';
+
+  try {
+    const { buffer, filename } = await generateDossierPackageZip(department, academicYear);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error generating Dossier ZIP package:', err);
+    res.status(500).json({ error: 'Failed to generate Dossier ZIP package: ' + err.message });
+  }
+});
+
+// === CAREER PROGRESSION MILESTONES (System Admin & Dept Admin) ===
+router.post('/career-history', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
+  const { staff_id, designation, department, effective_date, order_no, order_file, remarks } = req.body;
+  if (!staff_id || !designation || !effective_date) {
+    return res.status(400).json({ error: 'Staff ID, Designation, and Effective Date are required.' });
+  }
+
+  db.run(`
+    INSERT INTO staff_designation_history (
+      staff_id, designation, department, effective_date, order_no, order_file, remarks
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `, [
+    staff_id, designation, department || '', effective_date, order_no || '', order_file || '', remarks || ''
+  ], function(err) {
+    if (err) return res.status(500).json({ error: 'Failed to add career milestone: ' + err.message });
+    logAuditEvent({
+      actor_id: req.user.staffId || req.user.username,
+      actor_name: req.user.name || 'Admin',
+      actor_role: req.user.role,
+      action_type: 'CAREER_MILESTONE_ADDED',
+      target_id: staff_id,
+      details: { designation, effective_date, order_no }
+    });
+    res.json({ success: true, id: this.lastID, message: 'Career progression milestone added successfully.' });
+  });
+});
+
+router.delete('/career-history/:id', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM staff_designation_history WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: 'Failed to delete milestone: ' + err.message });
+    res.json({ success: true, message: 'Career milestone deleted.' });
+  });
+});
+
+// === DEPARTMENT PERFORMANCE RADAR ANALYTICS ===
+router.get('/department-radar-analytics', authenticateToken, (req, res) => {
+  db.all('SELECT staff_id, Department FROM staff_academics', [], (err, faculty) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    const deptMap = {};
+    (faculty || []).forEach(f => {
+      const d = (f.Department || 'Unassigned').trim();
+      if (!deptMap[d]) deptMap[d] = { facultyCount: 0, pubCount: 0, grantAmount: 0, iprCount: 0, fdpCount: 0, staffIds: new Set() };
+      deptMap[d].facultyCount++;
+      if (f.staff_id) deptMap[d].staffIds.add(f.staff_id.trim().toLowerCase());
+    });
+
+    db.all('SELECT staff_id FROM staff_publication', [], (pErr, pubs) => {
+      (pubs || []).forEach(p => {
+        const sId = (p.staff_id || '').trim().toLowerCase();
+        for (const d in deptMap) {
+          if (deptMap[d].staffIds.has(sId)) deptMap[d].pubCount++;
+        }
+      });
+
+      db.all('SELECT staff_id, amount FROM staff_funding', [], (fErr, funds) => {
+        (funds || []).forEach(f => {
+          const sId = (f.staff_id || '').trim().toLowerCase();
+          for (const d in deptMap) {
+            if (deptMap[d].staffIds.has(sId)) deptMap[d].grantAmount += (Number(f.amount) || 0);
+          }
+        });
+
+        db.all('SELECT staff_id FROM staff_ipr', [], (iErr, iprs) => {
+          (iprs || []).forEach(i => {
+            const sId = (i.staff_id || '').trim().toLowerCase();
+            for (const d in deptMap) {
+              if (deptMap[d].staffIds.has(sId)) deptMap[d].iprCount++;
+            }
+          });
+
+          db.all('SELECT staff_id FROM staff_interactions', [], (intErr, ints) => {
+            (ints || []).forEach(it => {
+              const sId = (it.staff_id || '').trim().toLowerCase();
+              for (const d in deptMap) {
+                if (deptMap[d].staffIds.has(sId)) deptMap[d].fdpCount++;
+              }
+            });
+
+            const result = [];
+            let totalTeaching = 0, totalResearch = 0, totalGrants = 0, totalIpr = 0, totalFdp = 0;
+            let validDeptCount = 0;
+
+            for (const d in deptMap) {
+              const item = deptMap[d];
+              if (item.facultyCount === 0) continue;
+              validDeptCount++;
+
+              const teachingScore = 85;
+              const researchScore = Math.min(100, Math.round((item.pubCount / item.facultyCount) * 25));
+              const grantsScore = Math.min(100, Math.round((item.grantAmount / (item.facultyCount * 50000)) * 50));
+              const iprScore = Math.min(100, Math.round(item.iprCount * 20));
+              const fdpScore = Math.min(100, Math.round((item.fdpCount / item.facultyCount) * 30));
+
+              totalTeaching += teachingScore;
+              totalResearch += researchScore;
+              totalGrants += grantsScore;
+              totalIpr += iprScore;
+              totalFdp += fdpScore;
+
+              result.push({
+                department: d,
+                facultyCount: item.facultyCount,
+                metrics: {
+                  teaching: teachingScore,
+                  research: researchScore,
+                  grants: grantsScore,
+                  ipr: iprScore,
+                  fdp: fdpScore
+                },
+                raw: {
+                  publications: item.pubCount,
+                  grantsTotal: item.grantAmount,
+                  patents: item.iprCount,
+                  fdps: item.fdpCount
+                }
+              });
+            }
+
+            const institutionalAverage = {
+              teaching: validDeptCount ? Math.round(totalTeaching / validDeptCount) : 80,
+              research: validDeptCount ? Math.round(totalResearch / validDeptCount) : 50,
+              grants: validDeptCount ? Math.round(totalGrants / validDeptCount) : 40,
+              ipr: validDeptCount ? Math.round(totalIpr / validDeptCount) : 35,
+              fdp: validDeptCount ? Math.round(totalFdp / validDeptCount) : 60
+            };
+
+            res.json({
+              departments: result,
+              institutionalAverage
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+// === SYSTEM AUDIT TRAIL LOGS (System Admin Only) ===
+router.get('/audit-logs', authenticateToken, requireSystemAdmin, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+  db.all('SELECT * FROM system_audit_log ORDER BY created_at DESC LIMIT ?', [limit], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching audit logs' });
+    res.json(rows || []);
+  });
+});
+
+// === IN-APP ANNOUNCEMENTS (All authenticated users read; Admin/HOD post) ===
+router.get('/announcements/active', authenticateToken, (req, res) => {
+  const userDept = req.user.department || req.user.dept || '';
+  const userRole = req.user.role || 'faculty';
+
+  db.all(`
+    SELECT * FROM system_announcements 
+    WHERE is_active = 1 
+      AND (valid_until IS NULL OR valid_until >= CURRENT_DATE)
+      AND (target_audience = 'ALL' 
+           OR (target_audience = 'FACULTY_ONLY' AND ? = 'faculty')
+           OR (target_audience = 'HOD_ONLY' AND ? = 'dept_admin')
+           OR (target_audience = 'DEPT_SPECIFIC' AND LOWER(TRIM(department)) = LOWER(TRIM(?))))
+    ORDER BY created_at DESC LIMIT 10
+  `, [userRole, userRole, userDept], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching announcements' });
+    res.json(rows || []);
+  });
+});
+
+router.post('/announcements', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
+  const { title, message, category, target_audience, department, valid_until } = req.body;
+  if (!title || !message) {
+    return res.status(400).json({ error: 'Title and Message are required for an announcement.' });
+  }
+
+  const cleanDept = (req.user.role === 'dept_admin') ? (req.user.department || '') : (department || '');
+  const cleanAudience = (req.user.role === 'dept_admin') ? 'DEPT_SPECIFIC' : (target_audience || 'ALL');
+
+  db.run(`
+    INSERT INTO system_announcements (
+      title, message, category, target_audience, department, valid_until, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `, [
+    title, message, category || 'General', cleanAudience, cleanDept, valid_until || null, req.user.staffId || req.user.username || 'Admin'
+  ], function(err) {
+    if (err) return res.status(500).json({ error: 'Failed to create announcement: ' + err.message });
+    logAuditEvent({
+      actor_id: req.user.staffId || req.user.username,
+      actor_name: req.user.name || 'Admin',
+      actor_role: req.user.role,
+      action_type: 'ANNOUNCEMENT_POSTED',
+      details: { title, category, target_audience: cleanAudience }
+    });
+    res.json({ success: true, id: this.lastID, message: 'Announcement broadcasted successfully.' });
+  });
+});
+
+router.delete('/announcements/:id', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM system_announcements WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: 'Failed to delete announcement: ' + err.message });
+    res.json({ success: true, message: 'Announcement removed.' });
+  });
 });
 
 export default router;
