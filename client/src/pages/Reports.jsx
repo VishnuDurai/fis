@@ -33,6 +33,8 @@ import {
   exportNbaB2FacultyDetailsPdf, 
   exportNaacCriterion3Pdf, 
   exportNbaCriterion5Pdf,
+  exportNbaTier1SarExcel,
+  exportNbaTier1SarPdf,
   downloadExcelReport,
   downloadPdfReport,
   getFullDepartmentName,
@@ -116,6 +118,14 @@ export default function Reports({ auth }) {
   const [loading, setLoading] = useState(false);
   const [personal, setPersonal] = useState(null);
   const [academics, setAcademics] = useState(null);
+
+  // NBA Tier-1 SAR & Criterion 5 Evaluation Suite State
+  const [showNbaTier1Modal, setShowNbaTier1Modal] = useState(false);
+  const [nbaTier1Data, setNbaTier1Data] = useState(null);
+  const [loadingNbaTier1, setLoadingNbaTier1] = useState(false);
+  const [nbaAssessmentYear, setNbaAssessmentYear] = useState('2025-2026');
+  const [nbaSfrRatio, setNbaSfrRatio] = useState(15);
+  const [nbaActiveTab, setNbaActiveTab] = useState('overview');
 
   // Initial Data Fetching (Departments & Faculty list)
   useEffect(() => {
@@ -273,6 +283,32 @@ export default function Reports({ auth }) {
       setExportingAccreditation(false);
     }
   };
+
+  const fetchNbaTier1Analytics = async (overrideYear = nbaAssessmentYear, overrideSfr = nbaSfrRatio) => {
+    try {
+      setLoadingNbaTier1(true);
+      const targetDept = auth.role === 'dept_admin' ? (auth.department || auth.dept || '') : accreditationDept;
+      const qDept = targetDept ? `department=${encodeURIComponent(targetDept)}&` : '';
+      const q = `?${qDept}academicYear=${encodeURIComponent(overrideYear)}&sfrRatio=${overrideSfr}`;
+
+      const res = await fetch(`${API_BASE_URL}/api/admin/accreditation/nba-tier1-analytics${q}`, {
+        headers: { 'Authorization': `Bearer ${auth.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to compute NBA Tier-1 analytics');
+      const data = await res.json();
+      setNbaTier1Data(data);
+    } catch (e) {
+      showError('Error loading NBA Tier-1 data: ' + e.message);
+    } finally {
+      setLoadingNbaTier1(false);
+    }
+  };
+
+  const handleOpenNbaTier1Modal = () => {
+    setShowNbaTier1Modal(true);
+    fetchNbaTier1Analytics(nbaAssessmentYear, nbaSfrRatio);
+  };
+
 
   // --- CUSTOM REPORT GENERATION ENGINE ---
 
@@ -690,7 +726,7 @@ export default function Reports({ auth }) {
               Accreditation Compliance Exporters (NAAC & NBA Suite)
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
-              Instant one-click official tables formatted strictly per NAAC Criterion 3 & NBA Criterion 5 guidelines.
+              Instant one-click official tables formatted strictly per NAAC Criterion 3 & NBA Tier-1 Criterion 5 SAR guidelines.
             </p>
           </div>
 
@@ -709,62 +745,628 @@ export default function Reports({ auth }) {
               </select>
             )}
 
-            <button
-              className="btn btn-secondary"
-              onClick={() => handleExportNAAC('excel')}
-              disabled={exportingAccreditation}
-              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <FileSpreadsheet size={16} color="#16a34a" />
-              NAAC Crit 3 (Excel)
-            </button>
+            {/* NAAC Criterion 3 Suite */}
+            <div style={{ display: 'inline-flex', gap: '6px' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExportNAAC('excel')}
+                disabled={exportingAccreditation}
+                style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                title="Export NAAC Criterion 3 (Research, Seed Money, Patents) Excel Sheet"
+              >
+                <FileSpreadsheet size={16} color="#16a34a" />
+                NAAC Crit 3 (Excel)
+              </button>
 
-            <button
-              className="btn btn-secondary"
-              onClick={() => handleExportNAAC('pdf')}
-              disabled={exportingAccreditation}
-              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <FileText size={16} color="#dc2626" />
-              NAAC Crit 3 (PDF)
-            </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExportNAAC('pdf')}
+                disabled={exportingAccreditation}
+                style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                title="Export NAAC Criterion 3 (Research, Seed Money, Patents) Official PDF Dossier"
+              >
+                <FileText size={16} color="#dc2626" />
+                NAAC Crit 3 (PDF)
+              </button>
+            </div>
 
+            {/* Comprehensive NBA Tier-1 SAR Suite (includes Crit 5.3, 5.6, 5.2, Form B2 and 5.1-5.5) */}
             <button
-              className="btn btn-secondary"
-              onClick={() => handleExportNBA('excel')}
-              disabled={exportingAccreditation}
-              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              className="btn btn-primary"
+              onClick={handleOpenNbaTier1Modal}
+              style={{
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                boxShadow: '0 4px 12px hsla(var(--primary), 0.3)'
+              }}
+              title="Open NBA Tier-1 SAR Evaluation Suite: Faculty Qualification (5.3), Faculty Retention (5.6), Cadre (5.2), and Form B2"
             >
-              <FileSpreadsheet size={16} color="#16a34a" />
-              NBA Crit 5 (Excel)
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => handleExportNBA('pdf')}
-              disabled={exportingAccreditation}
-              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <FileText size={16} color="#dc2626" />
-              NBA Crit 5 (PDF)
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => handleExportNBAB2('pdf')}
-              disabled={exportingAccreditation}
-              style={{ fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <FileText size={16} color="#0284c7" />
-              NBA Form B2 (PDF)
+              <ShieldCheck size={18} />
+              NBA Tier-1 SAR Suite (Crit 5.3, 5.6 & B2)
             </button>
           </div>
         </div>
       </div>
 
+      {/* NBA TIER-1 SAR EVALUATION & CRITERION 5 SUITE MODAL */}
+      {showNbaTier1Modal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
+            
+            {/* Modal Header */}
+            <div style={{ padding: '18px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={22} color="#38bdf8" />
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+                    NBA Tier-1 SAR Evaluation Suite (Criterion 5)
+                  </h3>
+                </div>
+                <p style={{ margin: '3px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Department: <strong style={{ color: '#38bdf8' }}>{nbaTier1Data?.department || (auth.role === 'dept_admin' ? (auth.department || auth.dept) : (accreditationDept || 'Institution'))}</strong> | Target AY: <strong style={{ color: '#38bdf8' }}>{nbaAssessmentYear}</strong>
+                </p>
+              </div>
+
+              {/* Assessment Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>AY:</span>
+                  <select
+                    className="form-control"
+                    value={nbaAssessmentYear}
+                    onChange={(e) => {
+                      setNbaAssessmentYear(e.target.value);
+                      fetchNbaTier1Analytics(e.target.value, nbaSfrRatio);
+                    }}
+                    style={{ background: '#334155', color: '#fff', borderColor: '#475569', fontSize: '0.8rem', padding: '5px 10px', borderRadius: '6px', fontWeight: 700 }}
+                  >
+                    <option value="2025-2026">2025-2026 (CAY)</option>
+                    <option value="2024-2025">2024-2025</option>
+                    <option value="2023-2024">2023-2024</option>
+                    <option value="2022-2023">2022-2023</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>SFR:</span>
+                  <select
+                    className="form-control"
+                    value={nbaSfrRatio}
+                    onChange={(e) => {
+                      setNbaSfrRatio(Number(e.target.value));
+                      fetchNbaTier1Analytics(nbaAssessmentYear, Number(e.target.value));
+                    }}
+                    style={{ background: '#334155', color: '#fff', borderColor: '#475569', fontSize: '0.8rem', padding: '5px 10px', borderRadius: '6px', fontWeight: 700 }}
+                  >
+                    <option value={15}>1 : 15 (Tier-1 UG Standard)</option>
+                    <option value={20}>1 : 20 (AICTE Standard)</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowNbaTier1Modal(false)}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', color: '#cbd5e1', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Close Modal"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', padding: '16px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.3 Faculty Qualification (FQ)</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0284c7' }}>{nbaTier1Data?.averageFq ?? '--'}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>/ 20.00 Marks (3-Yr Avg)</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '2px' }}>FQ = 2.5 * [(10X + 4Y) / F]</div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.6 Faculty Retention</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#16a34a' }}>{nbaTier1Data?.retention?.retentionRate != null ? `${nbaTier1Data.retention.retentionRate}%` : '--'}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#15803d' }}>({nbaTier1Data?.retention?.retentionMarks ?? 0} / 25 Marks)</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '2px' }}>Base Year: {nbaTier1Data?.retention?.baseYear || 'CAYm2'}</div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.2 Cadre Proportion</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#7c3aed' }}>
+                    {nbaTier1Data?.qualificationTable?.[0]?.cadre?.cadreMarks != null ? `${nbaTier1Data.qualificationTable[0].cadre.cadreMarks}` : '--'}
+                  </span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>/ 20.00 Marks (1:2:6 Ratio)</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#6d28d9', marginTop: '2px' }}>Prof : Assoc : Asst Prof</div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Department Faculty</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a' }}>{nbaTier1Data?.facultyList?.length || 0}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>Members</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '2px' }}>Form B2 Roster Verified</div>
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div style={{ display: 'flex', gap: '4px', padding: '0 24px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', overflowX: 'auto' }}>
+              {[
+                { id: 'overview', label: '📊 SAR Overview' },
+                { id: 'fq', label: '🎓 5.3 Faculty Qualification (FQ)' },
+                { id: 'retention', label: '🔄 5.6 Faculty Retention' },
+                { id: 'cadre', label: '🏛️ 5.2 Cadre Proportion' },
+                { id: 'b2', label: '📋 Form B2: Faculty Details Roster' },
+                { id: 'activities', label: '⚡ 5.1-5.5 Contributions & Activities' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setNbaActiveTab(tab.id)}
+                  style={{
+                    padding: '10px 16px',
+                    fontSize: '0.84rem',
+                    fontWeight: nbaActiveTab === tab.id ? 800 : 600,
+                    color: nbaActiveTab === tab.id ? '#0284c7' : '#475569',
+                    background: nbaActiveTab === tab.id ? '#ffffff' : 'transparent',
+                    border: 'none',
+                    borderBottom: nbaActiveTab === tab.id ? '2.5px solid #0284c7' : '2.5px solid transparent',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content Area */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              {loadingNbaTier1 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>Calculating NBA Tier-1 Metrics...</div>
+                  <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Evaluating qualifications, retention survival and cadre balance across CAY, CAYm1 and CAYm2.</div>
+                </div>
+              ) : !nbaTier1Data ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#ef4444' }}>
+                  Failed to load NBA data. Please try again.
+                </div>
+              ) : (
+                <>
+                  {/* TAB 1: OVERVIEW */}
+                  {nbaActiveTab === 'overview' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      <div style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '12px', padding: '16px 20px' }}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', color: '#0369a1', fontWeight: 800 }}>
+                          NBA Tier-1 Criteria 5 Summary & Evaluation Dossier
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: '1.5' }}>
+                          This suite dynamically parses institutional academic records for <strong>{nbaTier1Data.department}</strong> and executes exact mathematical formulas mandated by the <strong>NBA Tier-1 Self Assessment Report (SAR)</strong> for Autonomous & Tier-1 Engineering Institutions.
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
+                        {/* Summary Table 5.3 */}
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                          <div style={{ padding: '10px 16px', background: '#f8fafc', fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>
+                            Criterion 5.3: Faculty Qualification (FQ) [Max: 20 Marks]
+                          </div>
+                          <table style={{ width: '100%', fontSize: '0.84rem' }}>
+                            <thead style={{ background: '#f1f5f9' }}>
+                              <tr>
+                                <th>Year</th>
+                                <th>X (Ph.D.)</th>
+                                <th>Y (PG)</th>
+                                <th>F (Regular)</th>
+                                <th>FQ Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(nbaTier1Data.qualificationTable || []).map(q => (
+                                <tr key={q.yearKey}>
+                                  <td style={{ fontWeight: 700 }}>{q.yearLabel}</td>
+                                  <td>{q.X}</td>
+                                  <td>{q.Y}</td>
+                                  <td>{q.F}</td>
+                                  <td style={{ fontWeight: 800, color: '#0284c7' }}>{q.fqScore.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                              <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
+                                <td colSpan={4} style={{ textAlign: 'right' }}>3-Year Average FQ Score:</td>
+                                <td style={{ color: '#0284c7', fontSize: '0.95rem' }}>{nbaTier1Data.averageFq.toFixed(2)} / 20.00</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Summary Table 5.6 */}
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                          <div style={{ padding: '10px 16px', background: '#f8fafc', fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0' }}>
+                            Criterion 5.6: Faculty Retention [Max: 25 Marks]
+                          </div>
+                          <table style={{ width: '100%', fontSize: '0.84rem' }}>
+                            <tbody>
+                              <tr>
+                                <td style={{ fontWeight: 600, width: '60%' }}>Base Academic Year (CAYm2):</td>
+                                <td style={{ fontWeight: 700 }}>{nbaTier1Data.retention?.baseYear}</td>
+                              </tr>
+                              <tr>
+                                <td style={{ fontWeight: 600 }}>Faculty Members in Base Year:</td>
+                                <td style={{ fontWeight: 700 }}>{nbaTier1Data.retention?.nBase}</td>
+                              </tr>
+                              <tr>
+                                <td style={{ fontWeight: 600 }}>Faculty Retained in CAYm1:</td>
+                                <td style={{ fontWeight: 700 }}>{nbaTier1Data.retention?.nRetainedCAYm1}</td>
+                              </tr>
+                              <tr>
+                                <td style={{ fontWeight: 600 }}>Faculty Retained in CAY:</td>
+                                <td style={{ fontWeight: 700 }}>{nbaTier1Data.retention?.nRetainedCAY}</td>
+                              </tr>
+                              <tr style={{ background: '#f0fdf4' }}>
+                                <td style={{ fontWeight: 800, color: '#16a34a' }}>Retention Rate (%):</td>
+                                <td style={{ fontWeight: 800, color: '#16a34a', fontSize: '1rem' }}>{nbaTier1Data.retention?.retentionRate}%</td>
+                              </tr>
+                              <tr style={{ background: '#f0fdf4' }}>
+                                <td style={{ fontWeight: 800, color: '#15803d' }}>NBA Score Awarded:</td>
+                                <td style={{ fontWeight: 800, color: '#15803d', fontSize: '1rem' }}>{nbaTier1Data.retention?.retentionMarks} / 25 Marks</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: CRITERION 5.3 FACULTY QUALIFICATION */}
+                  {nbaActiveTab === 'fq' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ background: '#f8fafc', padding: '14px 18px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
+                          Criterion 5.3 Faculty Qualification Calculation Details
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '4px' }}>
+                          Formula: <code style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>FQ = 2.5 * [(10X + 4Y) / F]</code> (Maximum 20 Marks). Faculty with Ph.D. are counted in <strong>X</strong> and with Post-Graduate degree (M.E./M.Tech) in <strong>Y</strong>.
+                        </div>
+                      </div>
+
+                      <div className="table-container">
+                        <table style={{ width: '100%', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr>
+                              <th>Assessment Year</th>
+                              <th>X (Ph.D. Faculty)</th>
+                              <th>Y (PG / M.Tech Faculty)</th>
+                              <th>F (Total Regular Faculty)</th>
+                              <th>Total Active Faculty</th>
+                              <th>FQ Formula Output</th>
+                              <th>FQ Score Awarded (Max: 20)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(nbaTier1Data.qualificationTable || []).map(q => (
+                              <tr key={q.yearKey}>
+                                <td style={{ fontWeight: 800 }}>{q.yearLabel}</td>
+                                <td style={{ fontWeight: 700, color: '#0284c7' }}>{q.X}</td>
+                                <td style={{ fontWeight: 700, color: '#475569' }}>{q.Y}</td>
+                                <td style={{ fontWeight: 700 }}>{q.F}</td>
+                                <td>{q.totalActive}</td>
+                                <td style={{ fontFamily: 'monospace' }}>2.5 * [({10 * q.X} + {4 * q.Y}) / {q.F}] = {q.rawFq}</td>
+                                <td style={{ fontWeight: 800, color: '#0284c7', fontSize: '0.95rem' }}>{q.fqScore.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                            <tr style={{ background: '#f8fafc', fontWeight: 900 }}>
+                              <td colSpan={6} style={{ textAlign: 'right', fontSize: '0.92rem' }}>
+                                3-Year Average Faculty Qualification (FQ) Score:
+                              </td>
+                              <td style={{ color: '#0284c7', fontSize: '1.05rem' }}>
+                                {nbaTier1Data.averageFq.toFixed(2)} / 20.00
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: CRITERION 5.6 FACULTY RETENTION */}
+                  {nbaActiveTab === 'retention' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ background: '#f0fdf4', padding: '14px 18px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                        <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.92rem' }}>
+                          Criterion 5.6 Faculty Retention Evaluation
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#14532d', marginTop: '4px' }}>
+                          Retention Rate = (Faculty members from base year <strong>{nbaTier1Data.retention?.baseYear}</strong> retained in <strong>CAY</strong> / Total in base year) * 100.
+                          <br />
+                          <strong>Scoring Rubric:</strong> &gt;= 90% : <strong>25 Marks</strong> | 75-89% : <strong>20 Marks</strong> | 60-74% : <strong>15 Marks</strong> | 50-59% : <strong>10 Marks</strong> | &lt; 50% : <strong>0 Marks</strong>.
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>BASE YEAR (CAYm2)</span>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{nbaTier1Data.retention?.nBase} Faculty</div>
+                        </div>
+                        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>RETAINED IN CAYm1</span>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0284c7' }}>{nbaTier1Data.retention?.nRetainedCAYm1} Faculty</div>
+                        </div>
+                        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>RETAINED IN CAY</span>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#16a34a' }}>{nbaTier1Data.retention?.nRetainedCAY} Faculty</div>
+                        </div>
+                        <div style={{ background: '#ffffff', border: '1.5px solid #16a34a', padding: '10px 14px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>RETENTION RATE & SCORE</span>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>
+                            {nbaTier1Data.retention?.retentionRate}% ({nbaTier1Data.retention?.retentionMarks}/25)
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="table-container" style={{ marginTop: '8px' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '8px' }}>
+                          Base Year Cohort Retention Tracking Roster:
+                        </div>
+                        <table style={{ width: '100%', fontSize: '0.84rem' }}>
+                          <thead>
+                            <tr>
+                              <th>S.No</th>
+                              <th>Staff ID</th>
+                              <th>Faculty Name</th>
+                              <th>Designation</th>
+                              <th>DOJ</th>
+                              <th>In Base Year ({nbaTier1Data.retention?.baseYear})</th>
+                              <th>Retained in CAYm1</th>
+                              <th>Retained in CAY</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(nbaTier1Data.retention?.roster || []).map((r, idx) => (
+                              <tr key={r.staff_id}>
+                                <td>{idx + 1}</td>
+                                <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{r.staff_id}</td>
+                                <td style={{ fontWeight: 700 }}>{r.staff_name}</td>
+                                <td>{r.Designation}</td>
+                                <td>{r.Date_of_joining || 'N/A'}</td>
+                                <td><span style={{ color: '#16a34a', fontWeight: 700 }}>✓ Yes</span></td>
+                                <td>{r.retainedInCAYm1 ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✓ Yes</span> : <span style={{ color: '#ef4444', fontWeight: 700 }}>✗ No</span>}</td>
+                                <td>{r.retainedInCAY ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✓ Yes</span> : <span style={{ color: '#ef4444', fontWeight: 700 }}>✗ No</span>}</td>
+                                <td>
+                                  {r.is_relieved ? (
+                                    <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                      Relieved
+                                    </span>
+                                  ) : (
+                                    <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                      Active
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: CRITERION 5.2 CADRE PROPORTION */}
+                  {nbaActiveTab === 'cadre' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ background: '#faf5ff', padding: '14px 18px', borderRadius: '10px', border: '1px solid #e9d5ff' }}>
+                        <div style={{ fontWeight: 800, color: '#6b21a8', fontSize: '0.92rem' }}>
+                          Criterion 5.2 Faculty Cadre Proportion (1 : 2 : 6 Target Ratio)
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#581c87', marginTop: '4px' }}>
+                          Target Cadre Distribution: 1 Professor : 2 Associate Professors : 6 Assistant Professors per 9 required faculty members (Max: 20 Marks).
+                        </div>
+                      </div>
+
+                      <div className="table-container">
+                        <table style={{ width: '100%', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr>
+                              <th>Assessment Year</th>
+                              <th>Professors (Actual / Required)</th>
+                              <th>Associate Professors (Actual / Required)</th>
+                              <th>Assistant Professors (Actual / Required)</th>
+                              <th>Total Regular Faculty</th>
+                              <th>Cadre Proportion Score (Max: 20)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(nbaTier1Data.qualificationTable || []).map(q => (
+                              <tr key={q.yearKey}>
+                                <td style={{ fontWeight: 800 }}>{q.yearLabel}</td>
+                                <td style={{ fontWeight: 700 }}>{q.cadre?.profCount || 0} / {q.cadre?.rfProf || 0}</td>
+                                <td style={{ fontWeight: 700 }}>{q.cadre?.assocCount || 0} / {q.cadre?.rfAssoc || 0}</td>
+                                <td style={{ fontWeight: 700 }}>{q.cadre?.asstCount || 0} / {q.cadre?.rfAsst || 0}</td>
+                                <td>{q.F}</td>
+                                <td style={{ fontWeight: 800, color: '#7c3aed', fontSize: '0.95rem' }}>{q.cadre?.cadreMarks?.toFixed(2) || '0.00'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 5: FORM B2 FACULTY DETAILS ROSTER */}
+                  {nbaActiveTab === 'b2' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>
+                            Faculty Details of the Department (NBA Form B2)
+                          </h4>
+                          <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                            Official inspection table with PAN, Qualifications, Specialization, DOJ, Designation, and Association details.
+                          </p>
+                        </div>
+
+                        {/* Export Form B2 buttons */}
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => exportNbaB2FacultyDetails(nbaTier1Data.facultyList, nbaTier1Data.department, nbaAssessmentYear)}
+                            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#16a34a' }}
+                          >
+                            <FileSpreadsheet size={15} /> Export B2 (Excel)
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => exportNbaB2FacultyDetailsPdf(nbaTier1Data.facultyList, nbaTier1Data.department, nbaAssessmentYear, auth)}
+                            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#dc2626' }}
+                          >
+                            <FileText size={15} /> Export B2 (PDF)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="table-container">
+                        <table style={{ width: '100%', fontSize: '0.82rem' }}>
+                          <thead>
+                            <tr>
+                              <th>S.No</th>
+                              <th>Name</th>
+                              <th>PAN</th>
+                              <th>Qualification</th>
+                              <th>Specialization</th>
+                              <th>Designation</th>
+                              <th>DOJ</th>
+                              <th>Associated</th>
+                              <th>Nature</th>
+                              <th>Contract</th>
+                              <th>Leaving Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(nbaTier1Data.facultyList || []).map((f, idx) => (
+                              <tr key={f.staff_id}>
+                                <td>{idx + 1}</td>
+                                <td style={{ fontWeight: 700 }}>{f.staff_name}</td>
+                                <td>{f.pan || 'N/A'}</td>
+                                <td style={{ fontWeight: 600, color: (f.Qualification || '').includes('Ph.D') ? '#0284c7' : '#334155' }}>
+                                  {f.Qualification || 'Ph.D'}
+                                </td>
+                                <td>{f.area_of_specialization || 'N/A'}</td>
+                                <td>{f.Designation || 'Faculty'}</td>
+                                <td>{f.Date_of_joining || 'N/A'}</td>
+                                <td>{f.is_relieved ? <span style={{ color: '#ef4444', fontWeight: 700 }}>N</span> : <span style={{ color: '#16a34a', fontWeight: 700 }}>Y</span>}</td>
+                                <td>{f.nature_of_association || 'REGULAR'}</td>
+                                <td>{f.contractual_type || '-'}</td>
+                                <td>{f.is_relieved ? (f.date_of_leaving || 'Yes') : 'NA'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 6: CRITERION 5.1-5.5 CONTRIBUTIONS */}
+                  {nbaActiveTab === 'activities' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>
+                            Faculty Contributions & Academic Activities (Criteria 5.1 - 5.5)
+                          </h4>
+                          <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                            FDPs Attended, Events Organized, Certifications, Awards & Assigned Responsibilities.
+                          </p>
+                        </div>
+
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => handleExportNBA('excel')}
+                            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#16a34a' }}
+                          >
+                            <FileSpreadsheet size={15} /> Crit 5 Activities (Excel)
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => handleExportNBA('pdf')}
+                            style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#dc2626' }}
+                          >
+                            <FileText size={15} /> Crit 5 Activities (PDF)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+                          Click the export buttons above to generate the full multi-table dossier containing all faculty interaction records, workshops, certifications, awards, and responsibilities for accreditation inspection.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer with One-Click Comprehensive Dossier Exporters */}
+            <div style={{ padding: '14px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                All calculations strictly conform to the <strong>NBA Tier-1 UG Engineering SAR manual</strong>.
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => exportNbaTier1SarExcel(nbaTier1Data, nbaTier1Data?.department || accreditationDept, nbaAssessmentYear)}
+                  disabled={!nbaTier1Data || loadingNbaTier1}
+                  style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#16a34a', borderColor: '#16a34a' }}
+                >
+                  <FileSpreadsheet size={16} /> Download Complete NBA Tier-1 Dossier (Excel)
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => exportNbaTier1SarPdf(nbaTier1Data, nbaTier1Data?.department || accreditationDept, nbaAssessmentYear, auth)}
+                  disabled={!nbaTier1Data || loadingNbaTier1}
+                  style={{ padding: '8px 18px', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0284c7', borderColor: '#0284c7' }}
+                >
+                  <FileText size={16} /> Download Complete NBA Tier-1 Dossier (PDF)
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowNbaTier1Modal(false)}
+                  style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* FILTER & CONFIGURATION CARD */}
       <div className="card" style={{ marginBottom: '32px' }}>
         <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>Configure Custom Report & Dossier</h3>
+
 
         {/* 1. REPORT SCOPE SELECTION */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>

@@ -1014,3 +1014,382 @@ export const exportNbaCriterion5Pdf = async (data, departmentName = 'Institution
   }
 };
 
+/**
+ * Exports Comprehensive NBA Tier-1 SAR Evaluation Workbook (Criteria 5.2, 5.3, 5.6 & Form B2) in Excel (.xlsx)
+ */
+export const exportNbaTier1SarExcel = (data, departmentName = 'Department', academicYear = '2025-2026') => {
+  try {
+    const wb = XLSX.utils.book_new();
+    const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
+    const fullDept = isInst ? 'Institution' : (getFullDepartmentName(departmentName) || departmentName);
+
+    // Sheet 1: 5.3 Faculty Qualification
+    const fqRows = [
+      ['Educational Service : SNR Sons Charitable Trust'],
+      ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
+      ['Vattamalaipalayam, N.G.G.O. Colony Post, Coimbatore - 641022.'],
+      [`Department of ${fullDept}`],
+      [`NBA TIER-1 SAR CRITERION 5.3: FACULTY QUALIFICATION (FQ) EVALUATION`],
+      [`Assessment Period: Academic Year ${academicYear}`],
+      [],
+      [
+        'Assessment Year',
+        'X (No. of Regular Faculty with Ph.D.)',
+        'Y (No. of Regular Faculty with PG / M.Tech)',
+        'F (Total Regular Faculty / Required SFR Faculty)',
+        'Faculty Qualification Score [FQ = 2.5 * (10X + 4Y) / F] (Max: 20)'
+      ]
+    ];
+
+    (data.qualificationTable || []).forEach(q => {
+      fqRows.push([
+        q.yearLabel,
+        q.X,
+        q.Y,
+        q.F,
+        q.fqScore
+      ]);
+    });
+
+    fqRows.push([]);
+    fqRows.push([
+      '3-Year Average Faculty Qualification (FQ) Score [Max: 20 Marks]',
+      '',
+      '',
+      '',
+      `${data.averageFq} / 20.00`
+    ]);
+
+    const fqSheet = XLSX.utils.aoa_to_sheet(fqRows);
+    fqSheet['!cols'] = [{ wch: 24 }, { wch: 36 }, { wch: 40 }, { wch: 42 }, { wch: 45 }];
+    XLSX.utils.book_append_sheet(wb, fqSheet, '5.3 Faculty Qualification');
+
+    // Sheet 2: 5.6 Faculty Retention
+    const ret = data.retention || {};
+    const retRows = [
+      ['Educational Service : SNR Sons Charitable Trust'],
+      ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
+      [`Department of ${fullDept}`],
+      [`NBA TIER-1 SAR CRITERION 5.6: FACULTY RETENTION EVALUATION`],
+      [`Assessment Period: Academic Year ${academicYear}`],
+      [],
+      ['Item / Metric', 'Assessment Details / Numbers'],
+      ['Base Academic Year (CAYm2)', ret.baseYear || 'CAYm2'],
+      ['Number of Regular Faculty Members in Base Year (CAYm2)', ret.nBase || 0],
+      ['Number of Faculty from Base Cohort Retained in CAYm1', ret.nRetainedCAYm1 || 0],
+      ['Number of Faculty from Base Cohort Retained in CAY', ret.nRetainedCAY || 0],
+      ['Faculty Retention Rate (%) [Retained in CAY / Base Year]', `${ret.retentionRate || 0}%`],
+      ['NBA Criterion 5.6 Score Awarded (Max: 25 Marks)', `${ret.retentionMarks || 0} / 25 Marks`],
+      [],
+      ['Faculty Cohort Retention Tracking Roster:'],
+      ['S.No', 'Staff ID', 'Faculty Name', 'Designation', 'DOJ', 'In Base Year (CAYm2)', 'Retained in CAYm1', 'Retained in CAY', 'Current Status']
+    ];
+
+    (ret.roster || []).forEach((r, idx) => {
+      retRows.push([
+        idx + 1,
+        r.staff_id,
+        r.staff_name,
+        r.Designation,
+        r.Date_of_joining || 'N/A',
+        'Yes',
+        r.retainedInCAYm1 ? 'Yes' : 'No',
+        r.retainedInCAY ? 'Yes' : 'No',
+        r.is_relieved ? `Relieved (${r.date_of_leaving || 'N/A'})` : 'Active'
+      ]);
+    });
+
+    const retSheet = XLSX.utils.aoa_to_sheet(retRows);
+    retSheet['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 22 }];
+    XLSX.utils.book_append_sheet(wb, retSheet, '5.6 Faculty Retention');
+
+    // Sheet 3: 5.2 Cadre Proportion
+    const cadreRows = [
+      ['Educational Service : SNR Sons Charitable Trust'],
+      ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
+      [`Department of ${fullDept}`],
+      [`NBA TIER-1 SAR CRITERION 5.2: FACULTY CADRE PROPORTION (1:2:6 RATIO)`],
+      [],
+      [
+        'Assessment Year',
+        'Professors (Actual / Required)',
+        'Associate Professors (Actual / Required)',
+        'Assistant Professors (Actual / Required)',
+        'Cadre Proportion Marks (Max: 20)'
+      ]
+    ];
+
+    (data.qualificationTable || []).forEach(q => {
+      const c = q.cadre || {};
+      cadreRows.push([
+        q.yearLabel,
+        `${c.profCount || 0} / ${c.rfProf || 0}`,
+        `${c.assocCount || 0} / ${c.rfAssoc || 0}`,
+        `${c.asstCount || 0} / ${c.rfAsst || 0}`,
+        `${c.cadreMarks || 0} / 20.00`
+      ]);
+    });
+
+    const cadreSheet = XLSX.utils.aoa_to_sheet(cadreRows);
+    cadreSheet['!cols'] = [{ wch: 24 }, { wch: 32 }, { wch: 40 }, { wch: 40 }, { wch: 32 }];
+    XLSX.utils.book_append_sheet(wb, cadreSheet, '5.2 Cadre Proportion');
+
+    // Sheet 4: Form B2 Faculty Details
+    const b2Headers = [
+      'S. No.',
+      'Name',
+      'PAN No.',
+      'Qualification',
+      'Area of Specialization',
+      'Designation',
+      'Date of Joining',
+      'Date Designated as Prof/Assoc Prof',
+      'Currently Associated',
+      'Nature of Association',
+      'Contract Type',
+      'Date of Leaving'
+    ];
+
+    const b2Rows = [
+      ['Educational Service : SNR Sons Charitable Trust'],
+      ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
+      [`Department of ${fullDept}`],
+      ['FACULTY DETAILS OF THE DEPARTMENT (FORM B2)'],
+      [`ACADEMIC YEAR ${academicYear}`],
+      [],
+      b2Headers
+    ];
+
+    (data.facultyList || []).forEach((f, idx) => {
+      b2Rows.push([
+        idx + 1,
+        f.staff_name || 'N/A',
+        f.pan || 'N/A',
+        f.Qualification || 'Ph.D',
+        f.area_of_specialization || 'N/A',
+        f.Designation || 'N/A',
+        f.Date_of_joining || 'N/A',
+        f.date_designated_prof || 'NA',
+        f.is_relieved ? 'N' : 'Y',
+        (f.nature_of_association || 'REGULAR').toUpperCase(),
+        f.contractual_type || '-',
+        f.is_relieved ? (f.date_of_leaving || 'Yes') : 'NA'
+      ]);
+    });
+
+    const b2Sheet = XLSX.utils.aoa_to_sheet(b2Rows);
+    b2Sheet['!cols'] = [
+      { wch: 8 }, { wch: 28 }, { wch: 15 }, { wch: 15 }, { wch: 32 },
+      { wch: 22 }, { wch: 15 }, { wch: 28 }, { wch: 14 }, { wch: 20 },
+      { wch: 18 }, { wch: 15 }
+    ];
+    XLSX.utils.book_append_sheet(wb, b2Sheet, 'Form B2 Faculty Details');
+
+    const filename = `NBA_Tier1_SAR_Criterion5_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    showSuccess(`NBA Tier-1 SAR Excel dossier "${filename}" downloaded successfully!`);
+  } catch (err) {
+    console.error('Failed to export NBA Tier-1 Excel:', err);
+    showError('Failed to generate NBA Tier-1 Excel report: ' + err.message);
+  }
+};
+
+/**
+ * Exports Comprehensive NBA Tier-1 SAR Evaluation Dossier (Criteria 5.2, 5.3, 5.6 & Form B2) in PDF format
+ */
+export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', academicYear = '2025-2026', auth = {}) => {
+  try {
+    const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
+    const fullDept = isInst ? 'Sri Ramakrishna Engineering College' : `Department of ${getFullDepartmentName(departmentName)}`;
+    const deptAcronym = isInst ? 'Institution' : getDepartmentAcronym(departmentName);
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    const headerBanner = await fetchImageAsBase64('/srec-header-banner.png') || await fetchImageAsBase64('/logo.png');
+    const bannerWidth = 165;
+    const bannerHeight = bannerWidth / 5.505;
+
+    let currentY = 4 + bannerHeight + 6;
+
+    const drawHeader = (title) => {
+      if (headerBanner) {
+        try { doc.addImage(headerBanner, 'PNG', (pageWidth - bannerWidth) / 2, 4, bannerWidth, bannerHeight); } catch(e){}
+      }
+      doc.setFont('times', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text(fullDept, pageWidth / 2, 4 + bannerHeight + 5, { align: 'center' });
+      doc.setFontSize(11);
+      doc.setTextColor(2, 132, 199);
+      doc.text(title, pageWidth / 2, 4 + bannerHeight + 10, { align: 'center' });
+    };
+
+    drawHeader(`NBA TIER-1 SAR EVALUATION DOSSIER - CRITERION 5 (AY ${academicYear})`);
+    currentY = 4 + bannerHeight + 16;
+
+    // SECTION 1: CRITERION 5.3 FACULTY QUALIFICATION (FQ)
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`5.3 Faculty Qualification (FQ) Assessment [Formula: FQ = 2.5 * (10X + 4Y)/F | Max: 20 Marks]`, 10, currentY);
+    currentY += 4;
+
+    const fqHeaders = [
+      'Assessment Year',
+      'X (Ph.D. Faculty)',
+      'Y (PG / M.Tech Faculty)',
+      'F (Total Regular Faculty)',
+      'FQ Score (Max: 20)'
+    ];
+
+    const fqRows = (data.qualificationTable || []).map(q => [
+      q.yearLabel,
+      q.X,
+      q.Y,
+      q.F,
+      q.fqScore.toFixed(2)
+    ]);
+
+    fqRows.push([
+      { content: '3-Year Average Faculty Qualification (FQ) Score', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: `${data.averageFq.toFixed(2)} / 20.00`, styles: { fontStyle: 'bold', textColor: [2, 132, 199] } }
+    ]);
+
+    autoTable(doc, {
+      head: [fqHeaders],
+      body: fqRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 10;
+
+    // SECTION 2: CRITERION 5.6 FACULTY RETENTION
+    if (currentY > 150) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`5.6 Faculty Retention Assessment [Base Year: ${data.retention?.baseYear || 'CAYm2'} | Max: 25 Marks]`, 10, currentY);
+    currentY += 4;
+
+    const ret = data.retention || {};
+    const retHeaders = [
+      'Base Year (CAYm2) Faculty',
+      'Retained in CAYm1',
+      'Retained in CAY',
+      'Retention Rate (%)',
+      'NBA Retention Score Awarded'
+    ];
+
+    const retRows = [
+      [
+        `${ret.nBase || 0} Faculty Members`,
+        `${ret.nRetainedCAYm1 || 0} Faculty Members`,
+        `${ret.nRetainedCAY || 0} Faculty Members`,
+        `${ret.retentionRate || 0}%`,
+        `${ret.retentionMarks || 0} / 25 Marks (${ret.retentionRate >= 90 ? '>= 90% Full Marks' : (ret.retentionRate >= 75 ? '75-89%' : '60-74%')})`
+      ]
+    ];
+
+    autoTable(doc, {
+      head: [retHeaders],
+      body: retRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
+    });
+
+    currentY = (doc.lastAutoTable.finalY || currentY) + 10;
+
+    // SECTION 3: CRITERION 5.2 CADRE PROPORTION
+    if (currentY > 150) { doc.addPage(); currentY = 20; }
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`5.2 Faculty Cadre Proportion Assessment [Target Ratio 1 : 2 : 6 | Max: 20 Marks]`, 10, currentY);
+    currentY += 4;
+
+    const cadreHeaders = [
+      'Assessment Year',
+      'Professors (Actual / Required)',
+      'Associate Professors (Actual / Required)',
+      'Assistant Professors (Actual / Required)',
+      'Cadre Score (Max: 20)'
+    ];
+
+    const cadreRows = (data.qualificationTable || []).map(q => [
+      q.yearLabel,
+      `${q.cadre?.profCount || 0} / ${q.cadre?.rfProf || 0}`,
+      `${q.cadre?.assocCount || 0} / ${q.cadre?.rfAssoc || 0}`,
+      `${q.cadre?.asstCount || 0} / ${q.cadre?.rfAsst || 0}`,
+      `${q.cadre?.cadreMarks || 0} / 20.00`
+    ]);
+
+    autoTable(doc, {
+      head: [cadreHeaders],
+      body: cadreRows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 20 },
+      styles: { font: 'times', fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [124, 58, 237], textColor: [255, 255, 255] }
+    });
+
+    // SECTION 4: FORM B2 FACULTY DETAILS TABLE ON NEW PAGE
+    doc.addPage();
+    drawHeader(`FORM B2: FACULTY DETAILS OF THE DEPARTMENT (AY ${academicYear})`);
+    currentY = 4 + bannerHeight + 16;
+
+    const b2Headers = [
+      'S.No', 'Faculty Name', 'PAN No.', 'Highest Qual.', 'Specialization',
+      'Designation', 'DOJ', 'Designated Prof Date', 'Assoc.', 'Nature', 'Mode', 'Leaving Date'
+    ];
+
+    const b2Rows = (data.facultyList || []).map((f, idx) => [
+      idx + 1,
+      f.staff_name || 'N/A',
+      f.pan || 'N/A',
+      f.Qualification || 'Ph.D',
+      f.area_of_specialization || 'N/A',
+      f.Designation || 'N/A',
+      f.Date_of_joining || 'N/A',
+      f.date_designated_prof || 'NA',
+      f.is_relieved ? 'N' : 'Y',
+      (f.nature_of_association || 'REGULAR').toUpperCase(),
+      f.contractual_type || '-',
+      f.is_relieved ? (f.date_of_leaving || 'Yes') : 'NA'
+    ]);
+
+    autoTable(doc, {
+      head: [b2Headers],
+      body: b2Rows,
+      startY: currentY,
+      margin: { left: 10, right: 10, bottom: 24 },
+      styles: { font: 'times', fontSize: 7, cellPadding: 1.5 },
+      headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
+    });
+
+    // Verification signatures
+    const finalPage = doc.internal.getNumberOfPages();
+    doc.setPage(finalPage);
+    const sigY = 195;
+    doc.setFont('times', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85);
+    doc.text('NBA Criterion 5 In-Charge', 14, sigY);
+    doc.text(`HOD - ${deptAcronym}`, pageWidth / 2, sigY, { align: 'center' });
+    doc.text('Principal / Head of Institution', pageWidth - 14, sigY, { align: 'right' });
+
+    const safeFilename = `NBA_Tier1_SAR_Criterion5_Dossier_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    doc.save(safeFilename);
+    showSuccess(`NBA Tier-1 SAR PDF Dossier "${safeFilename}" generated and downloaded!`);
+  } catch (err) {
+    console.error('Failed to generate NBA Tier-1 PDF:', err);
+    showError('Failed to generate NBA Tier-1 PDF report: ' + err.message);
+  }
+};
+
+

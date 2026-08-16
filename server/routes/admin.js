@@ -1552,4 +1552,351 @@ router.get('/accreditation/nba-summary', authenticateToken, async (req, res) => 
   }
 });
 
+// Helper for parsing date string to Date object
+const parseDateSafe = (dStr) => {
+  if (!dStr) return null;
+  const s = String(dStr).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const [_, d, m, y] = dmyMatch;
+    const dobj = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
+    return isNaN(dobj.getTime()) ? null : dobj;
+  }
+  if (/^\d{4}$/.test(s)) {
+    const dobj = new Date(`${s}-06-01`);
+    return isNaN(dobj.getTime()) ? null : dobj;
+  }
+  const p = Date.parse(s);
+  return isNaN(p) ? null : new Date(p);
+};
+
+// NBA Tier-1 Comprehensive Analytics API (Criterion 5.2, 5.3 & 5.6)
+router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, res) => {
+  const department = (req.user.role === 'dept_admin' ? (req.user.department || '') : (req.query.department || '')).trim();
+  const isInst = !department || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(department.toUpperCase());
+  const academicYear = (req.query.academicYear || '2025-2026').trim();
+  const sfrRatio = parseFloat(req.query.sfrRatio) || 15; // Tier-1 standard: 1:15 or 1:20
+
+  try {
+    // 1. Determine 3-Year Assessment Cohorts (CAY, CAYm1, CAYm2)
+    const matchYear = academicYear.match(/^(\d{4})/);
+    const startYear = matchYear ? parseInt(matchYear[1], 10) : 2025;
+
+    const years = [
+      {
+        key: 'CAY',
+        label: `CAY (${startYear}-${startYear + 1})`,
+        academicYear: `${startYear}-${startYear + 1}`,
+        startDate: new Date(`${startYear}-06-01T00:00:00.000Z`),
+        endDate: new Date(`${startYear + 1}-05-31T23:59:59.999Z`),
+        endYearNum: startYear + 1
+      },
+      {
+        key: 'CAYm1',
+        label: `CAYm1 (${startYear - 1}-${startYear})`,
+        academicYear: `${startYear - 1}-${startYear}`,
+        startDate: new Date(`${startYear - 1}-06-01T00:00:00.000Z`),
+        endDate: new Date(`${startYear}-05-31T23:59:59.999Z`),
+        endYearNum: startYear
+      },
+      {
+        key: 'CAYm2',
+        label: `CAYm2 (${startYear - 2}-${startYear - 1})`,
+        academicYear: `${startYear - 2}-${startYear - 1}`,
+        startDate: new Date(`${startYear - 2}-06-01T00:00:00.000Z`),
+        endDate: new Date(`${startYear - 1}-05-31T23:59:59.999Z`),
+        endYearNum: startYear - 1
+      }
+    ];
+
+    // 2. Fetch all faculty members in department with academics, personal, user & education records
+    let deptFilter = '';
+    let params = [];
+    if (!isInst) {
+      deptFilter = `
+        WHERE LOWER(TRIM(a.Department)) = LOWER(TRIM(?))
+           OR LOWER(TRIM(a.Department)) IN (
+             SELECT LOWER(TRIM(name)) FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR LOWER(TRIM(acronym)) = LOWER(TRIM(?))
+             UNION
+             SELECT LOWER(TRIM(acronym)) FROM departments WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR LOWER(TRIM(acronym)) = LOWER(TRIM(?))
+           )
+      `;
+      params = [department, department, department, department, department];
+    }
+
+    const staffQuery = `
+      SELECT 
+        a.staff_id,
+        COALESCE(p.staff_name, a.staff_name, 'Faculty Member') as staff_name,
+        a.Department,
+        a.Designation,
+        a.Qualification,
+        a.Date_of_joining,
+        a.date_designated_prof,
+        a.nature_of_association,
+        a.contractual_type,
+        a.date_of_leaving,
+        a.area_of_specialization,
+        COALESCE(u.is_relieved, 0) as is_relieved,
+        p.pan,
+        p.aicte_id,
+        p.anna_univ_id,
+        p.apaar_id,
+        p.email,
+        p.mobile
+      FROM staff_academics a
+      LEFT JOIN staff_personal p ON LOWER(TRIM(a.staff_id)) = LOWER(TRIM(p.staff_id))
+      LEFT JOIN staff_user u ON LOWER(TRIM(a.staff_id)) = LOWER(TRIM(u.staff_id))
+      ${deptFilter}
+      ORDER BY a.Date_of_joining ASC, a.staff_id ASC
+    `;
+
+    const facultyRows = await new Promise((resolve, reject) => {
+      db.all(staffQuery, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+
+    // Fetch all degrees for these faculty members
+    const staffIds = facultyRows.map(f => f.staff_id);
+    let eduRows = [];
+    if (staffIds.length > 0) {
+      const placeholders = staffIds.map(() => '?').join(',');
+      eduRows = await new Promise((resolve) => {
+        db.all(`SELECT staff_id, category, degree, specialization, year FROM staff_edu WHERE staff_id IN (${placeholders})`, staffIds, (_, rows) => resolve(rows || []));
+      });
+    }
+
+    const eduMap = {};
+    eduRows.forEach(e => {
+      const sId = (e.staff_id || '').trim().toLowerCase();
+      if (!eduMap[sId]) eduMap[sId] = [];
+      eduMap[sId].push(e);
+    });
+
+    // Helper to evaluate faculty member presence and degree status in a specific AY
+    const evaluateFacultyInYear = (f, yr) => {
+      const doj = parseDateSafe(f.Date_of_joining);
+      const dol = parseDateSafe(f.date_of_leaving);
+      const isRel = Boolean(f.is_relieved);
+
+      // Check if joined on or before the end of the academic year
+      if (doj && doj > yr.endDate) {
+        return { active: false, reason: 'Joined after this AY' };
+      }
+
+      // Check if left before the start of the academic year
+      if (isRel && dol && dol < yr.startDate) {
+        return { active: false, reason: 'Left before this AY' };
+      }
+
+      // Faculty is active in this academic year
+      const sId = (f.staff_id || '').trim().toLowerCase();
+      const degs = eduMap[sId] || [];
+
+      // Check if Ph.D. was acquired on or before this AY
+      let isPhd = false;
+      let phdYear = null;
+
+      const phdDeg = degs.find(d => 
+        (d.category || '').toLowerCase().includes('ph.d') ||
+        (d.degree || '').toLowerCase().includes('ph.d') ||
+        (d.degree || '').toLowerCase().includes('doctor')
+      );
+
+      if (phdDeg) {
+        const py = parseInt(phdDeg.year, 10);
+        if (!isNaN(py)) {
+          phdYear = py;
+          if (py <= yr.endYearNum) isPhd = true;
+        } else {
+          isPhd = true;
+        }
+      } else if ((f.Qualification || '').toUpperCase().includes('PH.D') || (f.Qualification || '').toUpperCase().includes('PHD')) {
+        isPhd = true;
+      }
+
+      const isRegular = (f.nature_of_association || 'REGULAR').toUpperCase().includes('REGULAR');
+      const desig = (f.Designation || '').toLowerCase();
+
+      let cadre = 'Assistant Professor';
+      if (desig.includes('assoc') || desig.includes('associate')) {
+        cadre = 'Associate Professor';
+      } else if (desig.includes('prof') && !desig.includes('assistant') && !desig.includes('associate')) {
+        cadre = 'Professor';
+      }
+
+      return {
+        active: true,
+        isRegular,
+        isPhd,
+        phdYear,
+        isPg: !isPhd,
+        cadre
+      };
+    };
+
+    // 3. Compute SAR Table 5.3 (Faculty Qualification) for CAY, CAYm1, CAYm2
+    const qualificationTable = years.map(yr => {
+      let X = 0; // Ph.D. holders
+      let Y = 0; // PG holders
+      let totalRegular = 0;
+      let totalContract = 0;
+      let profCount = 0;
+      let assocCount = 0;
+      let asstCount = 0;
+
+      const activeFacultyRoster = [];
+
+      facultyRows.forEach(f => {
+        const evalRes = evaluateFacultyInYear(f, yr);
+        if (evalRes.active) {
+          activeFacultyRoster.push({
+            ...f,
+            isPhd: evalRes.isPhd,
+            isPg: evalRes.isPg,
+            cadre: evalRes.cadre,
+            isRegular: evalRes.isRegular
+          });
+
+          if (evalRes.isRegular) {
+            totalRegular++;
+            if (evalRes.isPhd) X++;
+            else Y++;
+
+            if (evalRes.cadre === 'Professor') profCount++;
+            else if (evalRes.cadre === 'Associate Professor') assocCount++;
+            else asstCount++;
+          } else {
+            totalContract++;
+          }
+        }
+      });
+
+      // Required faculty F: either regular faculty count or SFR compliance
+      const F = totalRegular > 0 ? totalRegular : (facultyRows.length || 1);
+
+      // NBA Tier-1 Faculty Qualification Formula: 2.5 * [(10X + 4Y) / F] (Max: 20 Marks)
+      const rawFq = F > 0 ? (2.5 * ((10 * X + 4 * Y) / F)) : 0;
+      const fqScore = Math.min(20, Math.round(rawFq * 100) / 100);
+
+      // Cadre Proportion Formula (Criterion 5.2): Professor : Assoc : Asst = 1 : 2 : 6
+      const rfProf = Math.max(1, F / 9);
+      const rfAssoc = Math.max(1, (2 * F) / 9);
+      const rfAsst = Math.max(1, (6 * F) / 9);
+
+      const cadreMarks = Math.min(20, Math.round(((Math.min(1, profCount / rfProf) + Math.min(1, assocCount / rfAssoc) * 0.6 + Math.min(1, asstCount / rfAsst) * 0.4) * 10) * 100) / 100);
+
+      return {
+        yearKey: yr.key,
+        yearLabel: yr.label,
+        academicYear: yr.academicYear,
+        X, // Ph.D. count
+        Y, // PG count
+        F, // Total regular faculty
+        totalRegular,
+        totalContract,
+        totalActive: totalRegular + totalContract,
+        fqScore,
+        rawFq: Math.round(rawFq * 100) / 100,
+        cadre: {
+          profCount,
+          assocCount,
+          asstCount,
+          rfProf: Math.round(rfProf * 10) / 10,
+          rfAssoc: Math.round(rfAssoc * 10) / 10,
+          rfAsst: Math.round(rfAsst * 10) / 10,
+          cadreMarks
+        },
+        facultyRoster: activeFacultyRoster
+      };
+    });
+
+    // 3-Year Average FQ
+    const totalFq = qualificationTable.reduce((sum, item) => sum + item.fqScore, 0);
+    const averageFq = Math.round((totalFq / 3) * 100) / 100;
+
+    // 4. Compute SAR Table 5.6 (Faculty Retention Rate)
+    // Base Year is CAYm2 (index 2)
+    const caym2Year = years[2];
+    const caym1Year = years[1];
+    const cayYear = years[0];
+
+    const baseCohort = [];
+    facultyRows.forEach(f => {
+      const evalCAYm2 = evaluateFacultyInYear(f, caym2Year);
+      if (evalCAYm2.active && evalCAYm2.isRegular) {
+        baseCohort.push(f);
+      }
+    });
+
+    const nBase = baseCohort.length;
+    let nRetainedCAYm1 = 0;
+    let nRetainedCAY = 0;
+
+    const retentionRoster = baseCohort.map(f => {
+      const evalCAYm1 = evaluateFacultyInYear(f, caym1Year);
+      const evalCAY = evaluateFacultyInYear(f, cayYear);
+
+      const retainedInCAYm1 = evalCAYm1.active && evalCAYm1.isRegular;
+      const retainedInCAY = evalCAY.active && evalCAY.isRegular;
+
+      if (retainedInCAYm1) nRetainedCAYm1++;
+      if (retainedInCAY) nRetainedCAY++;
+
+      return {
+        staff_id: f.staff_id,
+        staff_name: f.staff_name,
+        Designation: f.Designation,
+        Date_of_joining: f.Date_of_joining,
+        date_of_leaving: f.date_of_leaving,
+        is_relieved: f.is_relieved,
+        retainedInCAYm2: true,
+        retainedInCAYm1,
+        retainedInCAY
+      };
+    });
+
+    const retentionRate = nBase > 0 ? Math.round(((nRetainedCAY / nBase) * 100) * 100) / 100 : 100;
+
+    // NBA Tier-1 Scoring Rubric (Max: 25 Marks)
+    let retentionMarks = 0;
+    if (retentionRate >= 90) retentionMarks = 25;
+    else if (retentionRate >= 75) retentionMarks = 20;
+    else if (retentionRate >= 60) retentionMarks = 15;
+    else if (retentionRate >= 50) retentionMarks = 10;
+    else retentionMarks = 0;
+
+    res.json({
+      success: true,
+      department: isInst ? 'Institution' : department,
+      academicYear,
+      sfrRatio,
+      years: years.map(y => y.label),
+      qualificationTable,
+      averageFq,
+      retention: {
+        baseYear: caym2Year.label,
+        nBase,
+        nRetainedCAYm1,
+        nRetainedCAY,
+        retentionRate,
+        retentionMarks,
+        maxMarks: 25,
+        roster: retentionRoster
+      },
+      facultyList: facultyRows
+    });
+  } catch (err) {
+    console.error('NBA Tier-1 Analytics Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
+
