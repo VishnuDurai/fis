@@ -392,6 +392,7 @@ router.put('/staff/:id', authenticateToken, requireSystemAdmin, (req, res) => {
       }, () => {
         res.json({ success: true, message: `Faculty profile for ${staff_name} (${id}) updated successfully.` });
       });
+    });
   });
 });
 
