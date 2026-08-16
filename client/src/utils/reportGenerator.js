@@ -299,6 +299,10 @@ export const downloadPdfReport = async ({ filename, pageTitle, departmentName, h
     const dateY = title2Y + 5;
     const dividerY = dateY + 4;
     const tableStartY = dividerY + 5;
+    const numCols = cleanHeaders.length;
+    const fontSize = numCols > 8 ? 8 : numCols > 6 ? 9 : numCols > 4 ? 10 : 11;
+    const headFontSize = numCols > 8 ? 8.5 : numCols > 6 ? 9.5 : numCols > 4 ? 10.5 : 11.5;
+    const cellPadding = numCols > 8 ? 2 : numCols > 6 ? 2.5 : 3.5;
 
     // Execute autoTable using standard ES module autoTable(doc, options)
     autoTable(doc, {
@@ -308,8 +312,8 @@ export const downloadPdfReport = async ({ filename, pageTitle, departmentName, h
       margin: { top: tableStartY, bottom: 25, left: 10, right: 10 },
       styles: {
         font: 'times',
-        fontSize: 12,
-        cellPadding: 3.5,
+        fontSize: fontSize,
+        cellPadding: cellPadding,
         textColor: [15, 23, 42],
         valign: 'middle',
         overflow: 'linebreak'
@@ -317,14 +321,14 @@ export const downloadPdfReport = async ({ filename, pageTitle, departmentName, h
       headStyles: {
         font: 'times',
         fontStyle: 'bold',
-        fontSize: 12,
+        fontSize: headFontSize,
         fillColor: [2, 132, 199], // #0284c7 theme blue
         textColor: [255, 255, 255],
         halign: 'left'
       },
       bodyStyles: {
         font: 'times',
-        fontSize: 12
+        fontSize: fontSize
       },
       alternateRowStyles: {
         fillColor: [248, 250, 252]
