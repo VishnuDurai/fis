@@ -1705,9 +1705,17 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
 
       const phdDeg = degs.find(d => 
         (d.category || '').toLowerCase().includes('ph.d') ||
+        (d.category || '').toLowerCase().includes('phd') ||
+        (d.category || '').toLowerCase().includes('doctor') ||
         (d.degree || '').toLowerCase().includes('ph.d') ||
+        (d.degree || '').toLowerCase().includes('phd') ||
         (d.degree || '').toLowerCase().includes('doctor')
       );
+
+      const nameStr = (f.staff_name || '').trim();
+      const qualStr = (f.Qualification || '').trim();
+      const hasDrPrefix = /^Dr\.?(\s|$)/i.test(nameStr) || /\b(Ph\.?D|Doctor)\b/i.test(nameStr);
+      const hasPhdQual = /\b(Ph\.?D|Doctor|Doctorate)\b/i.test(qualStr);
 
       if (phdDeg) {
         const py = parseInt(phdDeg.year, 10);
@@ -1717,7 +1725,7 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
         } else {
           isPhd = true;
         }
-      } else if ((f.Qualification || '').toUpperCase().includes('PH.D') || (f.Qualification || '').toUpperCase().includes('PHD')) {
+      } else if (hasDrPrefix || hasPhdQual) {
         isPhd = true;
       }
 
@@ -1740,6 +1748,7 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
         cadre
       };
     };
+
 
     // 3. Compute SAR Table 5.3 (Faculty Qualification) for CAY, CAYm1, CAYm2
     const qualificationTable = years.map(yr => {
@@ -1872,6 +1881,39 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
     else if (retentionRate >= 50) retentionMarks = 10;
     else retentionMarks = 0;
 
+    const enrichedFacultyRows = facultyRows.map(f => {
+      const sId = (f.staff_id || '').trim().toLowerCase();
+      const degs = eduMap[sId] || [];
+      const hasPhdDeg = degs.some(d => 
+        (d.category || '').toLowerCase().includes('ph.d') ||
+        (d.category || '').toLowerCase().includes('phd') ||
+        (d.category || '').toLowerCase().includes('doctor') ||
+        (d.degree || '').toLowerCase().includes('ph.d') ||
+        (d.degree || '').toLowerCase().includes('phd') ||
+        (d.degree || '').toLowerCase().includes('doctor')
+      );
+      const nameStr = (f.staff_name || '').trim();
+      const qualStr = (f.Qualification || '').trim();
+      const isDr = /^Dr\.?(\s|$)/i.test(nameStr) || /\b(Ph\.?D|Doctor)\b/i.test(nameStr);
+      const hasPhdQual = /\b(Ph\.?D|Doctor|Doctorate)\b/i.test(qualStr);
+      const isPhd = hasPhdDeg || isDr || hasPhdQual;
+
+      let highestQual = f.Qualification;
+      if (!highestQual || highestQual === 'null') {
+        if (isPhd) highestQual = 'Ph.D.';
+        else {
+          const pgDeg = degs.find(d => (d.category || '').toUpperCase().includes('PG') || (d.degree || '').toUpperCase().includes('M.'));
+          highestQual = pgDeg ? pgDeg.degree : 'Post Graduate (PG)';
+        }
+      }
+
+      return {
+        ...f,
+        Qualification: highestQual,
+        isPhd
+      };
+    });
+
     res.json({
       success: true,
       department: isInst ? 'Institution' : department,
@@ -1890,8 +1932,9 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
         maxMarks: 25,
         roster: retentionRoster
       },
-      facultyList: facultyRows
+      facultyList: enrichedFacultyRows
     });
+
   } catch (err) {
     console.error('NBA Tier-1 Analytics Error:', err);
     res.status(500).json({ error: err.message });
