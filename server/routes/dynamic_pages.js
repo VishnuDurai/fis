@@ -25,7 +25,10 @@ const storage = multer.diskStorage({
     cb(null, `dynamic_${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`);
   }
 });
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
+});
 
 const requireAuth = (req, res, next) => {
   const authHeader = req.headers['authorization'];

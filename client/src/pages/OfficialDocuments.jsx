@@ -326,8 +326,11 @@ export default function OfficialDocuments({ auth }) {
               <FileText size={22} style={{ color: 'hsl(var(--primary))' }} />
               Official Identity &amp; Employment Proof Documents
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
-              Upload and save your official identity cards, appointment orders, joining reports, and passport proofs.
+            <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <span>Upload and save your official identity cards, appointment orders, joining reports, and passport proofs.</span>
+              <span style={{ fontSize: '0.78rem', background: 'hsla(var(--primary), 0.12)', color: 'hsl(var(--primary))', fontWeight: 800, padding: '3px 10px', borderRadius: '6px', border: '1px solid hsla(var(--primary), 0.2)' }}>
+                Max file size: 5MB per document
+              </span>
             </p>
           </div>
 

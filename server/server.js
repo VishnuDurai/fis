@@ -220,6 +220,20 @@ if (fs.existsSync(clientDistPath)) {
   });
 }
 
+// Global error handling middleware (Multer file size limit & API errors)
+app.use((err, req, res, next) => {
+  if (err && (err.code === 'LIMIT_FILE_SIZE' || err.message?.includes('File too large'))) {
+    return res.status(400).json({ 
+      error: 'File exceeds the maximum allowed limit of 5MB. Please upload a file smaller than 5MB.' 
+    });
+  }
+  if (err) {
+    console.error('Server error handler caught:', err.message);
+    return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+  }
+  next();
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`SREC FIS Backend running on port ${PORT}`);

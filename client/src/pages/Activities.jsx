@@ -1474,8 +1474,9 @@ export default function Activities({ auth }) {
 
             {config.headers.includes('Attachment') && (
               <div style={{ marginBottom: '24px' }}>
-                <label className="form-label">
-                  Attach Supporting Document (Certificate / PDF / Image) <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Attach Supporting Document (Certificate / PDF / Image) <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span></span>
+                  <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
                 </label>
                 <Dropzone onFileSelect={(f) => setFile(f)} accept=".pdf,.jpg,.jpeg,.png" />
               </div>
@@ -2237,7 +2238,10 @@ export default function Activities({ auth }) {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label className="form-label">Attach Proof Document</label>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Attach Proof Document</span>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
+                  </label>
                   <Dropzone onFileSelect={(f) => setExtScholarFile(f)} accept=".pdf,.jpg,.jpeg,.png" />
                 </div>
 

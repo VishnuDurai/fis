@@ -527,7 +527,10 @@ const srecStorage = multer.diskStorage({
   }
 });
 
-const docUpload = multer({ storage: srecStorage });
+const docUpload = multer({ 
+  storage: srecStorage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
+});
 
 router.post('/personal/upload-doc', authenticateToken, docUpload.single('file'), (req, res) => {
   const { docType } = req.body;
@@ -1081,7 +1084,10 @@ router.get('/education', authenticateToken, (req, res) => {
 });
 
 // Configure Multer for Education Certificates & Profile Uploads
-const upload = multer({ storage: srecStorage });
+const upload = multer({ 
+  storage: srecStorage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
+});
 
 // 6. ADD Education Details
 router.post('/education', authenticateToken, upload.single('file'), (req, res) => {

@@ -1013,7 +1013,10 @@ router.put('/universities/:id', authenticateToken, requireSystemAdmin, (req, res
 });
 
 // Configure Multer for Bulk Upload Memory Storage
-const bulkUpload = multer({ storage: multer.memoryStorage() });
+const bulkUpload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
+});
 
 // Helper to normalize XLSX/CSV column keys
 function getRowValue(row, possibleKeys) {

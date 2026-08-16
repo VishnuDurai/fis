@@ -34,7 +34,10 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage, 
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
+});
 
 // Map types to database table names and their column configurations
 const tableMap = {

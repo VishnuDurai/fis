@@ -26,6 +26,21 @@ export default function DynamicPage({ auth }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const handleFileAttachmentChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showError(`File exceeds maximum allowed limit of 5MB (${(file.size / (1024 * 1024)).toFixed(2)} MB). Please select a file under 5MB.`);
+        e.target.value = '';
+        setFileAttachment(null);
+        return;
+      }
+      setFileAttachment(file);
+    } else {
+      setFileAttachment(null);
+    }
+  };
+
   const fetchPageData = async () => {
     setLoading(true);
     try {
@@ -316,7 +331,12 @@ export default function DynamicPage({ auth }) {
 
                   {/* ── Special ── */}
                   {f.type === 'file' && (
-                    <input type="file" className="form-control" onChange={(e) => setFileAttachment(e.target.files[0])} required={f.required} />
+                    <div>
+                      <input type="file" className="form-control" onChange={handleFileAttachmentChange} required={f.required} />
+                      <span style={{ fontSize: '0.76rem', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
+                        Accepted files: PDF, DOC, Images (Max file size: 5MB)
+                      </span>
+                    </div>
                   )}
                   {f.type === 'color' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -343,8 +363,14 @@ export default function DynamicPage({ auth }) {
               {/* Standard File Attachment Upload if not present in custom fields */}
               {!dynamicFields.some(f => f.type === 'file') && (
                 <div>
-                  <label className="form-label" style={{ fontWeight: 700 }}>Supporting Document Attachment</label>
-                  <input type="file" className="form-control" onChange={(e) => setFileAttachment(e.target.files[0])} />
+                  <label className="form-label" style={{ fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Supporting Document Attachment</span>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
+                  </label>
+                  <input type="file" className="form-control" onChange={handleFileAttachmentChange} />
+                  <span style={{ fontSize: '0.76rem', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
+                    Attach proof document (PDF, Word, or Image up to 5MB)
+                  </span>
                 </div>
               )}
             </div>

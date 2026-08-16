@@ -383,7 +383,10 @@ export default function Education({ auth }) {
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label className="form-label">Attach Degree Certificate / Marksheet <span style={{ color: 'hsl(var(--danger))' }}>*</span></label>
+              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Attach Degree Certificate / Marksheet <span style={{ color: 'hsl(var(--danger))' }}>*</span></span>
+                <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
+              </label>
               <Dropzone onFileSelect={(f) => setFile(f)} accept=".pdf,.jpg,.jpeg,.png" />
             </div>
 

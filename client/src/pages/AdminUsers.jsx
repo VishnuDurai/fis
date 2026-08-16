@@ -1261,6 +1261,11 @@ export default function AdminUsers({ auth, initialTab }) {
       return;
     }
 
+    if (bulkFile.size > 5 * 1024 * 1024) {
+      showError(`File exceeds maximum allowed size of 5MB (${(bulkFile.size / (1024 * 1024)).toFixed(2)} MB). Please select a file under 5MB.`);
+      return;
+    }
+
     setBulkUploading(true);
     setBulkResult(null);
 
@@ -1511,18 +1516,28 @@ export default function AdminUsers({ auth, initialTab }) {
 
               <form onSubmit={handleBulkUploadSubmit}>
                 <div className="form-group" style={{ marginBottom: '20px' }}>
-                  <label className="form-label">
-                    Select Filled CSV or Excel (.xlsx) Template <span style={{ color: 'hsl(var(--danger))' }}>*</span>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Select Filled CSV or Excel (.xlsx) Template <span style={{ color: 'hsl(var(--danger))' }}>*</span></span>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
                   </label>
                   <input 
                     type="file" 
                     accept=".csv, .xlsx, .xls"
                     className="form-control" 
-                    onChange={(e) => setBulkFile(e.target.files[0])}
+                    onChange={(e) => {
+                      const f = e.target.files && e.target.files[0];
+                      if (f && f.size > 5 * 1024 * 1024) {
+                        showError(`File exceeds maximum allowed size of 5MB (${(f.size / (1024 * 1024)).toFixed(2)} MB). Please select a file under 5MB.`);
+                        e.target.value = '';
+                        setBulkFile(null);
+                        return;
+                      }
+                      setBulkFile(f);
+                    }}
                     required
                   />
                   <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-muted))', marginTop: '6px', display: 'block' }}>
-                    * Default login password for each created account will automatically be set to their <strong>Staff ID</strong>. Faculty storage directory (<code>SREC/Department/Staff_ID</code>) will be created automatically.
+                    * Format: .csv, .xlsx, .xls (Max file size: 5MB). Default password will be set to their <strong>Staff ID</strong>. Faculty storage directory will be created automatically.
                   </span>
                 </div>
 
