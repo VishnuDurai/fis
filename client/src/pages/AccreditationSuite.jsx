@@ -18,6 +18,7 @@ import {
   BarChart3,
   BookOpen
 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import { useAlert } from '../context/AlertContext';
 import { 
   exportNbaB2FacultyDetails, 
@@ -26,8 +27,6 @@ import {
   exportNbaTier1SarPdf,
   exportNaacCriterion3Pdf
 } from '../utils/reportGenerator';
-
-const API_BASE_URL = 'http://localhost:5000';
 
 // --- NBA CRITERION 5 VISUALIZATION COMPONENTS ---
 
@@ -299,9 +298,10 @@ export default function AccreditationSuite({ auth }) {
   const { showError, showSuccess } = useAlert();
   
   // State
-  const [accreditationDept, setAccreditationDept] = useState(
-    auth.role === 'dept_admin' ? (auth.department || auth.dept || '') : ''
-  );
+  const initialDept = (auth.role === 'dept_admin' || auth.role === 'faculty') 
+    ? (auth.department || auth.dept || localStorage.getItem('srec_dept') || '') 
+    : '';
+  const [accreditationDept, setAccreditationDept] = useState(initialDept);
   const [departments, setDepartments] = useState([]);
   const [nbaAssessmentYear, setNbaAssessmentYear] = useState('2026-2027');
   const [nbaSfrRatio, setNbaSfrRatio] = useState(15);
@@ -332,7 +332,9 @@ export default function AccreditationSuite({ auth }) {
     setLoadingNbaTier1(true);
     try {
       const headers = { 'Authorization': `Bearer ${auth.token}` };
-      const targetDept = auth.role === 'dept_admin' ? (auth.department || auth.dept || '') : (dept || '');
+      const targetDept = (auth.role === 'dept_admin' || auth.role === 'faculty')
+        ? (auth.department || auth.dept || localStorage.getItem('srec_dept') || dept || '')
+        : (dept || '');
       const queryParams = new URLSearchParams({
         department: targetDept,
         academicYear: ay || '2026-2027',
@@ -419,7 +421,7 @@ export default function AccreditationSuite({ auth }) {
                   Accreditation Suite (NBA Tier-1 & NAAC)
                 </h2>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.86rem', color: '#94a3b8' }}>
-                  Standard SAR Criterion 5 Evaluation Suite, Cadre Compliance, Qualification (FQ), Retention, Form B2 & NAAC Criteria
+                  Department: <strong style={{ color: '#38bdf8' }}>{nbaTier1Data?.department || initialDept || 'Institution (All Departments)'}</strong> | Standard SAR Criterion 5 Evaluation Suite
                 </p>
               </div>
             </div>
