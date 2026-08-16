@@ -1578,13 +1578,14 @@ const parseDateSafe = (dStr) => {
 router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, res) => {
   const department = (req.user.role === 'dept_admin' ? (req.user.department || '') : (req.query.department || '')).trim();
   const isInst = !department || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(department.toUpperCase());
-  const academicYear = (req.query.academicYear || '2025-2026').trim();
+  const academicYear = (req.query.academicYear || '2026-2027').trim();
   const sfrRatio = parseFloat(req.query.sfrRatio) || 15; // Tier-1 standard: 1:15 or 1:20
 
   try {
     // 1. Determine 3-Year Assessment Cohorts (CAY, CAYm1, CAYm2)
     const matchYear = academicYear.match(/^(\d{4})/);
-    const startYear = matchYear ? parseInt(matchYear[1], 10) : 2025;
+    const startYear = matchYear ? parseInt(matchYear[1], 10) : 2026;
+
 
     const years = [
       {

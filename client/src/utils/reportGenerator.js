@@ -446,7 +446,7 @@ export const downloadPdfReport = async ({ filename, pageTitle, departmentName, h
 /**
  * Exports Faculty Details in standard NBA Criterion 5 Form B2 Excel (.xlsx) format
  */
-export const exportNbaB2FacultyDetails = (facultyList, departmentName = 'Department', academicYear = '2025-2026') => {
+export const exportNbaB2FacultyDetails = (facultyList, departmentName = 'Department', academicYear = '2026-2027') => {
   const headers = [
     'S. No.',
     'Name',
@@ -517,7 +517,7 @@ export const exportNbaB2FacultyDetails = (facultyList, departmentName = 'Departm
 /**
  * Exports Faculty Details in standard NBA Criterion 5 Form B2 PDF format
  */
-export const exportNbaB2FacultyDetailsPdf = async (facultyList, departmentName = 'Department', academicYear = '2025-2026', auth = {}) => {
+export const exportNbaB2FacultyDetailsPdf = async (facultyList, departmentName = 'Department', academicYear = '2026-2027', auth = {}) => {
   try {
     const isInstitutional = !departmentName || 
       ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE', 'N/A', ''].includes(departmentName.toString().trim().toUpperCase());
@@ -1017,7 +1017,7 @@ export const exportNbaCriterion5Pdf = async (data, departmentName = 'Institution
 /**
  * Exports Comprehensive NBA Tier-1 SAR Evaluation Workbook (Criteria 5.2, 5.3, 5.6 & Form B2) in Excel (.xlsx)
  */
-export const exportNbaTier1SarExcel = (data, departmentName = 'Department', academicYear = '2025-2026') => {
+export const exportNbaTier1SarExcel = (data, departmentName = 'Department', academicYear = '2026-2027') => {
   try {
     const wb = XLSX.utils.book_new();
     const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
@@ -1197,7 +1197,7 @@ export const exportNbaTier1SarExcel = (data, departmentName = 'Department', acad
 /**
  * Exports Comprehensive NBA Tier-1 SAR Evaluation Dossier (Criteria 5.2, 5.3, 5.6 & Form B2) in PDF format
  */
-export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', academicYear = '2025-2026', auth = {}) => {
+export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', academicYear = '2026-2027', auth = {}) => {
   try {
     const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
     const fullDept = isInst ? 'Sri Ramakrishna Engineering College' : `Department of ${getFullDepartmentName(departmentName)}`;

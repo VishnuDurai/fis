@@ -63,12 +63,279 @@ const SECTION_CONFIGS = [
   { key: 'scholars', label: 'Research Scholars' }
 ];
 
+// --- NBA CRITERION 5 VISUALIZATION COMPONENTS ---
+
+function NbaFqChart({ qualificationTable = [], averageFq = 0 }) {
+  if (!qualificationTable || qualificationTable.length === 0) return null;
+  const maxFaculty = Math.max(...qualificationTable.map(q => Math.max(q.F || 0, (q.X || 0) + (q.Y || 0), 10)), 15);
+
+  return (
+    <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+        <div>
+          <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            📈 3-Year Faculty Qualification & FQ Score Progression
+          </h4>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Ph.D. Faculty (X) vs PG Faculty (Y) vs Total Regular Faculty (F)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0284c7' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#0284c7', display: 'inline-block' }} /> Ph.D. Faculty (X)
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748b' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#94a3b8', display: 'inline-block' }} /> PG Faculty (Y)
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#0f172a' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#e2e8f0', border: '1px solid #cbd5e1', display: 'inline-block' }} /> Total (F)
+          </span>
+        </div>
+      </div>
+
+      {/* 3-Year Grouped Column Chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', alignItems: 'flex-end', paddingTop: '6px' }}>
+        {qualificationTable.map((q) => {
+          const phdPct = q.F > 0 ? Math.round((q.X / q.F) * 100) : 0;
+          const pgPct = 100 - phdPct;
+          const heightPhd = Math.max(14, ((q.X || 0) / maxFaculty) * 130);
+          const heightPg = Math.max(14, ((q.Y || 0) / maxFaculty) * 130);
+          const heightTotal = Math.max(14, ((q.F || 0) / maxFaculty) * 130);
+
+          return (
+            <div key={q.yearKey} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{q.yearLabel}</span>
+                <span style={{ background: '#e0f2fe', color: '#0284c7', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                  FQ: {q.fqScore.toFixed(2)} / 20
+                </span>
+              </div>
+
+              {/* Visual Bars Container */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '12px', height: '140px', paddingBottom: '8px', borderBottom: '1.5px dashed #cbd5e1' }}>
+                {/* Ph.D. Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '42px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>{q.X}</span>
+                  <div style={{ width: '100%', height: `${heightPhd}px`, background: 'linear-gradient(180deg, #38bdf8 0%, #0284c7 100%)', borderRadius: '6px 6px 2px 2px', boxShadow: '0 2px 4px rgba(2, 132, 199, 0.2)' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', marginTop: '4px' }}>Ph.D.</span>
+                </div>
+
+                {/* PG Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '42px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', marginBottom: '4px' }}>{q.Y}</span>
+                  <div style={{ width: '100%', height: `${heightPg}px`, background: 'linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%)', borderRadius: '6px 6px 2px 2px' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginTop: '4px' }}>PG</span>
+                </div>
+
+                {/* Total Regular Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '42px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>{q.F}</span>
+                  <div style={{ width: '100%', height: `${heightTotal}px`, background: 'linear-gradient(180deg, #94a3b8 0%, #475569 100%)', borderRadius: '6px 6px 2px 2px' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>Total (F)</span>
+                </div>
+              </div>
+
+              {/* Qualification Ratio Bar */}
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
+                  <span>Ph.D. Mix: <strong style={{ color: '#0284c7' }}>{phdPct}%</strong></span>
+                  <span>PG Mix: <strong style={{ color: '#475569' }}>{pgPct}%</strong></span>
+                </div>
+                <div style={{ width: '100%', height: '7px', background: '#cbd5e1', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ width: `${phdPct}%`, background: '#0284c7' }} />
+                  <div style={{ width: `${pgPct}%`, background: '#94a3b8' }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NbaRetentionChart({ retention = {} }) {
+  const rate = retention.retentionRate ?? 100;
+  const marks = retention.retentionMarks ?? 25;
+  const nBase = retention.nBase ?? 0;
+  const nCAYm1 = retention.nRetainedCAYm1 ?? 0;
+  const nCAY = retention.nRetainedCAY ?? 0;
+
+  const pctCAYm1 = nBase > 0 ? Math.round((nCAYm1 / nBase) * 100) : 100;
+  const pctCAY = nBase > 0 ? Math.round((nCAY / nBase) * 100) : 100;
+
+  // Gauge color based on rubric
+  let gaugeColor = '#16a34a';
+  let rubricText = '>= 90% (Full 25 Marks)';
+  if (rate < 50) { gaugeColor = '#ef4444'; rubricText = '< 50% (0 Marks)'; }
+  else if (rate < 60) { gaugeColor = '#f97316'; rubricText = '50 - 59% (10 Marks)'; }
+  else if (rate < 75) { gaugeColor = '#eab308'; rubricText = '60 - 74% (15 Marks)'; }
+  else if (rate < 90) { gaugeColor = '#10b981'; rubricText = '75 - 89% (20 Marks)'; }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '16px' }}>
+      {/* 1. Retention Survival Funnel Flow */}
+      <div>
+        <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          🔄 Faculty Cohort Survival Funnel (Base Year to CAY)
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Step 1: Base Year */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
+              <span>1. Base Year Cohort ({retention.baseYear || 'CAYm2'})</span>
+              <span style={{ color: '#0f172a' }}>{nBase} Faculty (100%)</span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '100%', background: '#3b82f6', borderRadius: '4px' }} />
+            </div>
+          </div>
+
+          {/* Step 2: CAYm1 */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>
+              <span>2. Retained in Year 1 (CAYm1)</span>
+              <span style={{ color: '#0284c7' }}>{nCAYm1} Faculty ({pctCAYm1}%)</span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, pctCAYm1)}%`, height: '100%', background: '#0284c7', borderRadius: '4px' }} />
+            </div>
+          </div>
+
+          {/* Step 3: CAY */}
+          <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, marginBottom: '4px' }}>
+              <span style={{ color: '#166534' }}>3. Retained in Year 2 (CAY)</span>
+              <span style={{ color: '#16a34a' }}>{nCAY} Faculty ({pctCAY}%)</span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, pctCAY)}%`, height: '100%', background: '#16a34a', borderRadius: '4px' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Retention Rate & Score Radial Gauge */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>
+          NBA Retention Score Awarded
+        </span>
+        <div style={{ position: 'relative', width: '160px', height: '90px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <svg viewBox="0 0 100 55" style={{ width: '160px', height: '90px' }}>
+            <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="10" strokeLinecap="round" />
+            <path
+              d="M 10 50 A 40 40 0 0 1 90 50"
+              fill="none"
+              stroke={gaugeColor}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray="126"
+              strokeDashoffset={126 - (126 * Math.min(100, Math.max(0, rate))) / 100}
+              style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', bottom: '2px', textAlign: 'center' }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 900, color: gaugeColor }}>{rate}%</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '10px', textAlign: 'center' }}>
+          <span style={{ background: gaugeColor, color: '#ffffff', fontWeight: 800, padding: '4px 12px', borderRadius: '20px', fontSize: '0.82rem' }}>
+            {marks} / 25 Marks Awarded
+          </span>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px', fontWeight: 600 }}>
+            Rubric: {rubricText}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NbaCadreChart({ qualificationTable = [] }) {
+  if (!qualificationTable || qualificationTable.length === 0) return null;
+
+  return (
+    <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+        <div>
+          <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            🏛️ Cadre Distribution: Actual Available vs AICTE Required (1:2:6 Ratio)
+          </h4>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Professors (1/9) : Associate Professors (2/9) : Assistant Professors (6/9)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#7c3aed' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#7c3aed', display: 'inline-block' }} /> Actual Cadre (AF)
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#a855f7' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#e9d5ff', border: '1px solid #c084fc', display: 'inline-block' }} /> Required Cadre (RF)
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+        {qualificationTable.map((q) => {
+          const c = q.cadre || {};
+          const maxVal = Math.max(c.profCount || 0, c.rfProf || 0, c.assocCount || 0, c.rfAssoc || 0, c.asstCount || 0, c.rfAsst || 0, 10);
+
+          return (
+            <div key={q.yearKey} style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#581c87' }}>{q.yearLabel}</span>
+                <span style={{ background: '#f3e8ff', color: '#7c3aed', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                  Cadre Score: {c.cadreMarks?.toFixed(2) || '0.00'} / 20
+                </span>
+              </div>
+
+              {/* Grouped Comparison Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Professors */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 700, color: '#6b21a8', marginBottom: '3px' }}>
+                    <span>Professors (AF1 / RF1):</span>
+                    <span><strong>{c.profCount || 0}</strong> actual / {c.rfProf || 0} req</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: '#e9d5ff', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${Math.min(100, ((c.profCount || 0) / maxVal) * 100)}%`, background: '#7c3aed', borderRadius: '4px' }} />
+                  </div>
+                </div>
+
+                {/* Associate Professors */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 700, color: '#4338ca', marginBottom: '3px' }}>
+                    <span>Assoc. Professors (AF2 / RF2):</span>
+                    <span><strong>{c.assocCount || 0}</strong> actual / {c.rfAssoc || 0} req</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: '#c7d2fe', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${Math.min(100, ((c.assocCount || 0) / maxVal) * 100)}%`, background: '#4f46e5', borderRadius: '4px' }} />
+                  </div>
+                </div>
+
+                {/* Assistant Professors */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 700, color: '#0369a1', marginBottom: '3px' }}>
+                    <span>Asst. Professors (AF3 / RF3):</span>
+                    <span><strong>{c.asstCount || 0}</strong> actual / {c.rfAsst || 0} req</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: '#bae6fd', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${Math.min(100, ((c.asstCount || 0) / maxVal) * 100)}%`, background: '#0284c7', borderRadius: '4px' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Reports({ auth }) {
   // Accreditation Suite State
   const [accreditationDept, setAccreditationDept] = useState(
     auth.role === 'dept_admin' ? (auth.department || auth.dept || '') : ''
   );
   const [exportingAccreditation, setExportingAccreditation] = useState(false);
+
 
   // Departments List
   const [departments, setDepartments] = useState([]);
@@ -125,7 +392,7 @@ export default function Reports({ auth }) {
   const [showNbaTier1Modal, setShowNbaTier1Modal] = useState(false);
   const [nbaTier1Data, setNbaTier1Data] = useState(null);
   const [loadingNbaTier1, setLoadingNbaTier1] = useState(false);
-  const [nbaAssessmentYear, setNbaAssessmentYear] = useState('2025-2026');
+  const [nbaAssessmentYear, setNbaAssessmentYear] = useState('2026-2027');
   const [nbaSfrRatio, setNbaSfrRatio] = useState(15);
   const [nbaActiveTab, setNbaActiveTab] = useState('overview');
 
@@ -826,7 +1093,8 @@ export default function Reports({ auth }) {
                     }}
                     style={{ background: '#334155', color: '#fff', borderColor: '#475569', fontSize: '0.8rem', padding: '5px 10px', borderRadius: '6px', fontWeight: 700 }}
                   >
-                    <option value="2025-2026">2025-2026 (CAY)</option>
+                    <option value="2026-2027">2026-2027 (CAY)</option>
+                    <option value="2025-2026">2025-2026</option>
                     <option value="2024-2025">2024-2025</option>
                     <option value="2023-2024">2023-2024</option>
                     <option value="2022-2023">2022-2023</option>
@@ -967,6 +1235,11 @@ export default function Reports({ auth }) {
                         </p>
                       </div>
 
+                      {/* Visual Interactive Graphs for Criteria 5.3, 5.6 & 5.2 */}
+                      <NbaFqChart qualificationTable={nbaTier1Data.qualificationTable} averageFq={nbaTier1Data.averageFq} />
+                      <NbaRetentionChart retention={nbaTier1Data.retention} />
+                      <NbaCadreChart qualificationTable={nbaTier1Data.qualificationTable} />
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
                         {/* Summary Table 5.3 */}
                         <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
@@ -1051,6 +1324,9 @@ export default function Reports({ auth }) {
                         </div>
                       </div>
 
+                      {/* Visual 5.3 Progression & Mix Chart */}
+                      <NbaFqChart qualificationTable={nbaTier1Data.qualificationTable} averageFq={nbaTier1Data.averageFq} />
+
                       <div className="table-container">
                         <table style={{ width: '100%', fontSize: '0.85rem' }}>
                           <thead>
@@ -1103,6 +1379,9 @@ export default function Reports({ auth }) {
                           <strong>Scoring Rubric:</strong> &gt;= 90% : <strong>25 Marks</strong> | 75-89% : <strong>20 Marks</strong> | 60-74% : <strong>15 Marks</strong> | 50-59% : <strong>10 Marks</strong> | &lt; 50% : <strong>0 Marks</strong>.
                         </div>
                       </div>
+
+                      {/* Visual Retention Survival Funnel and Score Radial Gauge */}
+                      <NbaRetentionChart retention={nbaTier1Data.retention} />
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px' }}>
@@ -1184,6 +1463,9 @@ export default function Reports({ auth }) {
                           Target Cadre Distribution: 1 Professor : 2 Associate Professors : 6 Assistant Professors per 9 required faculty members (Max: 20 Marks).
                         </div>
                       </div>
+
+                      {/* Visual Cadre Distribution Bar Chart */}
+                      <NbaCadreChart qualificationTable={nbaTier1Data.qualificationTable} />
 
                       <div className="table-container">
                         <table style={{ width: '100%', fontSize: '0.85rem' }}>
