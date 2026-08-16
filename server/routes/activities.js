@@ -158,7 +158,7 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
     if (reqStaffId && reqStaffId !== req.user.staffId) {
       query = `SELECT t.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation ${extraSelect} FROM staff_supervisor t LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id)) LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id)) WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?))`;
       params = [reqStaffId];
-    } else if (isAdmin) {
+    } else if (isAdmin || isDeptAdmin) {
       query = `SELECT t.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation ${extraSelect} FROM staff_supervisor t LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id)) LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))`;
       params = [];
     } else {
