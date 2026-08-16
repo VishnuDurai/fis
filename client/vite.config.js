@@ -49,6 +49,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MB limit
         navigateFallbackDenylist: [/^\/uploads/, /^\/SREC/, /^\/api/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
         runtimeCaching: [

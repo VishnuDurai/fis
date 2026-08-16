@@ -1,13 +1,14 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, FileText, Upload, Award, KeyRound, Layers, User, AlertTriangle, History, Megaphone, TrendingUp, Radio } from 'lucide-react';
+import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, ArrowLeftRight, FileSignature, Eye, X, ArrowUp, ArrowDown, UserX, UserCheck, Download, FolderDown, FileSpreadsheet, FileText, Upload, Award, KeyRound, Layers, User, AlertTriangle, History, Megaphone, TrendingUp, Radio, CheckCircle2 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import PhdCompletionModal from '../components/PhdCompletionModal.jsx';
 import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
+import { downloadExperienceCertificate, downloadRelievingOrder, downloadSalaryCertificate } from '../utils/certificateGenerator.js';
 import { validateStaffId, validateEmail, validateMobile, validatePan, validateAadhar, validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
 export default function AdminUsers({ auth, initialTab }) {
@@ -80,6 +81,30 @@ export default function AdminUsers({ auth, initialTab }) {
   const [searchLookupUni, setSearchLookupUni] = useState('');
   const [searchSystemAdmin, setSearchSystemAdmin] = useState('');
   const [searchDeptAdmin, setSearchDeptAdmin] = useState('');
+
+  // HR & Service Certificates State
+  const [certificateTarget, setCertificateTarget] = useState(null);
+  const [certificateType, setCertificateType] = useState('experience'); // 'experience' | 'relieving' | 'salary'
+  const [certOptions, setCertOptions] = useState({
+    refNo: '',
+    issueDate: new Date().toISOString().split('T')[0],
+    conduct: 'Good',
+    purpose: '',
+    resignationDate: '',
+    relievingDate: '',
+    salaryMonth: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
+  });
+  const [salaryData, setSalaryData] = useState({
+    basicPay: 54000,
+    agp: 6000,
+    da: 28000,
+    hra: 8000,
+    otherAllowance: 2500,
+    epf: 1800,
+    professionalTax: 208,
+    tds: 3500,
+    otherDeductions: 0
+  });
 
   // Add Faculty Form Modal/State
   const [showAddFaculty, setShowAddFaculty] = useState(false);
@@ -1162,6 +1187,41 @@ export default function AdminUsers({ auth, initialTab }) {
     }
   };
 
+  const handleOpenCertificateModal = (faculty, defaultType = 'experience') => {
+    setCertificateTarget(faculty);
+    setCertificateType(defaultType);
+    const today = new Date().toISOString().split('T')[0];
+    const curMonth = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    setCertOptions({
+      refNo: '',
+      issueDate: today,
+      conduct: 'Good',
+      purpose: defaultType === 'salary' ? 'Official Bank Loan / Financial Verification' : (defaultType === 'experience' ? 'Higher Studies / Professional Credentials' : ''),
+      resignationDate: faculty.date_of_leaving || today,
+      relievingDate: faculty.date_of_leaving || today,
+      salaryMonth: curMonth
+    });
+  };
+
+  const handleGenerateCertificatePdf = async () => {
+    if (!certificateTarget) return;
+    try {
+      if (certificateType === 'experience') {
+        await downloadExperienceCertificate(certificateTarget, certOptions);
+        showSuccess(`Experience Certificate generated successfully for ${certificateTarget.staff_name}`);
+      } else if (certificateType === 'relieving') {
+        await downloadRelievingOrder(certificateTarget, certOptions);
+        showSuccess(`Relieving Order generated successfully for ${certificateTarget.staff_name}`);
+      } else if (certificateType === 'salary') {
+        await downloadSalaryCertificate(certificateTarget, salaryData, certOptions);
+        showSuccess(`Salary Certificate generated successfully for ${certificateTarget.staff_name}`);
+      }
+      setCertificateTarget(null);
+    } catch (err) {
+      showError(`Failed to generate certificate: ${err.message}`);
+    }
+  };
+
   const handleConfirmResetPassword = async () => {
     if (!resetPasswordTarget) return;
 
@@ -2145,6 +2205,15 @@ export default function AdminUsers({ auth, initialTab }) {
                                       Transfer
                                     </button>
                                     <button 
+                                      onClick={() => handleOpenCertificateModal(f)} 
+                                      title="Generate Experience Certificate, Relieving Order & Salary Certificate (PDF)"
+                                      className="btn btn-secondary"
+                                      style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                                    >
+                                      <Award size={14} />
+                                      Certificates
+                                    </button>
+                                    <button 
                                       onClick={() => handleDownloadZip('faculty', f.staff_id)} 
                                       title="Download All Documents for this Faculty (ZIP)"
                                       className="btn btn-secondary"
@@ -2192,6 +2261,15 @@ export default function AdminUsers({ auth, initialTab }) {
                                     >
                                       <Eye size={14} />
                                       View Dossier
+                                    </button>
+                                    <button 
+                                      onClick={() => handleOpenCertificateModal(f)} 
+                                      title="Generate Experience & Salary Certificates"
+                                      className="btn btn-secondary"
+                                      style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                                    >
+                                      <Award size={14} />
+                                      Certificates
                                     </button>
                                     <button 
                                       onClick={() => handleDownloadZip('faculty', f.staff_id)} 
@@ -3807,6 +3885,313 @@ export default function AdminUsers({ auth, initialTab }) {
                 <KeyRound size={16} /> Confirm Reset Password
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* OFFICIAL HR & SERVICE CERTIFICATES MODAL */}
+      {certificateTarget && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '26px', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0' }}>
+                  <Award size={22} style={{ color: 'hsl(var(--primary))' }} />
+                  Generate Official Certificate / Order
+                </h3>
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  Target: <strong style={{ color: '#0f172a' }}>{certificateTarget.staff_name}</strong> ({certificateTarget.staff_id}) • {certificateTarget.Department || 'Department'}
+                </span>
+              </div>
+              <button onClick={() => setCertificateTarget(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Certificate Type Tabs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '20px', background: '#f1f5f9', padding: '6px', borderRadius: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setCertificateType('experience')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: certificateType === 'experience' ? '#ffffff' : 'transparent',
+                  color: certificateType === 'experience' ? 'hsl(var(--primary))' : '#64748b',
+                  boxShadow: certificateType === 'experience' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                📜 Experience Certificate
+              </button>
+              <button
+                type="button"
+                onClick={() => setCertificateType('relieving')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: certificateType === 'relieving' ? '#ffffff' : 'transparent',
+                  color: certificateType === 'relieving' ? 'hsl(var(--primary))' : '#64748b',
+                  boxShadow: certificateType === 'relieving' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                📋 Relieving Order
+              </button>
+              <button
+                type="button"
+                onClick={() => setCertificateType('salary')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: certificateType === 'salary' ? '#ffffff' : 'transparent',
+                  color: certificateType === 'salary' ? 'hsl(var(--primary))' : '#64748b',
+                  boxShadow: certificateType === 'salary' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                💰 Salary Certificate
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              
+              {/* Common Reference & Issue Date */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700 }}>Custom Reference No. (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder={`e.g. SREC/ESTT/${certificateType.toUpperCase().substring(0,3)}/2026/${certificateTarget.staff_id}`}
+                    value={certOptions.refNo}
+                    onChange={(e) => setCertOptions({ ...certOptions, refNo: e.target.value })}
+                  />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Leave blank to auto-generate official ref number.</span>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700 }}>Date of Issue *</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={certOptions.issueDate}
+                    onChange={(e) => setCertOptions({ ...certOptions, issueDate: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 1. EXPERIENCE CERTIFICATE FORM */}
+              {certificateType === 'experience' && (
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ fontSize: '0.85rem', color: '#334155', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div><strong>Date of Joining:</strong> {certificateTarget.Date_of_joining || 'N/A'}</div>
+                    <div><strong>Service Status:</strong> {certificateTarget.is_relieved ? `Relieved on ${certificateTarget.date_of_leaving || 'N/A'}` : 'Active Regular Faculty'}</div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Conduct & Character Endorsement</label>
+                      <select
+                        className="form-control"
+                        value={certOptions.conduct}
+                        onChange={(e) => setCertOptions({ ...certOptions, conduct: e.target.value })}
+                      >
+                        <option value="Good">Good</option>
+                        <option value="Exemplary">Exemplary</option>
+                        <option value="Very Good">Very Good</option>
+                        <option value="Satisfactory">Satisfactory</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Purpose / Stated Reason (Optional)</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Higher Studies / Professional Credentials"
+                        value={certOptions.purpose}
+                        onChange={(e) => setCertOptions({ ...certOptions, purpose: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. RELIEVING ORDER FORM */}
+              {certificateType === 'relieving' && (
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Resignation Letter Date</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={certOptions.resignationDate}
+                        onChange={(e) => setCertOptions({ ...certOptions, resignationDate: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Effective Relieving Date (A.N.) *</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={certOptions.relievingDate}
+                        onChange={(e) => setCertOptions({ ...certOptions, relievingDate: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={16} />
+                    <span>Includes certified No-Dues Clearance endorsement from Department, Library, Laboratories, Accounts, and Administration.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. SALARY CERTIFICATE FORM */}
+              {certificateType === 'salary' && (
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Salary For Month / Year *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. August 2026"
+                        value={certOptions.salaryMonth}
+                        onChange={(e) => setCertOptions({ ...certOptions, salaryMonth: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 700 }}>Purpose of Certificate</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Bank Housing Loan Application / SBI"
+                        value={certOptions.purpose}
+                        onChange={(e) => setCertOptions({ ...certOptions, purpose: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                    {/* Earnings Breakdown */}
+                    <div style={{ background: '#ffffff', padding: '14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 10px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                        Earnings &amp; Allowances (₹)
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Basic Pay</label>
+                          <input type="number" className="form-control" value={salaryData.basicPay} onChange={(e) => setSalaryData({ ...salaryData, basicPay: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Academic Grade Pay (AGP)</label>
+                          <input type="number" className="form-control" value={salaryData.agp} onChange={(e) => setSalaryData({ ...salaryData, agp: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Dearness Allowance (DA)</label>
+                          <input type="number" className="form-control" value={salaryData.da} onChange={(e) => setSalaryData({ ...salaryData, da: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>House Rent Allowance (HRA)</label>
+                          <input type="number" className="form-control" value={salaryData.hra} onChange={(e) => setSalaryData({ ...salaryData, hra: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Special / Other Allowance</label>
+                          <input type="number" className="form-control" value={salaryData.otherAllowance} onChange={(e) => setSalaryData({ ...salaryData, otherAllowance: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Deductions Breakdown */}
+                    <div style={{ background: '#ffffff', padding: '14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 10px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                        Deductions &amp; Recoveries (₹)
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Provident Fund (EPF)</label>
+                          <input type="number" className="form-control" value={salaryData.epf} onChange={(e) => setSalaryData({ ...salaryData, epf: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Professional Tax (PT)</label>
+                          <input type="number" className="form-control" value={salaryData.professionalTax} onChange={(e) => setSalaryData({ ...salaryData, professionalTax: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Income Tax (TDS)</label>
+                          <input type="number" className="form-control" value={salaryData.tds} onChange={(e) => setSalaryData({ ...salaryData, tds: e.target.value })} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Other Recoveries</label>
+                          <input type="number" className="form-control" value={salaryData.otherDeductions} onChange={(e) => setSalaryData({ ...salaryData, otherDeductions: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary Totals Box */}
+                  {(() => {
+                    const gross = (Number(salaryData.basicPay)||0) + (Number(salaryData.agp)||0) + (Number(salaryData.da)||0) + (Number(salaryData.hra)||0) + (Number(salaryData.otherAllowance)||0);
+                    const ded = (Number(salaryData.epf)||0) + (Number(salaryData.professionalTax)||0) + (Number(salaryData.tds)||0) + (Number(salaryData.otherDeductions)||0);
+                    const net = gross - ded;
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 700 }}>GROSS EARNINGS</div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e3a8a' }}>₹ {gross.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#991b1b', fontWeight: 700 }}>TOTAL DEDUCTIONS</div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#7f1d1d' }}>₹ {ded.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>NET TAKE-HOME PAY</div>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#14532d' }}>₹ {net.toLocaleString('en-IN')}</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setCertificateTarget(null)}
+                className="btn btn-secondary"
+                style={{ fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateCertificatePdf}
+                className="btn btn-primary"
+                style={{ fontWeight: 800, padding: '9px 20px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--primary))' }}
+              >
+                <Download size={17} /> Download Official PDF
+              </button>
+            </div>
+
           </div>
         </div>
       )}
