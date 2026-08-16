@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 
 // Map department acronyms to official full department names
 const DEPT_ACRONYM_MAP = {
@@ -676,10 +677,12 @@ export const exportNbaB2FacultyDetailsPdf = async (facultyList, departmentName =
       doc.text(`HOD - ${deptAcronym}`, pageWidth - 14, sigY, { align: 'right' });
     }
 
-    doc.save(`NBA_B2_Faculty_Details_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    const b2Filename = `NBA_B2_Faculty_Details_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    doc.save(b2Filename);
+    showSuccess(`NBA Form B2 PDF "${b2Filename}" generated and downloaded!`);
   } catch (err) {
     console.error('Failed to generate NBA B2 PDF:', err);
-    alert('Failed to generate NBA Form B2 PDF.');
+    showError('Failed to generate NBA Form B2 PDF.');
   }
 };
 
@@ -829,10 +832,12 @@ export const exportNaacCriterion3Pdf = async (data, departmentName = 'Institutio
       headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
     });
 
-    doc.save(`NAAC_Criterion_3_Research_Report_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    const naacFilename = `NAAC_Criterion_3_Research_Report_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    doc.save(naacFilename);
+    showSuccess(`NAAC Criterion 3 PDF "${naacFilename}" generated and downloaded!`);
   } catch (err) {
     console.error('Failed to generate NAAC PDF:', err);
-    alert('Failed to generate NAAC PDF report.');
+    showError('Failed to generate NAAC PDF report.');
   }
 };
 
@@ -1000,10 +1005,12 @@ export const exportNbaCriterion5Pdf = async (data, departmentName = 'Institution
       headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
     });
 
-    doc.save(`NBA_Criterion_5_Faculty_Contributions_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    const nba5Filename = `NBA_Criterion_5_Faculty_Contributions_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    doc.save(nba5Filename);
+    showSuccess(`NBA Criterion 5 PDF "${nba5Filename}" generated and downloaded!`);
   } catch (err) {
     console.error('Failed to generate NBA PDF:', err);
-    alert('Failed to generate NBA PDF report.');
+    showError('Failed to generate NBA PDF report.');
   }
 };
 

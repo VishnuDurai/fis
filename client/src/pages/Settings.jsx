@@ -3,20 +3,17 @@ import React, { useState } from 'react';
 import { User, Camera, Upload, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 
 export default function Settings({ auth, updateProfilePic }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadingPic, setUploadingPic] = useState(false);
 
   const handleProfilePicUpload = async (fileObj) => {
-    setMessage('');
-    setError('');
     setUploadingPic(true);
 
     try {
@@ -35,9 +32,9 @@ export default function Settings({ auth, updateProfilePic }) {
       if (typeof updateProfilePic === 'function') {
         updateProfilePic(data.file);
       }
-      setMessage('Profile picture updated successfully!');
+      showSuccess('Profile picture updated successfully!');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     } finally {
       setUploadingPic(false);
     }
@@ -45,11 +42,9 @@ export default function Settings({ auth, updateProfilePic }) {
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+      showError('New passwords do not match');
       return;
     }
 
@@ -69,12 +64,12 @@ export default function Settings({ auth, updateProfilePic }) {
         throw new Error(data.error || 'Failed to change password');
       }
 
-      setMessage('Password changed successfully.');
+      showSuccess('Password changed successfully.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     } finally {
       setLoading(false);
     }
@@ -87,18 +82,6 @@ export default function Settings({ auth, updateProfilePic }) {
   return (
     <div>
       <Navbar title="Settings & Security" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
         {/* Profile Picture Management */}

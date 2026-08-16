@@ -27,6 +27,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Navbar from '../components/Navbar.jsx';
+import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { 
   exportNbaB2FacultyDetails, 
   exportNbaB2FacultyDetailsPdf, 
@@ -197,7 +198,7 @@ export default function Reports({ auth }) {
         XLSX.writeFile(wb, `NAAC_Criterion_3_Research_${(targetDept || 'Institution').replace(/[^a-z0-9]/gi, '_')}.xlsx`);
       }
     } catch (e) {
-      alert('Error exporting NAAC Criterion 3: ' + e.message);
+      showError('Error exporting NAAC Criterion 3: ' + e.message);
     } finally {
       setExportingAccreditation(false);
     }
@@ -237,7 +238,7 @@ export default function Reports({ auth }) {
         XLSX.writeFile(wb, `NBA_Criterion_5_Contributions_${(targetDept || 'Institution').replace(/[^a-z0-9]/gi, '_')}.xlsx`);
       }
     } catch (e) {
-      alert('Error exporting NBA Criterion 5: ' + e.message);
+      showError('Error exporting NBA Criterion 5: ' + e.message);
     } finally {
       setExportingAccreditation(false);
     }
@@ -267,7 +268,7 @@ export default function Reports({ auth }) {
         exportNbaB2FacultyDetails(filtered, targetDept || 'Institution', '2025-2026');
       }
     } catch (e) {
-      alert('Error exporting NBA Form B2: ' + e.message);
+      showError('Error exporting NBA Form B2: ' + e.message);
     } finally {
       setExportingAccreditation(false);
     }
@@ -395,7 +396,7 @@ export default function Reports({ auth }) {
       setReportData(fetchedData);
     } catch (err) {
       console.error('Failed to generate report:', err);
-      alert('Error generating report: ' + err.message);
+      showError('Error generating report: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -452,9 +453,10 @@ export default function Reports({ auth }) {
 
       const filename = `SREC_FIS_${deptTitle.replace(/[^a-z0-9]/gi, '_')}_Report.xlsx`;
       XLSX.writeFile(wb, filename);
+      showSuccess(`Excel report "${filename}" generated and downloaded!`);
     } catch (err) {
       console.error('Excel Export Error:', err);
-      alert('Failed to generate Excel report.');
+      showError('Failed to generate Excel report.');
     }
   };
 
@@ -642,9 +644,10 @@ export default function Reports({ auth }) {
 
       const safeFilename = `SREC_FIS_${(targetDept || (isInstitutional ? 'Institutional' : 'Faculty')).replace(/[^a-z0-9]/gi, '_')}_Report.pdf`;
       doc.save(safeFilename);
+      showSuccess(`PDF report "${safeFilename}" generated and downloaded!`);
     } catch (err) {
       console.error('PDF Generation Error:', err);
-      alert('Failed to generate PDF report: ' + err.message);
+      showError('Failed to generate PDF report: ' + err.message);
     }
   };
 

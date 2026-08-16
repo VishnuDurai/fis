@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { 
   FileText, Plus, Search, Trash2, Eye, Download, X, Save, 
   Award, BookOpen, Layers, Sparkles, Folder, GraduationCap, Users, Star, ShieldAlert 
@@ -55,8 +56,6 @@ export default function DynamicPage({ auth }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     const body = new FormData();
     Object.keys(formData).forEach(k => {
@@ -74,16 +73,16 @@ export default function DynamicPage({ auth }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage('Record saved successfully!');
+        showSuccess('Record saved successfully!');
         setFormData({});
         setFileAttachment(null);
         setShowAddForm(false);
         fetchPageData();
       } else {
-        setError(data.error || 'Failed to save record');
+        showError(data.error || 'Failed to save record');
       }
     } catch (err) {
-      setError('Server error while saving record');
+      showError('Server error while saving record');
     }
   };
 
@@ -96,14 +95,14 @@ export default function DynamicPage({ auth }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage('Record deleted successfully');
+        showSuccess('Record deleted successfully');
         fetchPageData();
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to delete record');
+        showError(data.error || 'Failed to delete record');
       }
     } catch (err) {
-      setError('Server error while deleting record');
+      showError('Server error while deleting record');
     }
   };
 
@@ -157,17 +156,6 @@ export default function DynamicPage({ auth }) {
   return (
     <div>
       <Navbar title={pageInfo.title} userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div className="card" style={{ marginBottom: '20px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))', fontWeight: 600 }}>
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="card" style={{ marginBottom: '20px', background: 'hsla(var(--danger), 0.1)', color: 'hsl(var(--danger))', borderColor: 'hsl(var(--danger))', fontWeight: 600 }}>
-          {error}
-        </div>
-      )}
 
       {/* Header Banner */}
       <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff', padding: '24px' }}>

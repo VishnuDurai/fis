@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar.jsx';
 import EditableField from '../components/EditableField.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { validateEmail, validateMobile, validatePan, validateAadhar } from '../utils/validators.js';
 import { generateAcademicCV } from '../utils/cvGenerator.js';
 import { sendFirebaseMobileOtp, verifyFirebaseMobileOtp } from '../config/firebase.js';
@@ -59,7 +60,7 @@ export default function Personal({ auth }) {
     const emailToVerify = personal?.email ? personal.email.trim() : '';
 
     if (!emailToVerify) {
-      setError('Please enter an email address to verify.');
+      showError('Please enter an email address to verify.');
       return;
     }
 
@@ -86,10 +87,11 @@ export default function Personal({ auth }) {
       setShowOtpModal(true);
       setOtpInput('');
       setOtpMessage(data.message || `Verification code sent to ${emailToVerify}`);
+      showInfo(`Verification code sent to ${emailToVerify}`);
       setOtpCountdown(60);
     } catch (err) {
       setOtpError(err.message);
-      setError(err.message);
+      showError(err.message);
     } finally {
       setOtpSending(false);
     }
@@ -120,7 +122,7 @@ export default function Personal({ auth }) {
       setVerifiedEmail((data.verifiedEmail || personal.email).trim().toLowerCase());
       setShowOtpModal(false);
       setOtpInput('');
-      setMessage('Email address verified successfully! You can now save your personal details.');
+      showSuccess('Email address verified successfully! You can now save your personal details.');
       setFieldErrors(prev => {
         const next = { ...prev };
         delete next.email;
@@ -128,14 +130,13 @@ export default function Personal({ auth }) {
       });
     } catch (err) {
       setOtpError(err.message);
+      showError(err.message);
     } finally {
       setOtpVerifying(false);
     }
   };
 
   const handlePersonalDocUpload = async (fileObj, docType, targetStaffId = null) => {
-    setMessage('');
-    setError('');
     try {
       const formData = new FormData();
       formData.append('file', fileObj);
@@ -160,7 +161,7 @@ export default function Personal({ auth }) {
         joining_report_file: 'Joining Report'
       };
 
-      setMessage(`${labelMap[docType] || 'Document'} proof uploaded successfully!`);
+      showSuccess(`${labelMap[docType] || 'Document'} proof uploaded successfully!`);
       if (targetStaffId && selectedFacultyTarget) {
         setSelectedFacultyTarget(prev => ({ ...prev, [docType]: data.fileName }));
         setPersonalList(prev => prev.map(p => p.staff_id === targetStaffId ? { ...p, [docType]: data.fileName } : p));
@@ -168,7 +169,7 @@ export default function Personal({ auth }) {
         setPersonal(prev => ({ ...prev, [docType]: data.fileName }));
       }
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -315,7 +316,7 @@ export default function Personal({ auth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update personal details');
 
-      setMessage('Personal details saved successfully!');
+      showSuccess('Personal details saved successfully!');
       if (targetItem?.email) {
         setInitialEmail(targetItem.email);
         setVerifiedEmail(targetItem.email.trim().toLowerCase());
@@ -324,7 +325,7 @@ export default function Personal({ auth }) {
       fetchDetails();
       window.dispatchEvent(new Event('srec_profile_updated'));
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -354,18 +355,6 @@ export default function Personal({ auth }) {
   return (
     <div>
       <Navbar title="Personal Details" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       {/* DEPARTMENT ADMIN / SYSTEM ADMIN VIEW */}
       {(auth.role === 'dept_admin' || auth.role === 'admin') ? (

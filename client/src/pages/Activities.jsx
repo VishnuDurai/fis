@@ -5,6 +5,7 @@ import { Plus, Trash2, Download, FileSignature, Search, Edit } from 'lucide-reac
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 
 function SearchableMultiSelect({ options, value, onChange, placeholder = "Search & select indexings..." }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -581,8 +582,6 @@ export default function Activities({ auth }) {
 
   const handleDeleteExternalScholar = async (scholarId) => {
     if (!window.confirm('Are you sure you want to delete this external scholar?')) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/activities/scholars/${scholarId}`, {
         method: 'DELETE',
@@ -591,18 +590,16 @@ export default function Activities({ auth }) {
 
       if (!res.ok) throw new Error('Failed to delete external scholar');
 
-      setMessage('External scholar deleted successfully.');
+      showSuccess('External scholar deleted successfully.');
       fetchMappedScholars();
       fetchActivities(selectedFaculty);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleSaveExternalScholar = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
     try {
       const data = new FormData();
       data.append('res_id', extScholarForm.res_id);
@@ -632,7 +629,7 @@ export default function Activities({ auth }) {
 
       if (!res.ok) throw new Error(`Failed to ${editingExtScholar ? 'update' : 'save'} external scholar`);
 
-      setMessage(`External scholar ${editingExtScholar ? 'updated' : 'added'} successfully!`);
+      showSuccess(`External scholar ${editingExtScholar ? 'updated' : 'added'} successfully!`);
       setShowExternalScholarModal(false);
       setEditingExtScholar(null);
       setExtScholarForm({ res_id: '', staff_name: '', organisation: '', registration_year: '', status: 'Provisionally Registered' });
@@ -640,7 +637,7 @@ export default function Activities({ auth }) {
       fetchMappedScholars();
       fetchActivities(selectedFaculty);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -843,8 +840,6 @@ export default function Activities({ auth }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/activities/${type}/${id}`, {
@@ -852,20 +847,18 @@ export default function Activities({ auth }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage('Record deleted successfully.');
+        showSuccess('Record deleted successfully.');
         setActivitiesList(prev => prev.filter(item => item.id !== id));
       } else {
         throw new Error('Failed to delete record');
       }
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     // Strict JavaScript Form Validation for Mandatory Active Fields based on Publication Type
     const activeFields = config.fields.filter(f => {
@@ -888,14 +881,14 @@ export default function Activities({ auth }) {
         else if (f.name === 'institution') fieldLabel = 'File Number';
       }
       if (val === undefined || val === null || String(val).trim() === '') {
-        setError(`Mandatory Field Missing: Please provide a valid entry for "${fieldLabel}".`);
+        showError(`Mandatory Field Missing: Please provide a valid entry for "${fieldLabel}".`);
         return;
       }
     }
 
     // Mandatory Supporting Document Attachment Validation for New Records
     if (!editItem && config.headers.includes('Attachment') && !file) {
-      setError('Mandatory Attachment Missing: Please attach a supporting document (PDF / Image) for this activity entry.');
+      showError('Mandatory Attachment Missing: Please attach a supporting document (PDF / Image) for this activity entry.');
       return;
     }
 
@@ -926,7 +919,7 @@ export default function Activities({ auth }) {
         throw new Error('Failed to save record details');
       }
 
-      setMessage(editItem ? `${config.title} record updated successfully!` : `New ${config.title} record added successfully!`);
+      showSuccess(editItem ? `${config.title} record updated successfully!` : `New ${config.title} record added successfully!`);
       setShowAddForm(false);
       setEditItem(null);
       
@@ -941,7 +934,7 @@ export default function Activities({ auth }) {
       // Refresh list
       fetchActivities();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -1035,18 +1028,6 @@ export default function Activities({ auth }) {
   return (
     <div>
       <Navbar title={config.title} userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <h3 style={{ fontSize: '1.25rem' }}>List of Records</h3>

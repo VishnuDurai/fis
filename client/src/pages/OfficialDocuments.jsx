@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Dropzone from '../components/Dropzone';
 import ReportButtons from '../components/ReportButtons';
+import { showSuccess, showError } from '../context/AlertContext';
 import { FileText, Download, ShieldCheck, Search, Upload, CheckCircle2 } from 'lucide-react';
 
 export default function OfficialDocuments({ auth }) {
@@ -118,8 +119,6 @@ export default function OfficialDocuments({ auth }) {
     const fileObj = selectedFiles[docType];
     if (!fileObj) return;
 
-    setMessage('');
-    setError('');
     setSavingDoc(prev => ({ ...prev, [docType]: true }));
 
     try {
@@ -139,12 +138,12 @@ export default function OfficialDocuments({ auth }) {
       const cardMatch = activeDocCards.find(c => c.key === docType);
       const cardLabel = cardMatch ? cardMatch.label : 'Document';
 
-      setMessage(`${cardLabel} saved and uploaded successfully!`);
+      showSuccess(`${cardLabel} saved and uploaded successfully!`);
       setPersonal(prev => ({ ...prev, [docType]: data.fileName }));
       setSelectedFiles(prev => ({ ...prev, [docType]: null }));
       window.dispatchEvent(new Event('srec_profile_updated'));
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     } finally {
       setSavingDoc(prev => ({ ...prev, [docType]: false }));
     }
@@ -188,19 +187,6 @@ export default function OfficialDocuments({ auth }) {
   return (
     <div>
       <Navbar title="Official Documents" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CheckCircle2 size={18} />
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       {/* ADMIN & DEPT ADMIN TABLE VIEW */}
       {(auth.role === 'admin' || auth.role === 'dept_admin') ? (

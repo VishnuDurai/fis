@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Share } from 'lucide-react';
+import { showInfo } from '../context/AlertContext.jsx';
 
 export default function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -53,7 +54,7 @@ export default function PWAInstallBanner() {
 
     if (!deferredPrompt) {
       // Fallback instruction
-      alert("To install SREC FIS App:\n\n1. Open browser menu (⋮)\n2. Tap 'Install app' or 'Add to Home Screen'");
+      showInfo("To install SREC FIS App:\n\n1. Open browser menu (⋮)\n2. Tap 'Install app' or 'Add to Home Screen'");
       return;
     }
 

@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { getCurrentAcademicYear, getAppraisalAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
 
 export default function Appraisal({ auth }) {
@@ -60,7 +61,7 @@ export default function Appraisal({ auth }) {
     if (!targetDesig || targetDesig === 'ALL') return;
     const defaultAllItems = templateItems.filter(i => (!i.target_designation || i.target_designation === 'ALL'));
     if (defaultAllItems.length === 0) {
-      alert('No default criteria available to clone.');
+      showError('No default criteria available to clone.');
       return;
     }
     const copiedItems = defaultAllItems.map(item => ({
@@ -113,7 +114,7 @@ export default function Appraisal({ auth }) {
   const handleCreateNewPart = (e) => {
     e.preventDefault();
     if (!newPartForm.section_code || !newPartForm.section_title || !newPartForm.criteria_code) {
-      alert('Please fill in Part Code, Part Title, and initial Criteria Code.');
+      showError('Please fill in Part Code, Part Title, and initial Criteria Code.');
       return;
     }
     const formattedCode = newPartForm.section_code.toUpperCase().trim().replace(/\s+/g, '_');
@@ -242,7 +243,7 @@ export default function Appraisal({ auth }) {
     const app = actionModalAppraisal;
     
     if (actionType === 'revision' && !actionScores.remarks.trim()) {
-      alert('Please enter revision remarks explaining the reason for requested revision.');
+      showError('Please enter revision remarks explaining the reason for requested revision.');
       return;
     }
 
@@ -260,7 +261,7 @@ export default function Appraisal({ auth }) {
 
       const isDeviated = hodA !== facA || hodB !== facB || hodC !== facC || hodD !== facD;
       if (isDeviated && !actionScores.remarks.trim()) {
-        alert('Score deviation detected! Please enter the reason for score deviation before sending revision request.');
+        showError('Score deviation detected! Please enter the reason for score deviation before sending revision request.');
         return;
       }
     }
@@ -278,7 +279,7 @@ export default function Appraisal({ auth }) {
 
       const isDeviated = hodA !== facA || hodB !== facB || hodC !== facC || hodD !== facD;
       if (isDeviated && !actionScores.remarks.trim()) {
-        alert('Score deviation detected! Please enter the reason for score deviation before approving.');
+        showError('Score deviation detected! Please enter the reason for score deviation before approving.');
         return;
       }
     }
@@ -685,8 +686,6 @@ export default function Appraisal({ auth }) {
   };
 
   const handleSaveTemplate = async () => {
-    setMessage('');
-    setError('');
     setSavingTemplate(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/faculty/appraisal/template`, {
@@ -708,9 +707,9 @@ export default function Appraisal({ auth }) {
       }
 
       if (!res.ok) throw new Error(data.error || 'Failed to save template');
-      setMessage('Appraisal template, rubrics, fixed marks, and max marks saved successfully! Changes are now live for all faculty members.');
+      showSuccess('Appraisal template, rubrics, fixed marks, and max marks saved successfully! Changes are now live for all faculty members.');
     } catch (err) {
-      setError(err.message || 'Failed to save template due to a network or server error.');
+      showError(err.message || 'Failed to save template due to a network or server error.');
     } finally {
       setSavingTemplate(false);
     }
@@ -1127,11 +1126,9 @@ export default function Appraisal({ auth }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
-    if (!academicYear || !academicYear.trim()) { setError('Academic Year is mandatory.'); return; }
-    if (!selfAppraisalScore || !selfAppraisalScore.trim()) { setError('Self Appraisal Score is mandatory.'); return; }
+    if (!academicYear || !academicYear.trim()) { showError('Academic Year is mandatory.'); return; }
+    if (!selfAppraisalScore || !selfAppraisalScore.trim()) { showError('Self Appraisal Score is mandatory.'); return; }
 
     try {
       const isEditing = Boolean(editingAppraisalId);
@@ -1178,16 +1175,23 @@ export default function Appraisal({ auth }) {
         })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to submit appraisal form');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to submit appraisal');
+      }
 
+      const savedData = await res.json();
+      const savedId = isEditing ? editingAppraisalId : savedData.id;
+
+      // Construct a complete appraisal record for immediate modal display
       const savedRecord = {
-        id: isEditing ? editingAppraisalId : data.id,
+        id: savedId,
         staff_id: auth.staffId,
         staff_name: auth.name,
         Department: auth.department || auth.dept,
         Designation: auth.designation,
         academic_year: academicYear,
+        courses_taught: coursesTaught || 'N/A',
         a1_ict_tools: JSON.stringify(a1Rows),
         a2_econtent: JSON.stringify(a2Rows),
         a3_lab_experiments: JSON.stringify(a3Rows),
@@ -1202,8 +1206,10 @@ export default function Appraisal({ auth }) {
         books_count: booksCount,
         patents_count: patentsCount,
         grants_amount: grantsAmount,
-        goals_next_year: goalsNextYear,
+        fdp_attended: fdpAttended || '2',
+        events_organized: eventsOrganized || '1',
         self_appraisal_score: selfAppraisalScore,
+        goals_next_year: goalsNextYear,
         part_a_score: manualScores.partA,
         part_b_score: manualScores.partB,
         part_c_score: manualScores.partC,
@@ -1214,12 +1220,12 @@ export default function Appraisal({ auth }) {
       };
 
       setLastSubmittedAppraisal(savedRecord);
-      setMessage(isEditing ? 'Annual FPI Appraisal Form updated and re-submitted successfully!' : 'Annual FPI Appraisal Form submitted successfully! Click "View Filled Appraisal Form" to check your details.');
+      showSuccess(isEditing ? 'Annual FPI Appraisal Form updated and re-submitted successfully!' : 'Annual FPI Appraisal Form submitted successfully! Click "View Filled Appraisal Form" to check your details.');
       setEditingAppraisalId(null);
       setShowAddForm(false);
       fetchAppraisals();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -1240,18 +1246,16 @@ export default function Appraisal({ auth }) {
         [`${role}_signed_ip`]: data.signedIp
       }));
       fetchAppraisals();
-      setMessage(`Digitally signed successfully as ${data.signedName}`);
+      showSuccess(`Digitally signed successfully as ${data.signedName}`);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   // Save Draft Handler — saves partial form without submitting
   const handleSaveDraft = async () => {
-    if (!academicYear || !academicYear.trim()) { setError('Academic Year is required to save a draft.'); return; }
+    if (!academicYear || !academicYear.trim()) { showError('Academic Year is required to save a draft.'); return; }
     setDraftSaving(true);
-    setMessage('');
-    setError('');
     try {
       const payload = {
         academic_year: academicYear,
@@ -1297,8 +1301,9 @@ export default function Appraisal({ auth }) {
       if (!editingAppraisalId) setEditingAppraisalId(data.id);
       setDraftSavedAt(new Date(data.savedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
       fetchAppraisals();
+      showSuccess('Appraisal draft saved successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     } finally {
       setDraftSaving(false);
     }
@@ -1306,8 +1311,6 @@ export default function Appraisal({ auth }) {
 
   // Save form + Sign in one step (when faculty clicks Sign in the signature block)
   const handleSaveAndSign = async () => {
-    setMessage('');
-    setError('');
     try {
       const isEditing = Boolean(editingAppraisalId);
       const url = isEditing
@@ -1377,15 +1380,13 @@ export default function Appraisal({ auth }) {
       setEditingAppraisalId(appraisalId);
       setDraftId(null);
       fetchAppraisals();
-      setMessage(`Form submitted and digitally signed as ${signData.signedName}`);
+      showSuccess(`Form submitted and digitally signed as ${signData.signedName}`);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleHodApproveSubmit = async (appId, action, overrideScores = null) => {
-    setMessage('');
-    setError('');
     try {
       const targetApp = appraisals.find(a => a.id === appId) || {};
       const activeScores = overrideScores || hodScores;
@@ -1426,17 +1427,15 @@ export default function Appraisal({ auth }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to submit HOD evaluation');
-      setMessage(data.message || 'HOD Evaluation submitted successfully!');
+      showSuccess(data.message || 'HOD Evaluation submitted successfully!');
       fetchAppraisals();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
       throw err;
     }
   };
 
   const handleFinalApproveSubmit = async (target, action) => {
-    setMessage('');
-    setError('');
     try {
       const appId = typeof target === 'object' ? target.id : target;
       const app = typeof target === 'object' ? target : appraisals.find(a => a.id === appId) || {};
@@ -1469,10 +1468,10 @@ export default function Appraisal({ auth }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to process final approval');
-      setMessage(data.message || 'Final evaluation & executive approval processed successfully!');
+      showSuccess(data.message || 'Final evaluation & executive approval processed successfully!');
       fetchAppraisals();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -1484,14 +1483,14 @@ export default function Appraisal({ auth }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage('Appraisal record deleted successfully.');
+        showSuccess('Appraisal record deleted successfully.');
         fetchAppraisals();
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to delete appraisal.');
+        showError(data.error || 'Failed to delete appraisal.');
       }
     } catch (err) {
-      setError('Failed to delete appraisal.');
+      showError('Failed to delete appraisal.');
     }
   };
 
@@ -1986,18 +1985,6 @@ export default function Appraisal({ auth }) {
       {/* WRAP BACKGROUND PAGE CONTENT IN NO-PRINT SO ONLY FPI MODAL PRINTS */}
       <div className="no-print">
         <Navbar title="Faculty Appraisals" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       {/* ADMIN / PRINCIPAL / HR NAVIGATION TABS */}
       {isAdminOrHR && (

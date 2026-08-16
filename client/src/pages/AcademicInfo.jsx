@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Eye, X, BookOpen, FileText, User, FileSpreadsheet } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
 import { validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
@@ -78,22 +79,20 @@ export default function AcademicInfo({ auth }) {
 
   const handleSaveAcademicInfo = async (e, targetItem = personal) => {
     if (e) e.preventDefault();
-    setMessage('');
-    setError('');
 
     if (targetItem) {
-      if (!targetItem.aicte_id || !targetItem.aicte_id.trim()) { setError('AICTE Faculty ID is a mandatory field.'); return; }
-      if (!targetItem.anna_univ_id || !targetItem.anna_univ_id.trim()) { setError('Anna University ID is a mandatory field.'); return; }
-      if (!targetItem.apaar_id || !targetItem.apaar_id.trim()) { setError('APAAR ID is a mandatory field.'); return; }
+      if (!targetItem.aicte_id || !targetItem.aicte_id.trim()) { showError('AICTE Faculty ID is a mandatory field.'); return; }
+      if (!targetItem.anna_univ_id || !targetItem.anna_univ_id.trim()) { showError('Anna University ID is a mandatory field.'); return; }
+      if (!targetItem.apaar_id || !targetItem.apaar_id.trim()) { showError('APAAR ID is a mandatory field.'); return; }
 
       const aicteErr = validateAicteId(targetItem.aicte_id);
-      if (aicteErr) { setError(aicteErr); return; }
+      if (aicteErr) { showError(aicteErr); return; }
 
       const auErr = validateAnnaUnivId(targetItem.anna_univ_id);
-      if (auErr) { setError(auErr); return; }
+      if (auErr) { showError(auErr); return; }
 
       const apaarErr = validateApaarId(targetItem.apaar_id);
-      if (apaarErr) { setError(apaarErr); return; }
+      if (apaarErr) { showError(apaarErr); return; }
     }
 
     const targetStaffId = targetItem?.staff_id || auth.staffId;
@@ -150,12 +149,12 @@ export default function AcademicInfo({ auth }) {
         throw new Error('Failed to update academic information');
       }
 
-      setMessage('Academic & Publication identification information saved successfully!');
+      showSuccess('Academic & Publication identification information saved successfully!');
       if (selectedFacultyTarget) setSelectedFacultyTarget(null);
       fetchDetails();
       window.dispatchEvent(new Event('srec_profile_updated'));
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -182,18 +181,6 @@ export default function AcademicInfo({ auth }) {
   return (
     <div>
       <Navbar title="Academic Information" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       {/* DEPARTMENT ADMIN / SYSTEM ADMIN VIEW */}
       {(auth.role === 'dept_admin' || auth.role === 'admin') ? (

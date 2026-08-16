@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../config";
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 
 export default function Login({ setAuth }) {
   const navigate = useNavigate();
@@ -44,13 +45,16 @@ export default function Login({ setAuth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send OTP code');
 
-      setForgotMessage(data.otp ? `${data.message} (Your OTP: ${data.otp})` : data.message);
+      const otpMsg = data.otp ? `${data.message} (Your OTP: ${data.otp})` : data.message;
+      setForgotMessage(otpMsg);
+      showSuccess(otpMsg);
       if (data.otp) {
         setOtpCode(data.otp);
       }
       setForgotStep(2);
     } catch (err) {
       setForgotError(err.message);
+      showError(err.message);
     } finally {
       setForgotLoading(false);
     }
@@ -63,6 +67,7 @@ export default function Login({ setAuth }) {
 
     if (newPassword !== confirmPassword) {
       setForgotError('New passwords do not match. Please re-enter.');
+      showError('New passwords do not match. Please re-enter.');
       return;
     }
 
@@ -83,13 +88,14 @@ export default function Login({ setAuth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to reset password');
 
-      alert('Password successfully reset! You can now sign in with your new password.');
+      showSuccess('Password successfully reset! You can now sign in with your new password.');
       setShowForgotModal(false);
       setUsername(forgotStaffId);
       setPassword(newPassword);
       setRole(forgotRole);
     } catch (err) {
       setForgotError(err.message);
+      showError(err.message);
     } finally {
       setForgotLoading(false);
     }
@@ -176,6 +182,7 @@ export default function Login({ setAuth }) {
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setLoading(false);
     }
@@ -222,21 +229,6 @@ export default function Login({ setAuth }) {
             Faculty Information System
           </p>
         </div>
-
-        {error && (
-          <div style={{
-            background: 'hsla(var(--danger), 0.15)',
-            border: '1px solid hsla(var(--danger), 0.3)',
-            color: 'hsl(var(--danger))',
-            padding: '12px 16px',
-            borderRadius: 'var(--radius)',
-            fontSize: '0.9rem',
-            marginBottom: '24px',
-            fontWeight: 500
-          }}>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

@@ -4,6 +4,7 @@ import { Trash2, Plus, Download, FileSignature, Search } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { validatePercentage, validateYear } from '../utils/validators.js';
 
 export default function Education({ auth }) {
@@ -111,8 +112,6 @@ export default function Education({ auth }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this qualification?')) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/faculty/education/${id}`, {
@@ -120,13 +119,13 @@ export default function Education({ auth }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage('Qualification deleted successfully.');
+        showSuccess('Qualification deleted successfully.');
         setEducationList(prev => prev.filter(item => item.id !== id));
       } else {
         throw new Error('Failed to delete qualification');
       }
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -143,26 +142,24 @@ export default function Education({ auth }) {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    setMessage('');
-    setError('');
 
-    if (!degree || !degree.trim()) { setError('Degree (e.g. B.E., M.E., Ph.D) is a mandatory field.'); return; }
-    if (!specialization || !specialization.trim()) { setError('Specialization / Major is a mandatory field.'); return; }
-    if (!institute || !institute.trim()) { setError('Institute / School Name is a mandatory field.'); return; }
-    if (!board || !board.trim()) { setError('Board / University is a mandatory field.'); return; }
-    if (!year) { setError('Year of Passing is a mandatory field.'); return; }
-    if (percentage === undefined || percentage === '' || percentage === null) { setError('Percentage / CGPA is a mandatory field.'); return; }
+    if (!degree || !degree.trim()) { showError('Degree (e.g. B.E., M.E., Ph.D) is a mandatory field.'); return; }
+    if (!specialization || !specialization.trim()) { showError('Specialization / Major is a mandatory field.'); return; }
+    if (!institute || !institute.trim()) { showError('Institute / School Name is a mandatory field.'); return; }
+    if (!board || !board.trim()) { showError('Board / University is a mandatory field.'); return; }
+    if (!year) { showError('Year of Passing is a mandatory field.'); return; }
+    if (percentage === undefined || percentage === '' || percentage === null) { showError('Percentage / CGPA is a mandatory field.'); return; }
 
     if (!editItem && !file) {
-      setError('Attach Degree Certificate / Marksheet file is mandatory.');
+      showError('Attach Degree Certificate / Marksheet file is mandatory.');
       return;
     }
 
     const yearErr = validateYear(year);
-    if (yearErr) { setError(yearErr); return; }
+    if (yearErr) { showError(yearErr); return; }
 
     const percErr = validatePercentage(percentage);
-    if (percErr) { setError(percErr); return; }
+    if (percErr) { showError(percErr); return; }
 
     const formData = new FormData();
     formData.append('category', category);
@@ -193,13 +190,13 @@ export default function Education({ auth }) {
         throw new Error('Failed to save qualification details');
       }
 
-      setMessage(editItem ? 'Qualification updated successfully!' : 'Qualification added successfully!');
+      showSuccess(editItem ? 'Qualification updated successfully!' : 'Qualification added successfully!');
       setShowAddForm(false);
       resetForm();
       fetchEducation();
       window.dispatchEvent(new Event('srec_profile_updated'));
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -235,18 +232,6 @@ export default function Education({ auth }) {
   return (
     <div>
       <Navbar title="Educational Qualifications" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <h3 style={{ fontSize: '1.25rem' }}>Qualifications Overview</h3>

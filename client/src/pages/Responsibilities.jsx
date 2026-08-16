@@ -5,6 +5,7 @@ import { ShieldAlert, Plus, Trash2, Search, CheckCircle2, FileText, User, Edit2,
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { getCurrentAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
 
 export default function Responsibilities({ auth }) {
@@ -96,15 +97,13 @@ export default function Responsibilities({ auth }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     if (!selectedStaffId) {
-      setError('Please select a faculty member from the dropdown.');
+      showError('Please select a faculty member from the dropdown.');
       return;
     }
     if (!responsibilityText || !responsibilityText.trim()) {
-      setError('Additional responsibility description is required.');
+      showError('Additional responsibility description is required.');
       return;
     }
 
@@ -131,14 +130,14 @@ export default function Responsibilities({ auth }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save additional responsibility');
 
-      setMessage(editingId ? 'Additional responsibility updated successfully!' : 'Additional responsibility assigned successfully to faculty member!');
+      showSuccess(editingId ? 'Additional responsibility updated successfully!' : 'Additional responsibility assigned successfully to faculty member!');
       setEditingId(null);
       setResponsibilityText('');
       setSelectedStaffId('');
       setShowAddForm(false);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -150,11 +149,13 @@ export default function Responsibilities({ auth }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage('Assigned responsibility deleted successfully.');
+        showSuccess('Assigned responsibility deleted successfully.');
         setResponsibilities(prev => prev.filter(r => r.id !== id));
+      } else {
+        throw new Error('Failed to delete assigned responsibility');
       }
     } catch (err) {
-      console.error(err);
+      showError(err.message);
     }
   };
 
@@ -227,17 +228,6 @@ export default function Responsibilities({ auth }) {
         profilePic={auth.profilePic} 
         auth={auth} 
       />
-
-      {message && (
-        <div className="card" style={{ marginBottom: '20px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))', fontWeight: 600 }}>
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="card" style={{ marginBottom: '20px', background: 'hsla(var(--danger), 0.1)', color: 'hsl(var(--danger))', borderColor: 'hsl(var(--danger))', fontWeight: 600 }}>
-          {error}
-        </div>
-      )}
 
       {/* Header Banner */}
       <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff', padding: '24px' }}>

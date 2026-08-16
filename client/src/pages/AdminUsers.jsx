@@ -5,6 +5,7 @@ import { Plus, Trash2, Search, ShieldAlert, Users, BookOpen, GraduationCap, Arro
 import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
 import { validateStaffId, validateEmail, validateMobile, validatePan, validateAadhar, validateAicteId, validateAnnaUnivId, validateApaarId } from '../utils/validators.js';
 
@@ -252,10 +253,8 @@ export default function AdminUsers({ auth, initialTab }) {
 
   const handleAddClub = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
     if (!newClubName || !newClubName.trim()) {
-      setError('Club name is required.');
+      showError('Club name is required.');
       return;
     }
     try {
@@ -273,24 +272,22 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create club');
-      setMessage(data.message || 'Club created successfully!');
+      showSuccess(data.message || 'Club created successfully!');
       setShowAddClub(false);
       setNewClubName('');
       setNewClubFacultyId('');
       setNewClubCoFacultyId('');
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleEditClub = async (e) => {
     e.preventDefault();
     if (!editClubTarget) return;
-    setMessage('');
-    setError('');
     if (!editClubName || !editClubName.trim()) {
-      setError('Club name is required.');
+      showError('Club name is required.');
       return;
     }
     try {
@@ -308,18 +305,16 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update club');
-      setMessage(data.message || 'Club updated successfully!');
+      showSuccess(data.message || 'Club updated successfully!');
       setEditClubTarget(null);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteClub = async (club) => {
     if (!window.confirm(`Are you sure you want to delete the club "${club.name}"? Any assigned Institutional Responsibility will also be removed.`)) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/clubs/${club.id}`, {
         method: 'DELETE',
@@ -327,26 +322,24 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete club');
-      setMessage(data.message || 'Club deleted successfully!');
+      showSuccess(data.message || 'Club deleted successfully!');
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleAddFaculty = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     const staffIdErr = validateStaffId(fId);
     if (staffIdErr) {
-      setError(staffIdErr);
+      showError(staffIdErr);
       return;
     }
 
     if (!fName || !fName.trim()) {
-      setError('Faculty Name is required.');
+      showError('Faculty Name is required.');
       return;
     }
 
@@ -380,7 +373,7 @@ export default function AdminUsers({ auth, initialTab }) {
         throw new Error(data.error || 'Failed to create faculty member');
       }
 
-      setMessage(`Faculty member ${fName} (${fId}) registered successfully! Default login password assigned as Staff ID (${fId}).`);
+      showSuccess(`Faculty member ${fName} (${fId}) registered successfully! Default login password assigned as Staff ID (${fId}).`);
       setFId('');
       setFName('');
       setFPass('');
@@ -391,14 +384,12 @@ export default function AdminUsers({ auth, initialTab }) {
       setShowAddFaculty(false);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteFaculty = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete Faculty "${name}" (${id})? This will delete all their details, files and records forever.`)) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}`, {
@@ -407,20 +398,18 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       
       if (res.ok) {
-        setMessage(`Faculty member ${name} deleted successfully.`);
+        showSuccess(`Faculty member ${name} deleted successfully.`);
         setFacultyList(prev => prev.filter(f => f.staff_id !== id));
       } else {
         throw new Error('Failed to delete faculty member');
       }
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleAddDeptAdmin = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/dept-admins`, {
@@ -438,20 +427,18 @@ export default function AdminUsers({ auth, initialTab }) {
 
       if (!res.ok) throw new Error('Failed to create department admin');
 
-      setMessage(`Department administrator created for ${daDept}.`);
+      showSuccess(`Department administrator created for ${daDept}.`);
       setDaId('');
       setDaPass('');
       setShowAddDeptAdmin(false);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteDeptAdmin = async (id, deptName) => {
     if (!window.confirm(`Are you sure you want to revoke Dept Admin privileges for ${id} of department "${deptName}"?`)) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/dept-admins/${id}`, {
@@ -459,21 +446,19 @@ export default function AdminUsers({ auth, initialTab }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage('Department Admin revoked successfully.');
+        showSuccess('Department Admin revoked successfully.');
         setDeptAdmins(prev => prev.filter(da => da.staff_id !== id));
       } else {
         throw new Error('Failed to delete department admin');
       }
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleAddSystemAdmin = async (e) => {
     e.preventDefault();
     if (!saId || !saPass) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/system-admins`, {
@@ -493,20 +478,18 @@ export default function AdminUsers({ auth, initialTab }) {
         throw new Error(data.error || 'Failed to add system administrator');
       }
 
-      setMessage(`System Administrator account "${saId}" created successfully!`);
+      showSuccess(`System Administrator account "${saId}" created successfully!`);
       setSaId('');
       setSaPass('');
       setShowAddSystemAdmin(false);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteSystemAdmin = async (id) => {
     if (!window.confirm(`Are you sure you want to remove system administrator privilege from "${id}"?`)) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/system-admins/${id}`, {
@@ -518,10 +501,10 @@ export default function AdminUsers({ auth, initialTab }) {
         throw new Error('Failed to delete system administrator');
       }
 
-      setMessage('System Administrator removed successfully.');
+      showSuccess('System Administrator removed successfully.');
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -533,8 +516,6 @@ export default function AdminUsers({ auth, initialTab }) {
   const handleTransferFaculty = async (e) => {
     e.preventDefault();
     if (!transferTarget || !targetDept) return;
-    setMessage('');
-    setError('');
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/staff/${transferTarget.staff_id}/transfer`, {
@@ -548,11 +529,11 @@ export default function AdminUsers({ auth, initialTab }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to transfer faculty');
 
-      setMessage(`Faculty member ${transferTarget.staff_name || transferTarget.staff_id} successfully transferred to ${targetDept} department.`);
+      showSuccess(`Faculty member ${transferTarget.staff_name || transferTarget.staff_id} successfully transferred to ${targetDept} department.`);
       setTransferTarget(null);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -615,34 +596,32 @@ export default function AdminUsers({ auth, initialTab }) {
   const handleSaveFacultyEdit = async (e) => {
     e.preventDefault();
     if (!editFacultyTarget) return;
-    setMessage('');
-    setError('');
 
     if (!editStaffName || !editStaffName.trim()) {
-      setError('Faculty Full Name is required.');
+      showError('Faculty Full Name is required.');
       return;
     }
 
     const emailErr = validateEmail(editEmail);
-    if (emailErr) { setError(emailErr); return; }
+    if (emailErr) { showError(emailErr); return; }
 
     const mobileErr = validateMobile(editMobile);
-    if (mobileErr) { setError(mobileErr); return; }
+    if (mobileErr) { showError(mobileErr); return; }
 
     const panErr = validatePan(editPan);
-    if (panErr) { setError(panErr); return; }
+    if (panErr) { showError(panErr); return; }
 
     const aadharErr = validateAadhar(editAadhar);
-    if (aadharErr) { setError(aadharErr); return; }
+    if (aadharErr) { showError(aadharErr); return; }
 
     const aicteErr = validateAicteId(editAicteId);
-    if (aicteErr) { setError(aicteErr); return; }
+    if (aicteErr) { showError(aicteErr); return; }
 
     const auErr = validateAnnaUnivId(editAnnaUnivId);
-    if (auErr) { setError(auErr); return; }
+    if (auErr) { showError(auErr); return; }
 
     const apaarErr = validateApaarId(editApaarId);
-    if (apaarErr) { setError(apaarErr); return; }
+    if (apaarErr) { showError(apaarErr); return; }
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/staff/${editFacultyTarget.staff_id}`, {
@@ -681,11 +660,11 @@ export default function AdminUsers({ auth, initialTab }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update faculty profile');
 
-      setMessage(`Faculty profile for ${editStaffName} updated successfully.`);
+      showSuccess(`Faculty profile for ${editStaffName} updated successfully.`);
       setEditFacultyTarget(null);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -727,8 +706,6 @@ export default function AdminUsers({ auth, initialTab }) {
   const handleAddDept = async (e) => {
     e.preventDefault();
     if (!newDeptName) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/departments`, {
         method: 'POST',
@@ -743,16 +720,14 @@ export default function AdminUsers({ auth, initialTab }) {
       setNewDeptName('');
       setNewDeptAcronym('');
       fetchData();
-      setMessage('Department added successfully.');
+      showSuccess('Department added successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteDept = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete department "${name}"?`)) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/departments/${id}`, {
         method: 'DELETE',
@@ -760,17 +735,15 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       if (!res.ok) throw new Error('Failed to delete department');
       fetchData();
-      setMessage('Department deleted successfully.');
+      showSuccess('Department deleted successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleAddDesignation = async (e) => {
     e.preventDefault();
     if (!newDesgName.trim()) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/designations`, {
         method: 'POST',
@@ -784,16 +757,14 @@ export default function AdminUsers({ auth, initialTab }) {
       if (!res.ok) throw new Error(data.error || 'Failed to add designation');
       setNewDesgName('');
       fetchData();
-      setMessage(`Designation "${newDesgName.trim()}" added successfully.`);
+      showSuccess(`Designation "${newDesgName.trim()}" added successfully.`);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteDesignation = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete designation "${name}"?`)) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/designations/${id}`, {
         method: 'DELETE',
@@ -801,9 +772,9 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       if (!res.ok) throw new Error('Failed to delete designation');
       fetchData();
-      setMessage(`Designation "${name}" deleted successfully.`);
+      showSuccess(`Designation "${name}" deleted successfully.`);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -829,9 +800,9 @@ export default function AdminUsers({ auth, initialTab }) {
         body: JSON.stringify({ orderedIds })
       });
       if (!res.ok) throw new Error('Failed to save designation reordering');
-      setMessage('Designation order updated successfully.');
+      showSuccess('Designation order updated successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
       fetchData();
     }
   };
@@ -839,8 +810,6 @@ export default function AdminUsers({ auth, initialTab }) {
   const handleAddSociety = async (e) => {
     e.preventDefault();
     if (!newSocietyName) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/societies`, {
         method: 'POST',
@@ -854,16 +823,14 @@ export default function AdminUsers({ auth, initialTab }) {
       if (!res.ok) throw new Error(data.error || 'Failed to add society');
       setNewSocietyName('');
       fetchData();
-      setMessage('Professional society added successfully.');
+      showSuccess('Professional society added successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteSociety = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete professional society "${name}"?`)) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/societies/${id}`, {
         method: 'DELETE',
@@ -871,17 +838,15 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       if (!res.ok) throw new Error('Failed to delete professional society');
       fetchData();
-      setMessage('Professional society deleted successfully.');
+      showSuccess('Professional society deleted successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleAddUni = async (e) => {
     e.preventDefault();
     if (!newUniName) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/universities`, {
         method: 'POST',
@@ -895,16 +860,14 @@ export default function AdminUsers({ auth, initialTab }) {
       if (!res.ok) throw new Error(data.error || 'Failed to add university');
       setNewUniName('');
       fetchData();
-      setMessage('University/Board added successfully.');
+      showSuccess('University/Board added successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteUni = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete university/board "${name}"?`)) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/universities/${id}`, {
         method: 'DELETE',
@@ -912,9 +875,9 @@ export default function AdminUsers({ auth, initialTab }) {
       });
       if (!res.ok) throw new Error('Failed to delete university');
       fetchData();
-      setMessage('University/Board deleted successfully.');
+      showSuccess('University/Board deleted successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -936,9 +899,6 @@ export default function AdminUsers({ auth, initialTab }) {
       }
     }
 
-    setMessage('');
-    setError('');
-
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/staff/${faculty.staff_id}/relieve`, {
         method: 'PUT',
@@ -952,17 +912,15 @@ export default function AdminUsers({ auth, initialTab }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update faculty relieve status');
 
-      setMessage(data.message);
+      showSuccess(data.message);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleConfirmResetPassword = async () => {
     if (!resetPasswordTarget) return;
-    setMessage('');
-    setError('');
 
     const targetPass = (resetCustomPassword && resetCustomPassword.trim()) ? resetCustomPassword.trim() : 'faculty123';
 
@@ -979,10 +937,10 @@ export default function AdminUsers({ auth, initialTab }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to reset faculty password');
 
-      setMessage(data.message || `Password for ${resetPasswordTarget.staff_name} (${resetPasswordTarget.staff_id}) has been reset to '${targetPass}' successfully.`);
+      showSuccess(data.message || `Password for ${resetPasswordTarget.staff_name} (${resetPasswordTarget.staff_id}) has been reset to '${targetPass}' successfully.`);
       setResetPasswordTarget(null);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -994,7 +952,7 @@ export default function AdminUsers({ auth, initialTab }) {
       if (type === 'department') {
         const targetDept = identifier || searchDept || (auth.role === 'dept_admin' ? auth.department : '');
         if (!targetDept) {
-          setError('Please select or specify a department to download department-wise documents.');
+          showError('Please select or specify a department to download department-wise documents.');
           return;
         }
         url = `${API_BASE_URL}/api/admin/download/department/${encodeURIComponent(targetDept)}`;
@@ -1005,7 +963,7 @@ export default function AdminUsers({ auth, initialTab }) {
         defaultFilename = `${identifier}_documents.zip`;
       }
 
-      setMessage(`Preparing zip download...`);
+      showInfo(`Preparing zip download...`);
 
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
@@ -1026,9 +984,9 @@ export default function AdminUsers({ auth, initialTab }) {
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
 
-      setMessage(`Zip archive downloaded successfully: ${defaultFilename}`);
+      showSuccess(`Zip archive downloaded successfully: ${defaultFilename}`);
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -1047,23 +1005,21 @@ export default function AdminUsers({ auth, initialTab }) {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      setMessage('Sample bulk upload template downloaded successfully.');
+      showSuccess('Sample bulk upload template downloaded successfully.');
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const handleBulkUploadSubmit = async (e) => {
     e.preventDefault();
     if (!bulkFile) {
-      setError('Please select a CSV or Excel file to upload.');
+      showError('Please select a CSV or Excel file to upload.');
       return;
     }
 
     setBulkUploading(true);
     setBulkResult(null);
-    setMessage('');
-    setError('');
 
     try {
       const formData = new FormData();
@@ -1079,11 +1035,11 @@ export default function AdminUsers({ auth, initialTab }) {
       if (!res.ok) throw new Error(data.error || 'Bulk upload failed');
 
       setBulkResult(data);
-      setMessage(data.message);
+      showSuccess(data.message);
       setBulkFile(null);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     } finally {
       setBulkUploading(false);
     }
@@ -1111,18 +1067,6 @@ export default function AdminUsers({ auth, initialTab }) {
         profilePic={auth.profilePic} 
         auth={auth}
       />
-
-      {message && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--success), 0.15)', border: '1px solid hsla(var(--success), 0.3)', color: 'hsl(var(--success))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'hsla(var(--danger), 0.15)', border: '1px solid hsla(var(--danger), 0.3)', color: 'hsl(var(--danger))', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 500 }}>
-          {error}
-        </div>
-      )}
 
       {/* Admin / Principal / HR tab selector */}
       {isInstAdmin && (

@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { 
   Layers, Plus, Trash2, Edit3, Eye, FileText, CheckSquare, 
   Square, ShieldAlert, Award, BookOpen, Sparkles, Folder, 
@@ -137,8 +138,6 @@ export default function DynamicPagesAdmin({ auth }) {
   };
 
   const handleSaveSysPageConfig = async () => {
-    setMessage('');
-    setError('');
     try {
       const payload = {
         title: sysPageTitle,
@@ -158,21 +157,19 @@ export default function DynamicPagesAdmin({ auth }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage(`System page configuration for "${sysPageTitle}" saved successfully!`);
+        showSuccess(`System page configuration for "${sysPageTitle}" saved successfully!`);
         fetchSysConfigs();
         window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
-        setError(data.error || 'Failed to save system page configuration');
+        showError(data.error || 'Failed to save system page configuration');
       }
     } catch (err) {
-      setError('Server error while saving system page configuration');
+      showError('Server error while saving system page configuration');
     }
   };
 
   const handleResetSysPageConfig = async () => {
     if (!window.confirm(`Reset "${sysPageTitle}" configuration to system default?`)) return;
-    setMessage('');
-    setError('');
     try {
       const res = await fetch(`${API_BASE_URL}/api/system-page-configs/${selectedSysPageKey}/reset`, {
         method: 'POST',
@@ -180,14 +177,14 @@ export default function DynamicPagesAdmin({ auth }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage(`Configuration for "${sysPageTitle}" reset to default.`);
+        showSuccess(`Configuration for "${sysPageTitle}" reset to default.`);
         fetchSysConfigs();
         window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
-        setError(data.error || 'Failed to reset configuration');
+        showError(data.error || 'Failed to reset configuration');
       }
     } catch (err) {
-      setError('Server error while resetting configuration');
+      showError('Server error while resetting configuration');
     }
   };
 
@@ -255,7 +252,7 @@ export default function DynamicPagesAdmin({ auth }) {
 
   const handleRemoveField = (index) => {
     if (fields.length === 1) {
-      alert('A dynamic page must have at least one field');
+      showError('A dynamic page must have at least one field');
       return;
     }
     setFields(fields.filter((_, i) => i !== index));
@@ -289,16 +286,14 @@ export default function DynamicPagesAdmin({ auth }) {
 
   const handleSavePage = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
 
     if (!title.trim() || !slug.trim()) {
-      setError('Page Title and URL Slug are required');
+      showError('Page Title and URL Slug are required');
       return;
     }
 
     if (fields.some(f => !f.label.trim())) {
-      setError('All field labels must be filled out');
+      showError('All field labels must be filled out');
       return;
     }
 
@@ -319,15 +314,15 @@ export default function DynamicPagesAdmin({ auth }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage(editingId ? 'Dynamic page updated successfully!' : 'Dynamic page created successfully!');
+        showSuccess(editingId ? 'Dynamic page updated successfully!' : 'Dynamic page created successfully!');
         setShowModal(false);
         fetchPages();
         window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
-        setError(data.error || 'Failed to save dynamic page');
+        showError(data.error || 'Failed to save dynamic page');
       }
     } catch (err) {
-      setError('Server error while saving dynamic page');
+      showError('Server error while saving dynamic page');
     }
   };
 
@@ -341,32 +336,21 @@ export default function DynamicPagesAdmin({ auth }) {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
       if (res.ok) {
-        setMessage(`Dynamic page "${page.title}" deleted.`);
+        showSuccess(`Dynamic page "${page.title}" deleted.`);
         fetchPages();
         window.dispatchEvent(new Event('srec_dynamic_pages_updated'));
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to delete dynamic page');
+        showError(data.error || 'Failed to delete dynamic page');
       }
     } catch (err) {
-      setError('Server error while deleting dynamic page');
+      showError('Server error while deleting dynamic page');
     }
   };
 
   return (
     <div>
       <Navbar title="Dynamic Pages Manager" userName={auth.name} profilePic={auth.profilePic} auth={auth} />
-
-      {message && (
-        <div className="card" style={{ marginBottom: '20px', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))', fontWeight: 600 }}>
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="card" style={{ marginBottom: '20px', background: 'hsla(var(--danger), 0.1)', color: 'hsl(var(--danger))', borderColor: 'hsl(var(--danger))', fontWeight: 600 }}>
-          {error}
-        </div>
-      )}
 
       {/* Top Navigation & Sub-Tabs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
@@ -599,7 +583,7 @@ export default function DynamicPagesAdmin({ auth }) {
                       if (!newCatName.trim()) return;
                       const catName = newCatName.trim();
                       if (pubConstraints[catName]) {
-                        alert('Category already exists');
+                        showError('Category already exists');
                         return;
                       }
                       const updated = {

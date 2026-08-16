@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
 import { FileSpreadsheet, FileText, Calendar, Filter, X, SlidersHorizontal, CheckSquare, Square, Archive } from 'lucide-react';
 import { downloadExcelReport, downloadPdfReport } from '../utils/reportGenerator';
+import { showSuccess, showError, showWarning } from '../context/AlertContext.jsx';
 
 // Robust date parser for various institutional date formats
 const parseAnyDate = (dateStr) => {
@@ -160,9 +161,10 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
         headers: effectiveHeaders,
         rows: effectiveRows
       });
+      showSuccess(`Excel report "${filename || pageTitle}" generated and downloaded!`);
     } catch (err) {
       console.error('Excel Export Error:', err);
-      alert('Failed to generate Excel report.');
+      showError('Failed to generate Excel report.');
     }
   };
 
@@ -179,9 +181,10 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
         orientation: orientation,
         auth: auth || {}
       });
+      showSuccess(`PDF report "${filename || pageTitle}" generated and downloaded!`);
     } catch (err) {
       console.error('PDF Export Error:', err);
-      alert('Failed to generate PDF report.');
+      showError('Failed to generate PDF report.');
     } finally {
       setDownloading(false);
     }
@@ -237,7 +240,7 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
 
   const handleZipExport = async () => {
     if (availableFiles.length === 0) {
-      alert('No document attachments found in the current page records to download.');
+      showWarning('No document attachments found in the current page records to download.');
       return;
     }
 
@@ -270,9 +273,10 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
       link.click();
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
+      showSuccess(`Downloaded ${availableFiles.length} attachments in ZIP archive.`);
     } catch (err) {
       console.error('Zip Export Error:', err);
-      alert(err.message || 'Failed to download documents ZIP.');
+      showError(err.message || 'Failed to download documents ZIP.');
     } finally {
       setZipping(false);
     }

@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { API_BASE_URL } from '../config';
+import { showSuccess, showError } from '../context/AlertContext.jsx';
 
 export async function generateAcademicCV(auth) {
   try {
@@ -161,9 +162,11 @@ export async function generateAcademicCV(auth) {
       doc.text(`Page ${i} of ${pageCount} | Official SREC FIS Verified Document | Generated: ${new Date().toLocaleDateString()}`, 105, 290, { align: 'center' });
     }
 
-    doc.save(`SREC_FIS_Academic_CV_${(p.staff_id || auth.staffId)}.pdf`);
+    const cvFilename = `SREC_FIS_Academic_CV_${(p.staff_id || auth.staffId)}.pdf`;
+    doc.save(cvFilename);
+    showSuccess(`Academic CV "${cvFilename}" generated and downloaded!`);
   } catch (err) {
     console.error('Error generating Academic CV PDF:', err);
-    alert('Failed to generate Academic CV: ' + err.message);
+    showError('Failed to generate Academic CV: ' + err.message);
   }
 }

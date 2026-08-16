@@ -698,3 +698,35 @@ tr:hover td {
   }
 }
 
+/* Global Floating Alert Box System Animations */
+@keyframes alertSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes alertProgressBar {
+  0% {
+    width: 100%;
+  }
+  100% {
+    width: 0%;
+  }
+}
+
+@media (max-width: 600px) {
+  .alert-box-container {
+    top: 14px !important;
+    right: 14px !important;
+    left: 14px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+

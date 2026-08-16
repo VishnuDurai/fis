@@ -20,6 +20,7 @@ import Footer from './components/Footer.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import PWAInstallBanner from './components/PWAInstallBanner.jsx';
 import PWAInstallPrompt from './components/PWAInstallPrompt.jsx';
+import { AlertProvider, showWarning } from './context/AlertContext.jsx';
 
 export default function App() {
   const [auth, setAuth] = useState(null);
@@ -170,7 +171,7 @@ export default function App() {
 
     const handleInactivityLogout = () => {
       logout();
-      alert('You have been logged out due to 5 minutes of inactivity for security.');
+      showWarning('You have been logged out due to 5 minutes of inactivity for security.');
     };
 
     const resetTimer = () => {
@@ -203,62 +204,64 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <PWAInstallPrompt />
-        {auth ? (
-          <div className="dashboard-layout">
-            <Sidebar role={auth.role} logout={logout} auth={auth} />
-            <main className="main-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AlertProvider>
+        <BrowserRouter>
+          <PWAInstallPrompt />
+          {auth ? (
+            <div className="dashboard-layout">
+              <Sidebar role={auth.role} logout={logout} auth={auth} />
+              <main className="main-content" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                <div style={{ flex: 1 }}>
+                  <Routes>
+                    <Route path="/dashboard" element={<Home auth={auth} />} />
+                    <Route path="/profile/academic" element={<AcademicInfo auth={auth} />} />
+                    <Route path="/profile/personal" element={<Personal auth={auth} />} />
+                    <Route path="/profile/documents" element={<OfficialDocuments auth={auth} />} />
+                    <Route path="/profile/education" element={<Education auth={auth} />} />
+                    <Route path="/activities/:type" element={<Activities auth={auth} />} />
+                    <Route path="/appraisal" element={<Appraisal auth={auth} />} />
+                    <Route path="/responsibilities" element={<Responsibilities auth={auth} />} />
+                    <Route path="/reports" element={<Reports auth={auth} />} />
+                    <Route path="/custom/:slug" element={<DynamicPage auth={auth} />} />
+                    
+                    {/* Admin Routes */}
+                    {auth.role === 'admin' && (
+                      <Route path="/admin/dynamic-pages" element={<DynamicPagesAdmin auth={auth} />} />
+                    )}
+                    {(auth.role === 'admin' || auth.role === 'dept_admin') && (
+                      <Route path="/admin/faculty" element={<AdminUsers auth={auth} initialTab="faculty" />} />
+                    )}
+                    {(auth.role === 'admin' || auth.isInstitutionalAdmin || (auth.designation || '').toLowerCase().includes('principal') || (auth.designation || '').toLowerCase().includes('hr')) && (
+                      <Route path="/admin/clubs" element={<AdminUsers auth={auth} initialTab="clubs" />} />
+                    )}
+                    {auth.role === 'admin' && (
+                      <>
+                        <Route path="/admin/dept-admins" element={<AdminUsers auth={auth} initialTab="dept_admins" />} />
+                        <Route path="/admin/system-admins" element={<AdminUsers auth={auth} initialTab="system_admins" />} />
+                      </>
+                    )}
+
+                    <Route path="/settings" element={<Settings auth={auth} updateProfilePic={updateProfilePic} />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </div>
+                <Footer />
+              </main>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
               <div style={{ flex: 1 }}>
                 <Routes>
-                  <Route path="/dashboard" element={<Home auth={auth} />} />
-                  <Route path="/profile/academic" element={<AcademicInfo auth={auth} />} />
-                  <Route path="/profile/personal" element={<Personal auth={auth} />} />
-                  <Route path="/profile/documents" element={<OfficialDocuments auth={auth} />} />
-                  <Route path="/profile/education" element={<Education auth={auth} />} />
-                  <Route path="/activities/:type" element={<Activities auth={auth} />} />
-                  <Route path="/appraisal" element={<Appraisal auth={auth} />} />
-                  <Route path="/responsibilities" element={<Responsibilities auth={auth} />} />
-                  <Route path="/reports" element={<Reports auth={auth} />} />
-                  <Route path="/custom/:slug" element={<DynamicPage auth={auth} />} />
-                  
-                  {/* Admin Routes */}
-                  {auth.role === 'admin' && (
-                    <Route path="/admin/dynamic-pages" element={<DynamicPagesAdmin auth={auth} />} />
-                  )}
-                  {(auth.role === 'admin' || auth.role === 'dept_admin') && (
-                    <Route path="/admin/faculty" element={<AdminUsers auth={auth} initialTab="faculty" />} />
-                  )}
-                  {(auth.role === 'admin' || auth.isInstitutionalAdmin || (auth.designation || '').toLowerCase().includes('principal') || (auth.designation || '').toLowerCase().includes('hr')) && (
-                    <Route path="/admin/clubs" element={<AdminUsers auth={auth} initialTab="clubs" />} />
-                  )}
-                  {auth.role === 'admin' && (
-                    <>
-                      <Route path="/admin/dept-admins" element={<AdminUsers auth={auth} initialTab="dept_admins" />} />
-                      <Route path="/admin/system-admins" element={<AdminUsers auth={auth} initialTab="system_admins" />} />
-                    </>
-                  )}
-
-                  <Route path="/settings" element={<Settings auth={auth} updateProfilePic={updateProfilePic} />} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/login" element={<Login setAuth={setAuth} />} />
+                  <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
               </div>
               <Footer />
-            </main>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <div style={{ flex: 1 }}>
-              <Routes>
-                <Route path="/login" element={<Login setAuth={setAuth} />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
             </div>
-            <Footer />
-          </div>
-        )}
-        <PWAInstallBanner />
-      </BrowserRouter>
+          )}
+          <PWAInstallBanner />
+        </BrowserRouter>
+      </AlertProvider>
     </ErrorBoundary>
   );
 }
