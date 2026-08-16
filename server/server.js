@@ -11,6 +11,7 @@ import facultyRouter from './routes/faculty.js';
 import activitiesRouter from './routes/activities.js';
 import adminRouter from './routes/admin.js';
 import dynamicPagesRouter from './routes/dynamic_pages.js';
+import analyticsRouter from './routes/analytics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,6 +117,7 @@ app.use('/api/activities', activitiesRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/dynamic-pages', dynamicPagesRouter);
 app.use('/api/system-page-configs', systemPageConfigsRouter);
+app.use('/api/analytics', analyticsRouter);
 
 import JSZip from 'jszip';
 

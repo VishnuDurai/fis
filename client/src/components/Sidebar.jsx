@@ -4,7 +4,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, User, BookOpen, GraduationCap, Award, FileText,
   LogOut, Users, ShieldAlert, ShieldCheck, BarChart3, FileCheck,
-  ChevronDown, ChevronRight, Beaker, Activity, Layers, Sparkles, Folder, Star
+  ChevronDown, ChevronRight, Beaker, Activity, Layers, Sparkles, Folder, Star, TrendingUp
 } from 'lucide-react';
 
 const DYNAMIC_ICONS_MAP = {
@@ -176,6 +176,7 @@ export default function Sidebar({ role, logout, auth }) {
           icon: <BarChart3 />,
           color: '#06b6d4',
           items: [
+            { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
@@ -254,6 +255,7 @@ export default function Sidebar({ role, logout, auth }) {
           icon: <BarChart3 />,
           color: '#06b6d4',
           items: [
+            { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
@@ -356,6 +358,7 @@ export default function Sidebar({ role, logout, auth }) {
           icon: <BarChart3 />,
           color: '#06b6d4',
           items: [
+            { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]

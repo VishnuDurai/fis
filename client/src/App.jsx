@@ -15,6 +15,7 @@ import Appraisal from './pages/Appraisal.jsx';
 import Responsibilities from './pages/Responsibilities.jsx';
 import DynamicPagesAdmin from './pages/DynamicPagesAdmin.jsx';
 import DynamicPage from './pages/DynamicPage.jsx';
+import Analytics from './pages/Analytics.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 import Settings from './pages/Settings.jsx';
 import Footer from './components/Footer.jsx';
@@ -222,6 +223,7 @@ export default function App() {
                     <Route path="/activities/:type" element={<Activities auth={auth} />} />
                     <Route path="/appraisal" element={<Appraisal auth={auth} />} />
                     <Route path="/responsibilities" element={<Responsibilities auth={auth} />} />
+                    <Route path="/analytics" element={<Analytics auth={auth} />} />
                     <Route path="/reports" element={<Reports auth={auth} />} />
                     <Route path="/reports/accreditation" element={<AccreditationSuite auth={auth} />} />
                     <Route path="/accreditation" element={<AccreditationSuite auth={auth} />} />
