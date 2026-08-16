@@ -1128,28 +1128,10 @@ export default function Reports({ auth }) {
               </div>
             </div>
 
-            {/* KPI Summary Cards */}
+            {/* KPI Summary Cards (In Numerical Order: 5.2 -> 5.3 -> 5.6 -> Total Faculty) */}
             <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', padding: '14px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.3 Faculty Qualification (FQ)</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0284c7' }}>{nbaTier1Data?.averageFq ?? '--'}</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>/ 20.00 Marks (3-Yr Avg)</span>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '2px' }}>FQ = 2.5 * [(10X + 4Y) / F]</div>
-              </div>
-
-              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.6 Faculty Retention</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#16a34a' }}>{nbaTier1Data?.retention?.retentionRate != null ? `${nbaTier1Data.retention.retentionRate}%` : '--'}</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#15803d' }}>({nbaTier1Data?.retention?.retentionMarks ?? 0} / 25 Marks)</span>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '2px' }}>Base Year: {nbaTier1Data?.retention?.baseYear || 'CAYm2'}</div>
-              </div>
-
-              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>5.2 Cadre Proportion</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase' }}>5.2 Cadre Proportion</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
                   <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#7c3aed' }}>
                     {nbaTier1Data?.qualificationTable?.[0]?.cadre?.cadreMarks != null ? `${nbaTier1Data.qualificationTable[0].cadre.cadreMarks}` : '--'}
@@ -1160,7 +1142,25 @@ export default function Reports({ auth }) {
               </div>
 
               <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Department Faculty</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase' }}>5.3 Faculty Qualification (FQ)</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0284c7' }}>{nbaTier1Data?.averageFq ?? '--'}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>/ 20.00 Marks (3-Yr Avg)</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '2px' }}>FQ = 2.5 * [(10X + 4Y) / F]</div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase' }}>5.6 Faculty Retention</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#16a34a' }}>{nbaTier1Data?.retention?.retentionRate != null ? `${nbaTier1Data.retention.retentionRate}%` : '--'}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#15803d' }}>({nbaTier1Data?.retention?.retentionMarks ?? 0} / 25 Marks)</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '2px' }}>Base Year: {nbaTier1Data?.retention?.baseYear || 'CAYm2'}</div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Total Department Faculty</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
                   <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a' }}>{nbaTier1Data?.facultyList?.length || 0}</span>
                   <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>Members</span>
@@ -1169,15 +1169,15 @@ export default function Reports({ auth }) {
               </div>
             </div>
 
-            {/* Tab Navigation - Pill Style with Flex Wrap and Clear Visibility */}
+            {/* Tab Navigation - In Numerical Order 5.0 -> 5.2 -> 5.3 -> 5.6 -> 5.1-5.5 -> B2 */}
             <div style={{ flexShrink: 0, display: 'flex', gap: '8px', padding: '10px 24px', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
-                { id: 'overview', label: '📊 SAR Overview' },
+                { id: 'overview', label: '📊 5.0 SAR Overview' },
+                { id: 'cadre', label: '🏛️ 5.2 Cadre Proportion' },
                 { id: 'fq', label: '🎓 5.3 Faculty Qualification (FQ)' },
                 { id: 'retention', label: '🔄 5.6 Faculty Retention' },
-                { id: 'cadre', label: '🏛️ 5.2 Cadre Proportion' },
-                { id: 'b2', label: '📋 Form B2: Faculty Details Roster' },
-                { id: 'activities', label: '⚡ 5.1-5.5 Contributions & Activities' }
+                { id: 'activities', label: '⚡ 5.1-5.5 Contributions & Activities' },
+                { id: 'b2', label: '📋 Form B2: Faculty Details Roster' }
               ].map(tab => {
                 const isActive = nbaActiveTab === tab.id;
                 return (

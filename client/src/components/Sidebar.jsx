@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, User, BookOpen, GraduationCap, Award, FileText,
-  LogOut, Users, ShieldAlert, BarChart3, FileCheck,
+  LogOut, Users, ShieldAlert, ShieldCheck, BarChart3, FileCheck,
   ChevronDown, ChevronRight, Beaker, Activity, Layers, Sparkles, Folder, Star
 } from 'lucide-react';
 
@@ -172,10 +172,13 @@ export default function Sidebar({ role, logout, auth }) {
         {
           id: 'reports',
           title: 'Reports and Dossier',
-          isSingle: true,
-          to: '/reports',
+          isSingle: false,
           icon: <BarChart3 />,
-          color: '#06b6d4'
+          color: '#06b6d4',
+          items: [
+            { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
+            { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
+          ]
         }
       ];
     } else if (role === 'dept_admin') {
@@ -247,10 +250,13 @@ export default function Sidebar({ role, logout, auth }) {
         {
           id: 'reports',
           title: 'Reports and Dossier',
-          isSingle: true,
-          to: '/reports',
+          isSingle: false,
           icon: <BarChart3 />,
-          color: '#06b6d4'
+          color: '#06b6d4',
+          items: [
+            { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
+            { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
+          ]
         }
       ];
     } else {
@@ -346,10 +352,13 @@ export default function Sidebar({ role, logout, auth }) {
         {
           id: 'reports',
           title: 'Reports and Dossier',
-          isSingle: true,
-          to: '/reports',
+          isSingle: false,
           icon: <BarChart3 />,
-          color: '#06b6d4'
+          color: '#06b6d4',
+          items: [
+            { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
+            { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
+          ]
         }
       ];
     }

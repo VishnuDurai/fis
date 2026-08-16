@@ -10,6 +10,7 @@ import OfficialDocuments from './pages/OfficialDocuments.jsx';
 import Education from './pages/Education.jsx';
 import Activities from './pages/Activities.jsx';
 import Reports from './pages/Reports.jsx';
+import AccreditationSuite from './pages/AccreditationSuite.jsx';
 import Appraisal from './pages/Appraisal.jsx';
 import Responsibilities from './pages/Responsibilities.jsx';
 import DynamicPagesAdmin from './pages/DynamicPagesAdmin.jsx';
@@ -222,6 +223,8 @@ export default function App() {
                     <Route path="/appraisal" element={<Appraisal auth={auth} />} />
                     <Route path="/responsibilities" element={<Responsibilities auth={auth} />} />
                     <Route path="/reports" element={<Reports auth={auth} />} />
+                    <Route path="/reports/accreditation" element={<AccreditationSuite auth={auth} />} />
+                    <Route path="/accreditation" element={<AccreditationSuite auth={auth} />} />
                     <Route path="/custom/:slug" element={<DynamicPage auth={auth} />} />
                     
                     {/* Admin Routes */}

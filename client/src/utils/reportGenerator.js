@@ -1013,17 +1013,45 @@ export const exportNbaCriterion5Pdf = async (data, departmentName = 'Institution
     showError('Failed to generate NBA PDF report.');
   }
 };
-
-/**
- * Exports Comprehensive NBA Tier-1 SAR Evaluation Workbook (Criteria 5.2, 5.3, 5.6 & Form B2) in Excel (.xlsx)
- */
 export const exportNbaTier1SarExcel = (data, departmentName = 'Department', academicYear = '2026-2027') => {
   try {
     const wb = XLSX.utils.book_new();
     const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
     const fullDept = isInst ? 'Institution' : (getFullDepartmentName(departmentName) || departmentName);
 
-    // Sheet 1: 5.3 Faculty Qualification
+    // Sheet 1: 5.2 Cadre Proportion
+    const cadreRows = [
+      ['Educational Service : SNR Sons Charitable Trust'],
+      ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
+      [`Department of ${fullDept}`],
+      [`NBA TIER-1 SAR CRITERION 5.2: FACULTY CADRE PROPORTION (1:2:6 RATIO)`],
+      [`Assessment Period: Academic Year ${academicYear}`],
+      [],
+      [
+        'Assessment Year',
+        'Professors (Actual / Required)',
+        'Associate Professors (Actual / Required)',
+        'Assistant Professors (Actual / Required)',
+        'Cadre Proportion Marks (Max: 20)'
+      ]
+    ];
+
+    (data.qualificationTable || []).forEach(q => {
+      const c = q.cadre || {};
+      cadreRows.push([
+        q.yearLabel,
+        `${c.profCount || 0} / ${c.rfProf || 0}`,
+        `${c.assocCount || 0} / ${c.rfAssoc || 0}`,
+        `${c.asstCount || 0} / ${c.rfAsst || 0}`,
+        `${c.cadreMarks || 0} / 20.00`
+      ]);
+    });
+
+    const cadreSheet = XLSX.utils.aoa_to_sheet(cadreRows);
+    cadreSheet['!cols'] = [{ wch: 24 }, { wch: 32 }, { wch: 40 }, { wch: 40 }, { wch: 32 }];
+    XLSX.utils.book_append_sheet(wb, cadreSheet, '5.2 Cadre Proportion');
+
+    // Sheet 2: 5.3 Faculty Qualification
     const fqRows = [
       ['Educational Service : SNR Sons Charitable Trust'],
       ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
@@ -1064,7 +1092,7 @@ export const exportNbaTier1SarExcel = (data, departmentName = 'Department', acad
     fqSheet['!cols'] = [{ wch: 24 }, { wch: 36 }, { wch: 40 }, { wch: 42 }, { wch: 45 }];
     XLSX.utils.book_append_sheet(wb, fqSheet, '5.3 Faculty Qualification');
 
-    // Sheet 2: 5.6 Faculty Retention
+    // Sheet 3: 5.6 Faculty Retention
     const ret = data.retention || {};
     const retRows = [
       ['Educational Service : SNR Sons Charitable Trust'],
@@ -1102,37 +1130,6 @@ export const exportNbaTier1SarExcel = (data, departmentName = 'Department', acad
     const retSheet = XLSX.utils.aoa_to_sheet(retRows);
     retSheet['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 22 }];
     XLSX.utils.book_append_sheet(wb, retSheet, '5.6 Faculty Retention');
-
-    // Sheet 3: 5.2 Cadre Proportion
-    const cadreRows = [
-      ['Educational Service : SNR Sons Charitable Trust'],
-      ['SRI RAMAKRISHNA ENGINEERING COLLEGE'],
-      [`Department of ${fullDept}`],
-      [`NBA TIER-1 SAR CRITERION 5.2: FACULTY CADRE PROPORTION (1:2:6 RATIO)`],
-      [],
-      [
-        'Assessment Year',
-        'Professors (Actual / Required)',
-        'Associate Professors (Actual / Required)',
-        'Assistant Professors (Actual / Required)',
-        'Cadre Proportion Marks (Max: 20)'
-      ]
-    ];
-
-    (data.qualificationTable || []).forEach(q => {
-      const c = q.cadre || {};
-      cadreRows.push([
-        q.yearLabel,
-        `${c.profCount || 0} / ${c.rfProf || 0}`,
-        `${c.assocCount || 0} / ${c.rfAssoc || 0}`,
-        `${c.asstCount || 0} / ${c.rfAsst || 0}`,
-        `${c.cadreMarks || 0} / 20.00`
-      ]);
-    });
-
-    const cadreSheet = XLSX.utils.aoa_to_sheet(cadreRows);
-    cadreSheet['!cols'] = [{ wch: 24 }, { wch: 32 }, { wch: 40 }, { wch: 40 }, { wch: 32 }];
-    XLSX.utils.book_append_sheet(wb, cadreSheet, '5.2 Cadre Proportion');
 
     // Sheet 4: Form B2 Faculty Details
     const b2Headers = [
@@ -1194,238 +1191,6 @@ export const exportNbaTier1SarExcel = (data, departmentName = 'Department', acad
   }
 };
 
-/**
- * Vector PDF Chart Rendering Helpers for NBA Tier-1 Dossier
- */
-const drawFqPdfChart = (doc, x, y, width, height, qualificationTable) => {
-  if (!qualificationTable || qualificationTable.length === 0) return;
-  const maxVal = Math.max(...qualificationTable.map(q => Math.max(q.F || 0, (q.X || 0) + (q.Y || 0), 10)), 15);
-
-  // Background Box
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(x, y, width, height, 2, 2, 'FD');
-
-  // Chart Title
-  doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text('3-Year FQ Qualification Progression & Mix Chart', x + 4, y + 4.5);
-
-  // Legend
-  doc.setFontSize(6.5);
-  // Ph.D.
-  doc.setFillColor(2, 132, 199);
-  doc.rect(x + width - 58, y + 2, 3, 3, 'F');
-  doc.setTextColor(2, 132, 199);
-  doc.text('Ph.D. (X)', x + width - 54, y + 4.5);
-  // PG
-  doc.setFillColor(148, 163, 184);
-  doc.rect(x + width - 38, y + 2, 3, 3, 'F');
-  doc.setTextColor(100, 116, 139);
-  doc.text('PG (Y)', x + width - 34, y + 4.5);
-  // Total
-  doc.setFillColor(51, 65, 85);
-  doc.rect(x + width - 20, y + 2, 3, 3, 'F');
-  doc.setTextColor(51, 65, 85);
-  doc.text('Total (F)', x + width - 16, y + 4.5);
-
-  // Grouped Bars for 3 years
-  const numYears = qualificationTable.length;
-  const colWidth = (width - 12) / numYears;
-  const chartBaseline = y + height - 7;
-  const maxBarH = height - 17;
-
-  qualificationTable.forEach((q, i) => {
-    const colX = x + 6 + (i * colWidth);
-    const hX = Math.max(1.5, ((q.X || 0) / maxVal) * maxBarH);
-    const hY = Math.max(1.5, ((q.Y || 0) / maxVal) * maxBarH);
-    const hF = Math.max(1.5, ((q.F || 0) / maxVal) * maxBarH);
-
-    const barW = (colWidth - 8) / 3;
-
-    // Ph.D. Bar
-    doc.setFillColor(2, 132, 199);
-    doc.rect(colX, chartBaseline - hX, barW, hX, 'F');
-    doc.setFont('times', 'bold');
-    doc.setFontSize(6);
-    doc.setTextColor(2, 132, 199);
-    doc.text(String(q.X || 0), colX + (barW / 2), chartBaseline - hX - 1, { align: 'center' });
-
-    // PG Bar
-    doc.setFillColor(148, 163, 184);
-    doc.rect(colX + barW + 1, chartBaseline - hY, barW, hY, 'F');
-    doc.setTextColor(100, 116, 139);
-    doc.text(String(q.Y || 0), colX + barW + 1 + (barW / 2), chartBaseline - hY - 1, { align: 'center' });
-
-    // Total Bar
-    doc.setFillColor(51, 65, 85);
-    doc.rect(colX + (barW * 2) + 2, chartBaseline - hF, barW, hF, 'F');
-    doc.setTextColor(51, 65, 85);
-    doc.text(String(q.F || 0), colX + (barW * 2) + 2 + (barW / 2), chartBaseline - hF - 1, { align: 'center' });
-
-    // Year Label & FQ Badge
-    doc.setFont('times', 'bold');
-    doc.setFontSize(6.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(q.yearKey || `Y${i+1}`, colX + (colWidth / 2) - 2, chartBaseline + 3, { align: 'center' });
-    doc.setTextColor(2, 132, 199);
-    doc.text(`FQ: ${q.fqScore?.toFixed(1)}`, colX + (colWidth / 2) - 2, chartBaseline + 5.5, { align: 'center' });
-  });
-};
-
-const drawRetentionPdfChart = (doc, x, y, width, height, retention) => {
-  const ret = retention || {};
-  const rate = ret.retentionRate ?? 100;
-  const marks = ret.retentionMarks ?? 25;
-  const nBase = ret.nBase ?? 0;
-  const nCAYm1 = ret.nRetainedCAYm1 ?? 0;
-  const nCAY = ret.nRetainedCAY ?? 0;
-
-  // Background Box
-  doc.setFillColor(240, 253, 244);
-  doc.setDrawColor(187, 247, 208);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(x, y, width, height, 2, 2, 'FD');
-
-  // Title
-  doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(22, 101, 52);
-  doc.text('Faculty Cohort Survival Flow (Base Year to CAY)', x + 4, y + 4.5);
-
-  // Score Badge Box on Right
-  doc.setFillColor(22, 163, 74);
-  doc.roundedRect(x + width - 36, y + 2, 32, 6.5, 1.5, 1.5, 'F');
-  doc.setFont('times', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(255, 255, 255);
-  doc.text(`${marks} / 25 Marks`, x + width - 20, y + 6.2, { align: 'center' });
-
-  // Funnel Flow Bars
-  const leftColW = width - 42;
-  const barH = 4.5;
-  const startFunnelY = y + 8.5;
-
-  // Step 1: Base Year
-  doc.setFont('times', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(51, 65, 85);
-  doc.text(`1. Base Cohort (${ret.baseYear || 'CAYm2'}): ${nBase} Faculty (100%)`, x + 4, startFunnelY + 3);
-  doc.setFillColor(59, 130, 246);
-  doc.roundedRect(x + 4, startFunnelY + 4, leftColW - 8, barH, 1, 1, 'F');
-
-  // Step 2: CAYm1
-  const pct1 = nBase > 0 ? Math.min(100, Math.round((nCAYm1 / nBase) * 100)) : 100;
-  doc.text(`2. Retained in CAYm1: ${nCAYm1} Faculty (${pct1}%)`, x + 4, startFunnelY + 11.5);
-  doc.setFillColor(226, 232, 240);
-  doc.roundedRect(x + 4, startFunnelY + 12.5, leftColW - 8, barH, 1, 1, 'F');
-  doc.setFillColor(2, 132, 199);
-  doc.roundedRect(x + 4, startFunnelY + 12.5, (leftColW - 8) * (pct1 / 100), barH, 1, 1, 'F');
-
-  // Step 3: CAY
-  const pct2 = nBase > 0 ? Math.min(100, Math.round((nCAY / nBase) * 100)) : 100;
-  doc.setTextColor(22, 101, 52);
-  doc.text(`3. Retained in CAY: ${nCAY} Faculty (${pct2}%) - Rate: ${rate}%`, x + 4, startFunnelY + 20);
-  doc.setFillColor(220, 252, 231);
-  doc.roundedRect(x + 4, startFunnelY + 21, leftColW - 8, barH, 1, 1, 'F');
-  doc.setFillColor(22, 163, 74);
-  doc.roundedRect(x + 4, startFunnelY + 21, (leftColW - 8) * (pct2 / 100), barH, 1, 1, 'F');
-
-  // Retention Gauge Summary on Right Side
-  const gaugeBoxX = x + width - 36;
-  const gaugeBoxY = y + 10;
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(187, 247, 208);
-  doc.roundedRect(gaugeBoxX, gaugeBoxY, 32, height - 12.5, 2, 2, 'FD');
-  doc.setFont('times', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(22, 163, 74);
-  doc.text(`${rate}%`, gaugeBoxX + 16, gaugeBoxY + 8, { align: 'center' });
-  doc.setFontSize(5.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('RETENTION RATE', gaugeBoxX + 16, gaugeBoxY + 11.5, { align: 'center' });
-  doc.setFontSize(5);
-  doc.setTextColor(21, 128, 61);
-  doc.text('>= 90% (Tier 1 Full)', gaugeBoxX + 16, gaugeBoxY + 15, { align: 'center' });
-};
-
-const drawCadrePdfChart = (doc, x, y, width, height, qualificationTable) => {
-  if (!qualificationTable || qualificationTable.length === 0) return;
-
-  // Background Box
-  doc.setFillColor(250, 245, 255);
-  doc.setDrawColor(233, 213, 255);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(x, y, width, height, 2, 2, 'FD');
-
-  // Title
-  doc.setFont('times', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(88, 28, 135);
-  doc.text('Cadre Distribution: Actual (AF) vs AICTE Required (RF)', x + 4, y + 4.5);
-
-  // Legend
-  doc.setFontSize(6);
-  doc.setFillColor(124, 58, 237);
-  doc.rect(x + width - 42, y + 2, 3, 3, 'F');
-  doc.setTextColor(124, 58, 237);
-  doc.text('Actual (AF)', x + width - 38, y + 4.5);
-
-  doc.setFillColor(216, 180, 254);
-  doc.rect(x + width - 20, y + 2, 3, 3, 'F');
-  doc.setTextColor(147, 51, 234);
-  doc.text('Req. (RF)', x + width - 16, y + 4.5);
-
-  // Rows for each year
-  const numYears = qualificationTable.length;
-  const colW = (width - 12) / numYears;
-  const startRowY = y + 8;
-
-  qualificationTable.forEach((q, i) => {
-    const colX = x + 6 + (i * colW);
-    const c = q.cadre || {};
-    const maxVal = Math.max(c.profCount || 0, c.rfProf || 0, c.assocCount || 0, c.rfAssoc || 0, c.asstCount || 0, c.rfAsst || 0, 8);
-
-    doc.setFont('times', 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor(88, 28, 135);
-    doc.text(`${q.yearKey}: ${c.cadreMarks?.toFixed(1) || '0.0'}/20 M`, colX, startRowY);
-
-    const innerBarW = colW - 8;
-    const barH = 3;
-
-    // Professors
-    doc.setFontSize(5.5);
-    doc.setTextColor(107, 33, 168);
-    doc.text(`Prof: ${c.profCount || 0} act / ${c.rfProf || 0} req`, colX, startRowY + 3.5);
-    doc.setFillColor(233, 213, 255);
-    doc.rect(colX, startRowY + 4.5, innerBarW, barH, 'F');
-    doc.setFillColor(124, 58, 237);
-    doc.rect(colX, startRowY + 4.5, Math.min(innerBarW, innerBarW * ((c.profCount || 0) / maxVal)), barH, 'F');
-
-    // Assoc Professors
-    doc.setTextColor(67, 56, 202);
-    doc.text(`Assoc: ${c.assocCount || 0} act / ${c.rfAssoc || 0} req`, colX, startRowY + 10.5);
-    doc.setFillColor(199, 210, 254);
-    doc.rect(colX, startRowY + 11.5, innerBarW, barH, 'F');
-    doc.setFillColor(79, 70, 229);
-    doc.rect(colX, startRowY + 11.5, Math.min(innerBarW, innerBarW * ((c.assocCount || 0) / maxVal)), barH, 'F');
-
-    // Asst Professors
-    doc.setTextColor(3, 105, 161);
-    doc.text(`Asst: ${c.asstCount || 0} act / ${c.rfAsst || 0} req`, colX, startRowY + 17.5);
-    doc.setFillColor(186, 230, 253);
-    doc.rect(colX, startRowY + 18.5, innerBarW, barH, 'F');
-    doc.setFillColor(2, 132, 199);
-    doc.rect(colX, startRowY + 18.5, Math.min(innerBarW, innerBarW * ((c.asstCount || 0) / maxVal)), barH, 'F');
-  });
-};
-
-/**
- * Exports Comprehensive NBA Tier-1 SAR Evaluation Dossier (Criteria 5.2, 5.3, 5.6 & Form B2) in PDF format
- */
 export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', academicYear = '2026-2027', auth = {}) => {
   try {
     const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
@@ -1453,18 +1218,18 @@ export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', 
     };
 
     // ==========================================
-    // PAGE 1: CRITERIA 5.3 (FQ) & 5.6 (RETENTION) WITH VECTOR GRAPHS
+    // PAGE 1: CRITERIA 5.2 (CADRE) & 5.3 (FQ) WITH VECTOR GRAPHS
     // ==========================================
     drawHeader(`NBA TIER-1 SAR EVALUATION DOSSIER - CRITERION 5 (AY ${academicYear})`);
     let currentY = 4 + bannerHeight + 14;
 
-    // Top Executive KPI Summary Row
+    // Top Executive KPI Summary Row (In Numerical Order: 5.2 -> 5.3 -> 5.6 -> Total Faculty)
     const kpiW = (pageWidth - 26) / 4;
     const kpiH = 13;
     const kpis = [
-      { label: '5.3 FACULTY QUALIFICATION', val: `${data.averageFq?.toFixed(2) || '0.00'} / 20.00`, sub: '3-Yr Avg Score', color: [2, 132, 199] },
-      { label: '5.6 FACULTY RETENTION', val: `${data.retention?.retentionRate || 0}%`, sub: `${data.retention?.retentionMarks || 0} / 25 Marks`, color: [22, 163, 74] },
       { label: '5.2 CADRE PROPORTION', val: `${data.qualificationTable?.[0]?.cadre?.cadreMarks?.toFixed(2) || '0.00'} / 20.00`, sub: 'Target 1:2:6 Ratio', color: [124, 58, 237] },
+      { label: '5.3 FACULTY QUALIFICATION', val: `${data.averageFq?.toFixed(2) || '0.00'} / 20.00`, sub: '3-Yr Avg FQ Score', color: [2, 132, 199] },
+      { label: '5.6 FACULTY RETENTION', val: `${data.retention?.retentionRate || 0}%`, sub: `${data.retention?.retentionMarks || 0} / 25 Marks`, color: [22, 163, 74] },
       { label: 'TOTAL FACULTY MEMBERS', val: `${data.facultyList?.length || 0} Faculty`, sub: 'Form B2 Verified', color: [15, 23, 42] }
     ];
 
@@ -1491,7 +1256,44 @@ export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', 
 
     currentY += kpiH + 4;
 
-    // SECTION 1: CRITERION 5.3 (TABLE ON LEFT + VECTOR GRAPH ON RIGHT)
+    // SECTION 1: CRITERION 5.2 CADRE PROPORTION (TABLE ON LEFT + VECTOR GRAPH ON RIGHT)
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`5.2 Faculty Cadre Proportion Assessment [Target Ratio 1 : 2 : 6 | Max: 20 Marks]`, 10, currentY);
+    currentY += 3;
+
+    const cadreHeaders = ['Assessment Year', 'Prof (AF1/RF1)', 'Assoc (AF2/RF2)', 'Asst (AF3/RF3)', 'Score'];
+    const cadreRows = (data.qualificationTable || []).map(q => [
+      q.yearLabel,
+      `${q.cadre?.profCount || 0} / ${q.cadre?.rfProf || 0}`,
+      `${q.cadre?.assocCount || 0} / ${q.cadre?.rfAssoc || 0}`,
+      `${q.cadre?.asstCount || 0} / ${q.cadre?.rfAsst || 0}`,
+      `${q.cadre?.cadreMarks?.toFixed(2) || '0.00'} / 20`
+    ]);
+
+    const tableLeftW = 138;
+    const chartRightW = pageWidth - 20 - tableLeftW - 4; // ~135mm
+    const section1StartY = currentY;
+
+    autoTable(doc, {
+      head: [cadreHeaders],
+      body: cadreRows,
+      startY: section1StartY,
+      margin: { left: 10, right: pageWidth - 10 - tableLeftW },
+      styles: { font: 'times', fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: [124, 58, 237], textColor: [255, 255, 255] }
+    });
+
+    const cadreTableEndY = doc.lastAutoTable.finalY || (section1StartY + 35);
+    const chartHeight1 = cadreTableEndY - section1StartY;
+
+    // Draw Vector Graphic 5.2 on Right
+    drawCadrePdfChart(doc, 10 + tableLeftW + 4, section1StartY, chartRightW, Math.max(chartHeight1, 35), data.qualificationTable);
+
+    currentY = Math.max(cadreTableEndY, section1StartY + 35) + 6;
+
+    // SECTION 2: CRITERION 5.3 FACULTY QUALIFICATION (TABLE ON LEFT + VECTOR GRAPH ON RIGHT)
     doc.setFont('times', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
@@ -1511,28 +1313,31 @@ export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', 
       { content: `${data.averageFq.toFixed(2)} / 20.00`, styles: { fontStyle: 'bold', textColor: [2, 132, 199] } }
     ]);
 
-    const tableLeftW = 138;
-    const chartRightW = pageWidth - 20 - tableLeftW - 4; // ~135mm
-    const section1StartY = currentY;
+    const section2StartY = currentY;
 
     autoTable(doc, {
       head: [fqHeaders],
       body: fqRows,
-      startY: section1StartY,
+      startY: section2StartY,
       margin: { left: 10, right: pageWidth - 10 - tableLeftW },
       styles: { font: 'times', fontSize: 7.5, cellPadding: 2 },
       headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255] }
     });
 
-    const fqTableEndY = doc.lastAutoTable.finalY || (section1StartY + 35);
-    const chartHeight1 = fqTableEndY - section1StartY;
+    const fqTableEndY = doc.lastAutoTable.finalY || (section2StartY + 35);
+    const chartHeight2 = fqTableEndY - section2StartY;
 
     // Draw Vector Graphic 5.3 on Right
-    drawFqPdfChart(doc, 10 + tableLeftW + 4, section1StartY, chartRightW, Math.max(chartHeight1, 36), data.qualificationTable);
+    drawFqPdfChart(doc, 10 + tableLeftW + 4, section2StartY, chartRightW, Math.max(chartHeight2, 35), data.qualificationTable);
 
-    currentY = Math.max(fqTableEndY, section1StartY + 36) + 6;
+    // ==========================================
+    // PAGE 2: CRITERION 5.6 (RETENTION) & BASE COHORT ROSTER
+    // ==========================================
+    doc.addPage();
+    drawHeader(`NBA TIER-1 SAR EVALUATION DOSSIER - CRITERION 5.6 (AY ${academicYear})`);
+    currentY = 4 + bannerHeight + 14;
 
-    // SECTION 2: CRITERION 5.6 (TABLE ON LEFT + VECTOR GRAPH ON RIGHT)
+    // SECTION 3: CRITERION 5.6 FACULTY RETENTION (TABLE ON LEFT + VECTOR GRAPH ON RIGHT)
     doc.setFont('times', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
@@ -1549,64 +1354,24 @@ export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', 
       ['NBA Score Awarded', `${ret.retentionMarks || 0} / 25 Marks (${ret.retentionRate >= 90 ? '>= 90% Full Marks' : 'Tier Rubric'})`]
     ];
 
-    const section2StartY = currentY;
+    const section3StartY = currentY;
 
     autoTable(doc, {
       head: [retHeaders],
       body: retRows,
-      startY: section2StartY,
+      startY: section3StartY,
       margin: { left: 10, right: pageWidth - 10 - tableLeftW },
       styles: { font: 'times', fontSize: 7.5, cellPadding: 1.8 },
       headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] }
     });
 
-    const retTableEndY = doc.lastAutoTable.finalY || (section2StartY + 35);
-    const chartHeight2 = retTableEndY - section2StartY;
+    const retTableEndY = doc.lastAutoTable.finalY || (section3StartY + 35);
+    const chartHeight3 = retTableEndY - section3StartY;
 
     // Draw Vector Graphic 5.6 on Right
-    drawRetentionPdfChart(doc, 10 + tableLeftW + 4, section2StartY, chartRightW, Math.max(chartHeight2, 34), data.retention);
+    drawRetentionPdfChart(doc, 10 + tableLeftW + 4, section3StartY, chartRightW, Math.max(chartHeight3, 34), data.retention);
 
-    // ==========================================
-    // PAGE 2: CRITERION 5.2 (CADRE) WITH VECTOR GRAPH & BASE COHORT ROSTER
-    // ==========================================
-    doc.addPage();
-    drawHeader(`NBA TIER-1 SAR EVALUATION DOSSIER - CRITERION 5.2 & RETENTION (AY ${academicYear})`);
-    currentY = 4 + bannerHeight + 14;
-
-    // SECTION 3: CRITERION 5.2 CADRE PROPORTION (TABLE ON LEFT + VECTOR GRAPH ON RIGHT)
-    doc.setFont('times', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`5.2 Faculty Cadre Proportion Assessment [Target Ratio 1 : 2 : 6 | Max: 20 Marks]`, 10, currentY);
-    currentY += 3;
-
-    const cadreHeaders = ['Assessment Year', 'Prof (AF1/RF1)', 'Assoc (AF2/RF2)', 'Asst (AF3/RF3)', 'Score'];
-    const cadreRows = (data.qualificationTable || []).map(q => [
-      q.yearLabel,
-      `${q.cadre?.profCount || 0} / ${q.cadre?.rfProf || 0}`,
-      `${q.cadre?.assocCount || 0} / ${q.cadre?.rfAssoc || 0}`,
-      `${q.cadre?.asstCount || 0} / ${q.cadre?.rfAsst || 0}`,
-      `${q.cadre?.cadreMarks?.toFixed(2) || '0.00'} / 20`
-    ]);
-
-    const section3StartY = currentY;
-
-    autoTable(doc, {
-      head: [cadreHeaders],
-      body: cadreRows,
-      startY: section3StartY,
-      margin: { left: 10, right: pageWidth - 10 - tableLeftW },
-      styles: { font: 'times', fontSize: 7.5, cellPadding: 2 },
-      headStyles: { fillColor: [124, 58, 237], textColor: [255, 255, 255] }
-    });
-
-    const cadreTableEndY = doc.lastAutoTable.finalY || (section3StartY + 35);
-    const chartHeight3 = cadreTableEndY - section3StartY;
-
-    // Draw Vector Graphic 5.2 on Right
-    drawCadrePdfChart(doc, 10 + tableLeftW + 4, section3StartY, chartRightW, Math.max(chartHeight3, 34), data.qualificationTable);
-
-    currentY = Math.max(cadreTableEndY, section3StartY + 34) + 6;
+    currentY = Math.max(retTableEndY, section3StartY + 34) + 6;
 
     // SECTION 3.2: BASE COHORT RETENTION TRACKING ROSTER
     doc.setFont('times', 'bold');
