@@ -1563,11 +1563,11 @@ const parseDateSafe = (dStr) => {
   const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
   if (dmyMatch) {
     const [_, d, m, y] = dmyMatch;
-    const dobj = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
+    const dobj = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00.000Z`);
     return isNaN(dobj.getTime()) ? null : dobj;
   }
   if (/^\d{4}$/.test(s)) {
-    const dobj = new Date(`${s}-06-01`);
+    const dobj = new Date(`${s}-06-01T00:00:00.000Z`);
     return isNaN(dobj.getTime()) ? null : dobj;
   }
   const p = Date.parse(s);
@@ -1712,10 +1712,13 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
         (d.degree || '').toLowerCase().includes('doctor')
       );
 
-      const nameStr = (f.staff_name || '').trim();
-      const qualStr = (f.Qualification || '').trim();
-      const hasDrPrefix = /^Dr\.?(\s|$)/i.test(nameStr) || /\b(Ph\.?D|Doctor)\b/i.test(nameStr);
-      const hasPhdQual = /\b(Ph\.?D|Doctor|Doctorate)\b/i.test(qualStr);
+      const nameStr = (f.staff_name || '').trim().toLowerCase();
+      const qualStr = (f.Qualification || '').trim().toLowerCase();
+      const desigStr = (f.Designation || '').trim().toLowerCase();
+
+      const hasDrPrefix = nameStr.startsWith('dr.') || nameStr.startsWith('dr ') || nameStr.includes('dr.') || nameStr.includes('ph.d') || nameStr.includes('phd') || nameStr.includes('doctor');
+      const hasPhdQual = qualStr.includes('ph.d') || qualStr.includes('phd') || qualStr.includes('doctor');
+      const isProfOrAssoc = (desigStr.includes('prof') || desigStr.includes('associate')) && !desigStr.includes('assistant') && !desigStr.includes('asst');
 
       if (phdDeg) {
         const py = parseInt(phdDeg.year, 10);
@@ -1725,9 +1728,10 @@ router.get('/accreditation/nba-tier1-analytics', authenticateToken, async (req, 
         } else {
           isPhd = true;
         }
-      } else if (hasDrPrefix || hasPhdQual) {
+      } else if (hasDrPrefix || hasPhdQual || isProfOrAssoc) {
         isPhd = true;
       }
+
 
       const isRegular = (f.nature_of_association || 'REGULAR').toUpperCase().includes('REGULAR');
       const desig = (f.Designation || '').toLowerCase();
