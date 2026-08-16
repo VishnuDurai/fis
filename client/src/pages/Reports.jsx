@@ -21,8 +21,10 @@ import {
   Beaker,
   Sparkles,
   Activity,
-  Folder
+  Folder,
+  X
 } from 'lucide-react';
+
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
