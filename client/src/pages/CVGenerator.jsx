@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
   FileText, Download, Printer, Sparkles, RefreshCw, CheckSquare, Square, 
   User, Award, BookOpen, FileCheck, Layers, Briefcase, GraduationCap, 
@@ -9,6 +11,7 @@ import { API_BASE_URL } from '../config';
 
 export default function CVGenerator({ auth }) {
   const [loading, setLoading] = useState(true);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
   const [facultyList, setFacultyList] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState(
     localStorage.getItem('srec_view_staffId') || auth?.staffId || auth?.username || ''
@@ -107,6 +110,49 @@ export default function CVGenerator({ auth }) {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadDirectPDF = async () => {
+    if (!printRef.current) return;
+    setGeneratingPDF(true);
+    try {
+      const element = printRef.current;
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position -= pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      const safeName = (personal.staff_name || auth?.name || 'Faculty').replace(/[^a-zA-Z0-9_-]/g, '_');
+      pdf.save(`Academic_CV_${personal.staff_id || auth?.staffId || 'SREC'}_${safeName}.pdf`);
+    } catch (err) {
+      console.error('Error generating direct PDF, falling back to print:', err);
+      window.print();
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   const personal = cvData?.personal || {};
@@ -212,7 +258,8 @@ export default function CVGenerator({ auth }) {
 
           <button
             type="button"
-            onClick={handlePrint}
+            onClick={handleDownloadDirectPDF}
+            disabled={generatingPDF}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -224,13 +271,44 @@ export default function CVGenerator({ auth }) {
               padding: '10px 18px',
               fontWeight: 800,
               fontSize: '0.88rem',
-              cursor: 'pointer',
+              cursor: generatingPDF ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               transition: 'all 0.15s'
             }}
           >
-            <Download size={18} color="#15583b" />
-            <span>Download PDF / Print</span>
+            {generatingPDF ? (
+              <>
+                <RefreshCw className="spin" size={18} color="#15583b" />
+                <span>Generating PDF...</span>
+              </>
+            ) : (
+              <>
+                <Download size={18} color="#15583b" />
+                <span>1-Click Download PDF</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrint}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              color: '#ffffff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+          >
+            <Printer size={17} color="#ffffff" />
+            <span>Print Dialog</span>
           </button>
         </div>
       </div>
@@ -242,7 +320,7 @@ export default function CVGenerator({ auth }) {
           <div style={{ fontSize: '0.84rem', marginTop: '4px' }}>Synthesizing publications, grants, patents & AI statement</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="cv-grid-container" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
           
           {/* LEFT SIDEBAR: CUSTOMIZER & TOGGLES (NO PRINT) */}
           <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
