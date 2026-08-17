@@ -3509,8 +3509,6 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       personal,
       academics,
       education,
-      experience,
-      designationHistory,
       publications,
       books,
       patents,
@@ -3521,24 +3519,30 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       memberships,
       awards,
       scholars,
-      responsibilities
+      supervisor,
+      responsibilities,
+      certificates,
+      eventsOrganized,
+      resourceRoles
     ] = await Promise.all([
       runGet('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runGet('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year_of_passing ASC', [targetStaffId]),
-      runQuery('SELECT * FROM staff_experience WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_designation_history WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY effective_date ASC', [targetStaffId]),
-      runQuery('SELECT * FROM staff_pub WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year_of_pub DESC', [targetStaffId]),
-      runQuery('SELECT * FROM staff_books WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_patents WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id ASC', [targetStaffId]),
+      runQuery('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [targetStaffId]),
+      runQuery('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_consultancy WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_development WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_seed_money WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_fdp WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_memberships WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_awards WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_interaction WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_member WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_award WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_scholars WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId])
+      runQuery('SELECT * FROM staff_supervisor WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_certificate WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_event_organized WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_resource WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId])
     ]);
 
     if (!personal && !academics) {
@@ -3584,12 +3588,21 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       teaching: `Dedicated educator and mentor with ${yearsExp > 0 ? yearsExp + '+' : 'extensive'} years of university teaching experience in ${department}. Passionate about outcome-based pedagogical practices, experiential laboratory training, student project supervision, and organizing high-impact technical symposiums and FDPs.${responsibilities.length > 0 ? ` Currently fulfilling key institutional leadership roles in ${responsibilities.map(r => r.duty_name || r.responsibility).slice(0, 2).join(' and ')}.` : ''}`
     };
 
+    const expList = [
+      { role: academics?.Designation || 'Faculty', org: 'Sri Ramakrishna Engineering College', years: academics?.exp_srec_years || yearsExp }
+    ];
+    if (academics?.prev_exp_academic_years) {
+      expList.push({ role: 'Teaching Faculty', org: 'Past Academic Institutions', years: academics.prev_exp_academic_years });
+    }
+    if (academics?.prev_exp_industry_years) {
+      expList.push({ role: 'Industry Specialist / Engineer', org: 'Industrial Organizations', years: academics.prev_exp_industry_years });
+    }
+
     res.json({
       personal,
       academics,
       education,
-      experience,
-      designationHistory,
+      experience: expList,
       publications,
       books,
       patents,
@@ -3600,7 +3613,11 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       memberships,
       awards,
       scholars,
+      supervisor,
       responsibilities,
+      certificates,
+      eventsOrganized,
+      resourceRoles,
       metrics: {
         totalPublications: publications.length,
         journalCount,
@@ -3611,7 +3628,7 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
         scholarCount,
         completedScholars,
         totalFundingAmount,
-        yearsExperience: yearsExp
+        yearsExperience: (academics?.total_exp_years || yearsExp)
       },
       aiSummaries
     });

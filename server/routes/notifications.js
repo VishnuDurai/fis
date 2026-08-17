@@ -1,9 +1,23 @@
 import express from 'express';
 import webPush from 'web-push';
-import pool from '../db.js';
+import db from '../db.js';
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();
+
+// Helper Promisified DB methods for async/await
+const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
+  db.get(sql, params, (err, row) => err ? reject(err) : resolve(row));
+});
+const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
+  db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows || []));
+});
+const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
+  db.run(sql, params, function(err) {
+    if (err) return reject(err);
+    resolve(this);
+  });
+});
 
 // Configure VAPID Keys
 // Persistent, cryptographically valid P-256 VAPID keys for SREC FIS Portal
@@ -49,14 +63,14 @@ router.post('/subscribe', authenticateToken, async (req, res) => {
     const { p256dh, auth } = keys;
 
     // Check if endpoint exists, update or insert
-    const [existing] = await pool.query('SELECT id FROM staff_push_subscriptions WHERE endpoint = ?', [endpoint]);
-    if (existing.length > 0) {
-      await pool.query(
+    const existing = await dbGet('SELECT id FROM staff_push_subscriptions WHERE endpoint = ?', [endpoint]);
+    if (existing) {
+      await dbRun(
         'UPDATE staff_push_subscriptions SET staff_id = ?, p256dh = ?, auth = ?, user_agent = ? WHERE endpoint = ?',
         [staffId, p256dh, auth, userAgent || '', endpoint]
       );
     } else {
-      await pool.query(
+      await dbRun(
         'INSERT INTO staff_push_subscriptions (staff_id, endpoint, p256dh, auth, user_agent) VALUES (?, ?, ?, ?, ?)',
         [staffId, endpoint, p256dh, auth, userAgent || '']
       );
@@ -65,7 +79,7 @@ router.post('/subscribe', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'Web Push subscription registered successfully.' });
   } catch (error) {
     console.error('Error subscribing to push notifications:', error);
-    res.status(500).json({ error: 'Failed to register push subscription' });
+    res.status(500).json({ error: error.message || 'Failed to register push subscription' });
   }
 });
 
@@ -77,7 +91,7 @@ router.post('/unsubscribe', authenticateToken, async (req, res) => {
   try {
     const { endpoint } = req.body;
     if (endpoint) {
-      await pool.query('DELETE FROM staff_push_subscriptions WHERE endpoint = ?', [endpoint]);
+      await dbRun('DELETE FROM staff_push_subscriptions WHERE endpoint = ?', [endpoint]);
     }
     res.json({ success: true, message: 'Unsubscribed successfully.' });
   } catch (error) {
@@ -128,7 +142,7 @@ export async function sendPushNotification(targets, payload) {
       params = [targets];
     }
 
-    const [subscriptions] = await pool.query(query, params);
+    const subscriptions = await dbAll(query, params);
     if (!subscriptions || subscriptions.length === 0) {
       return { sent: 0, reason: 'No active subscriptions found for target(s)' };
     }
@@ -173,13 +187,13 @@ export async function sendPushNotification(targets, payload) {
     // Clean up expired subscriptions
     if (staleEndpoints.length > 0) {
       const placeholders = staleEndpoints.map(() => '?').join(',');
-      await pool.query(`DELETE FROM staff_push_subscriptions WHERE endpoint IN (${placeholders})`, staleEndpoints);
+      await dbRun(`DELETE FROM staff_push_subscriptions WHERE endpoint IN (${placeholders})`, staleEndpoints);
     }
 
     return { sent: successCount, total: subscriptions.length, cleaned: staleEndpoints.length };
   } catch (error) {
-    console.error('Error in sendPushNotification:', error);
-    return { sent: 0, error: error.message };
+    console.error('sendPushNotification error:', error);
+    return { error: error.message };
   }
 }
 
