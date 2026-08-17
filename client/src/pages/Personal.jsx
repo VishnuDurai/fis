@@ -641,18 +641,38 @@ export default function Personal({ auth }) {
                 <ReportButtons 
                   pageTitle="Personal Details" 
                   departmentName={auth.dept || auth.department || (academics && academics.Department) || ''} 
-                  headers={['Personal Parameter', 'Registered Value']} 
-                  rows={[
-                    ['Staff User ID', personal.staff_id || ''],
-                    ['Staff Full Name', personal.staff_name || ''],
-                    ['Date of Birth', personal.dob || 'N/A'],
-                    ['Gender', personal.gender || 'N/A'],
-                    ['Mobile Number', personal.mobile || 'N/A'],
-                    ['Email ID', personal.email || 'N/A'],
-                    ['PAN Card Number', personal.pan || 'N/A'],
-                    ['Aadhaar Number', personal.aadhar || 'N/A'],
-                    ['Contact Address', personal.address || 'N/A']
+                  headers={[
+                    'Staff ID', 
+                    'Staff Name', 
+                    'Department', 
+                    'Designation', 
+                    'Date of Birth', 
+                    'Gender', 
+                    'Email ID', 
+                    'Mobile Number', 
+                    'PAN Number', 
+                    'Aadhaar Number', 
+                    'AICTE ID', 
+                    'Anna University ID', 
+                    'APAAR ID', 
+                    'Contact Address'
                   ]} 
+                  rows={[[
+                    personal.staff_id || auth.staffId || '',
+                    personal.staff_name || auth.name || '',
+                    auth.dept || auth.department || (academics && academics.Department) || 'N/A',
+                    auth.designation || (academics && academics.Designation) || 'Faculty',
+                    personal.dob || 'N/A',
+                    personal.gender || 'N/A',
+                    personal.email || 'N/A',
+                    personal.mobile || 'N/A',
+                    personal.pan || 'N/A',
+                    personal.aadhar || 'N/A',
+                    personal.aicte_id || 'N/A',
+                    personal.anna_univ_id || 'N/A',
+                    personal.apaar_id || 'N/A',
+                    personal.address || 'N/A'
+                  ]]} 
                   auth={auth}
                 />
               </div>

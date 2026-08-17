@@ -541,15 +541,30 @@ export default function AcademicInfo({ auth }) {
               <ReportButtons 
                 pageTitle="Academic Information" 
                 departmentName={auth.dept || auth.department || (academics && academics.Department) || ''} 
-                headers={['Parameter', 'Academic Identification Number']} 
-                rows={[
-                  ['Staff User ID', personal.staff_id || ''],
-                  ['Staff Full Name', personal.staff_name || ''],
-                  ['Designation', (academics && academics.Designation) || personal.Designation || 'Faculty'],
-                  ['AICTE Faculty ID', personal.aicte_id || 'N/A'],
-                  ['Anna University ID', personal.anna_univ_id || 'N/A'],
-                  ['APAAR ID', personal.apaar_id || 'N/A']
+                headers={[
+                  'Staff ID', 
+                  'Staff Name', 
+                  'Department', 
+                  'Designation', 
+                  'Date of Joining', 
+                  'Specialization', 
+                  'Qualification', 
+                  'AICTE Faculty ID', 
+                  'Anna University ID', 
+                  'APAAR ID'
                 ]} 
+                rows={[[
+                  personal.staff_id || auth.staffId || '',
+                  personal.staff_name || auth.name || '',
+                  auth.dept || auth.department || (academics && academics.Department) || 'N/A',
+                  (academics && academics.Designation) || personal.Designation || auth.designation || 'Faculty',
+                  (academics && academics.Date_of_joining) || 'N/A',
+                  (academics && academics.area_of_specialization) || 'N/A',
+                  (academics && academics.Qualification) || 'N/A',
+                  personal.aicte_id || 'N/A',
+                  personal.anna_univ_id || 'N/A',
+                  personal.apaar_id || 'N/A'
+                ]]} 
                 auth={auth}
               />
             </div>
