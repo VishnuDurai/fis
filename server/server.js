@@ -109,6 +109,7 @@ app.use('/SREC', requireFileAuth, express.static(SREC_ROOT));
 app.use('/uploads', requireFileAuth, express.static(path.join(__dirname, 'uploads')));
 
 import systemPageConfigsRouter from './routes/systemPageConfigs.js';
+import notificationsRouter from './routes/notifications.js';
 
 // Routes
 app.use('/api/auth', authRouter);
@@ -118,6 +119,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/dynamic-pages', dynamicPagesRouter);
 app.use('/api/system-page-configs', systemPageConfigsRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 import JSZip from 'jszip';
 

@@ -7,6 +7,7 @@ import { authenticateToken } from './auth.js';
 import { calculateExperience, getHighestQualification } from './admin.js';
 import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } from '../utils/fileStorage.js';
 import { processDoctoratePromotion } from '../doctorateHelper.js';
+import { sendPushNotification } from './notifications.js';
 
 const router = express.Router();
 
@@ -1832,6 +1833,13 @@ router.post('/appraisals/bulk-hod-sign-approve', authenticateToken, async (req, 
         remarks: defaultRemarks
       });
 
+      sendPushNotification(app.staff_id, {
+        title: '✅ Appraisal Approved by HOD',
+        body: `Your annual appraisal form has been approved by HOD (Evaluated Score: ${hodTotal}/200).`,
+        url: '/appraisal',
+        tag: `appraisal-hod-${appId}`
+      });
+
       processed.push(appId);
     } catch (err) {
       errors.push({ id: appId, error: err.message });
@@ -1947,6 +1955,13 @@ router.post('/appraisals/bulk-final-sign-approve', authenticateToken, async (req
         part_d: scoreD,
         total_score: finalTotal,
         remarks: defaultRemarks
+      });
+
+      sendPushNotification(app.staff_id, {
+        title: '🎖️ Final Appraisal Approved!',
+        body: `Your annual appraisal has been finalized by Executive Authority (Final Score: ${finalTotal}/200).`,
+        url: '/appraisal',
+        tag: `appraisal-final-${appId}`
       });
 
       processed.push(appId);
@@ -3454,6 +3469,156 @@ router.get('/my-clubs', authenticateToken, (req, res) => {
     const clubs = (rows || []).map(r => r.name);
     return res.json({ isClubCoordinator: clubs.length > 0, clubs });
   });
+});
+
+// 20. GET Comprehensive CV & Bio-Data Profile with AI Academic Summary Statement
+router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
+  const requestedStaffId = req.params.staffId;
+  const user = req.user;
+  const loggedInStaffId = user.staffId || user.username;
+  const targetStaffId = requestedStaffId || loggedInStaffId;
+
+  const isSelf = targetStaffId && targetStaffId.toLowerCase() === loggedInStaffId.toLowerCase();
+  const isAdmin = ['admin', 'principal', 'hr'].includes(user.role) || user.isInstitutionalAdmin;
+  const isDeptAdmin = user.role === 'dept_admin' || user.isHod;
+
+  if (!isSelf && !isAdmin && !isDeptAdmin) {
+    return res.status(403).json({ error: 'Unauthorized to view CV data for another faculty member.' });
+  }
+
+  try {
+    const runQuery = (sql, params = []) => {
+      return new Promise((resolve) => {
+        db.all(sql, params, (err, rows) => {
+          if (err) resolve([]);
+          else resolve(rows || []);
+        });
+      });
+    };
+
+    const runGet = (sql, params = []) => {
+      return new Promise((resolve) => {
+        db.get(sql, params, (err, row) => {
+          if (err) resolve(null);
+          else resolve(row || null);
+        });
+      });
+    };
+
+    const [
+      personal,
+      academics,
+      education,
+      experience,
+      designationHistory,
+      publications,
+      books,
+      patents,
+      funding,
+      consultancy,
+      seedMoney,
+      fdp,
+      memberships,
+      awards,
+      scholars,
+      responsibilities
+    ] = await Promise.all([
+      runGet('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runGet('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year_of_passing ASC', [targetStaffId]),
+      runQuery('SELECT * FROM staff_experience WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_designation_history WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY effective_date ASC', [targetStaffId]),
+      runQuery('SELECT * FROM staff_pub WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year_of_pub DESC', [targetStaffId]),
+      runQuery('SELECT * FROM staff_books WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_patents WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_consultancy WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_seed_money WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_fdp WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_memberships WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_awards WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_scholars WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId])
+    ]);
+
+    if (!personal && !academics) {
+      return res.status(404).json({ error: 'Faculty profile not found' });
+    }
+
+    // Compute Metrics for AI Bio Generation
+    const name = (personal?.staff_name || targetStaffId).trim();
+    const salutation = (personal?.salutation || (name.toLowerCase().startsWith('dr') ? '' : 'Prof.')).trim();
+    const fullName = salutation ? `${salutation} ${name}` : name;
+    const designation = (academics?.Designation || personal?.designation || 'Faculty Member').trim();
+    const department = (academics?.Department || '').trim();
+    const doj = academics?.Date_of_joining;
+    const specialization = (academics?.area_of_specialization || 'Engineering & Technology').trim();
+
+    let yearsExp = 0;
+    if (doj) {
+      const joinYear = new Date(doj).getFullYear();
+      if (!isNaN(joinYear)) {
+        yearsExp = Math.max(1, new Date().getFullYear() - joinYear);
+      }
+    }
+
+    const journalCount = publications.filter(p => (p.paper_type || '').toLowerCase().includes('journal')).length;
+    const confCount = publications.filter(p => (p.paper_type || '').toLowerCase().includes('conference')).length;
+    const sciScopusCount = publications.filter(p => {
+      const dbStr = `${p.indexed_in || ''} ${p.indexing || ''}`.toLowerCase();
+      return dbStr.includes('sci') || dbStr.includes('scopus') || dbStr.includes('wos');
+    }).length;
+    const patentCount = patents.length;
+    const grantedPatents = patents.filter(p => (p.status || '').toLowerCase().includes('grant')).length;
+    const scholarCount = scholars.length;
+    const completedScholars = scholars.filter(s => (s.status || '').toLowerCase().includes('completed') || (s.status || '').toLowerCase().includes('awarded')).length;
+    const totalFundingAmount = funding.reduce((acc, f) => acc + (parseFloat(f.amount || f.grant_amount) || 0), 0);
+    const membershipNames = memberships.map(m => m.society_name || m.name).filter(Boolean).slice(0, 3).join(', ');
+
+    // Generate 3 AI Academic Summary Variants
+    const aiSummaries = {
+      executive: `${fullName} is ${['a', 'e', 'i', 'o', 'u'].includes(designation.toLowerCase()[0]) ? 'an' : 'a'} ${designation} in the Department of ${department} at Sri Ramakrishna Engineering College, bringing over ${yearsExp > 0 ? yearsExp + '+' : 'several'} years of academic, teaching, and research excellence. Specializing in ${specialization}, ${name.split(' ')[0]} has authored ${publications.length} peer-reviewed research papers (${sciScopusCount > 0 ? sciScopusCount + ' in SCI/Scopus indexed forums' : 'in reputed national and international journals'})${patentCount > 0 ? `, holds ${patentCount} patent(s)${grantedPatents > 0 ? ` (${grantedPatents} granted)` : ''}` : ''}${totalFundingAmount > 0 ? `, and has secured external funding of ₹${(totalFundingAmount / 100000).toFixed(1)} Lakhs` : ''}.${scholarCount > 0 ? ` Active in doctoral research mentorship, supervising ${scholarCount} research scholar(s).` : ''}${membershipNames ? ` A committed professional serving as an active member of ${membershipNames}.` : ''}`,
+      
+      research: `Distinguished academician and active researcher in ${specialization} with ${publications.length} scientific publications, ${patentCount} intellectual property filings, and ₹${(totalFundingAmount / 100000).toFixed(1)} Lakhs in sanctioned grant capital. Key contributions span advanced investigations in ${specialization}, doctoral candidate mentorship (${scholarCount} Ph.D. scholars), and technological innovation.${memberships.length > 0 ? ` Associated with professional bodies including ${membershipNames}.` : ''}`,
+      
+      teaching: `Dedicated educator and mentor with ${yearsExp > 0 ? yearsExp + '+' : 'extensive'} years of university teaching experience in ${department}. Passionate about outcome-based pedagogical practices, experiential laboratory training, student project supervision, and organizing high-impact technical symposiums and FDPs.${responsibilities.length > 0 ? ` Currently fulfilling key institutional leadership roles in ${responsibilities.map(r => r.duty_name || r.responsibility).slice(0, 2).join(' and ')}.` : ''}`
+    };
+
+    res.json({
+      personal,
+      academics,
+      education,
+      experience,
+      designationHistory,
+      publications,
+      books,
+      patents,
+      funding,
+      consultancy,
+      seedMoney,
+      fdp,
+      memberships,
+      awards,
+      scholars,
+      responsibilities,
+      metrics: {
+        totalPublications: publications.length,
+        journalCount,
+        confCount,
+        sciScopusCount,
+        patentCount,
+        grantedPatents,
+        scholarCount,
+        completedScholars,
+        totalFundingAmount,
+        yearsExperience: yearsExp
+      },
+      aiSummaries
+    });
+  } catch (error) {
+    console.error('Error fetching CV data:', error);
+    res.status(500).json({ error: 'Failed to aggregate CV data: ' + error.message });
+  }
 });
 
 export default router;

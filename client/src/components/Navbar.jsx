@@ -1,7 +1,8 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell, Sun, Moon, Search, Megaphone, X } from 'lucide-react';
+import { User, Eye, Settings, LogOut, ChevronDown, ShieldCheck, Bell, BellRing, Sun, Moon, Search, Megaphone, X } from 'lucide-react';
+import NotificationPrompt from './NotificationPrompt';
 
 export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
   const [selectedStaffId, setSelectedStaffId] = useState(localStorage.getItem('srec_view_staffId') || '');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [showPushModal, setShowPushModal] = useState(false);
   const [notifData, setNotifData] = useState({ unreadCount: 0, notifications: [] });
   const [pendingNotice, setPendingNotice] = useState({ userPendingCount: 0, pendingHodCount: 0, pendingPrincipalHrCount: 0 });
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('srec_theme') === 'dark');
@@ -453,6 +455,35 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
                   ))
                 )}
               </div>
+
+              <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNotifMenu(false);
+                    setShowPushModal(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #0f331f 0%, #15583b 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(21,88,59,0.2)'
+                  }}
+                >
+                  <BellRing size={14} />
+                  <span>Instant Mobile / Web Push Alerts</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -600,6 +631,11 @@ export default function Navbar({ title, userName, profilePic, auth, logout }) {
         </div>
       </div>
     </header>
+
+    <NotificationPrompt
+      isOpen={showPushModal}
+      onClose={() => setShowPushModal(false)}
+    />
     </>
   );
 }

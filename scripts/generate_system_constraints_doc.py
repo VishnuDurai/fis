@@ -324,6 +324,26 @@ def create_system_constraints_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
+    # Section 5
+    add_heading_styled(doc, "5. AI Academic Bio-Data & Real-Time Web Push Notification Governance", level=1)
+
+    push_and_cv_rules = [
+        ("1-Click AI CV & Statutory Bio-Data Generation: ", "Provides automated profile aggregation across 14 database tables. Supports 3 statutory formats: (1) SREC Official Letterhead Format with college crest and QR verification, (2) AICTE / Anna University Inspection Format with teaching/research splits, and (3) Modern Technical Europass Format. Features an intelligent AI Academic Statement Generator with dynamic tone selection (Executive, Research, Teaching) and section visibility toggles."),
+        ("PWA Web Push Notification Infrastructure (VAPID): ", "Implements zero-cost, real-time push alerts via Service Worker (sw-push.js) and VAPID cryptography. Delivers instant alerts directly to faculty mobile devices and desktop browsers for appraisal review approvals, bulk digital signing, revision requests, and administrative circulars even when the browser tab is closed.")
+    ]
+
+    for title_text, body_text in push_and_cv_rules:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(title_text)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(3, 105, 161)
+        r2 = bp.add_run(body_text)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
     # Save document
     docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
     os.makedirs(docs_dir, exist_ok=True)

@@ -178,6 +178,7 @@ export default function Sidebar({ role, logout, auth }) {
           items: [
             { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
+            { to: '/cv-generator', label: 'AI CV & Bio-Data Generator', icon: <FileText />, color: '#8b5cf6' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
         }
@@ -257,6 +258,7 @@ export default function Sidebar({ role, logout, auth }) {
           items: [
             { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
+            { to: '/cv-generator', label: 'AI CV & Bio-Data Generator', icon: <FileText />, color: '#8b5cf6' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
         }
@@ -360,6 +362,7 @@ export default function Sidebar({ role, logout, auth }) {
           items: [
             { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
+            { to: '/cv-generator', label: 'AI CV & Bio-Data Generator', icon: <FileText />, color: '#8b5cf6' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
         }

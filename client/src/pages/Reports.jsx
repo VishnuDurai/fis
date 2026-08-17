@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   FileText, 
   Printer, 
@@ -824,6 +825,15 @@ export default function Reports({ auth }) {
                   {downloadingZip ? 'Building ZIP Package...' : '📦 Download NBA/NAAC Dossier Package (.ZIP)'}
                 </button>
               )}
+
+              <Link 
+                to="/cv-generator"
+                className="btn btn-secondary"
+                style={{ padding: '10px 18px', fontWeight: 800, fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f5f3ff', color: '#7c3aed', borderColor: '#c4b5fd', textDecoration: 'none' }}
+              >
+                <Sparkles size={18} color="#7c3aed" />
+                📄 1-Click AI CV Generator
+              </Link>
             </>
           )}
         </div>

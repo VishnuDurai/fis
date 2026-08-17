@@ -16,8 +16,8 @@ import matplotlib.patches as patches
 SECTION_MAPPINGS = [
     {
         "category": "1. Authentication & System Administration",
-        "description": "Tables managing administrator credentials, department admin accounts, and faculty login credentials.",
-        "tables": ["admin", "admin_dep", "staff_user"]
+        "description": "Tables managing administrator credentials, department admin accounts, faculty login credentials, and browser push notification endpoints.",
+        "tables": ["admin", "admin_dep", "staff_user", "staff_push_subscriptions"]
     },
     {
         "category": "2. Faculty Personal & Academic Profiles",
@@ -50,6 +50,7 @@ TABLE_DESCRIPTIONS = {
     "admin": "Stores system administrator credentials.",
     "admin_dep": "Stores department-level administrator credentials and department scope.",
     "staff_user": "Stores faculty login credentials and profile picture references.",
+    "staff_push_subscriptions": "Stores browser Web Push (VAPID) endpoint tokens, encryption keys (p256dh, auth), and user-agent metadata for real-time mobile and desktop push notifications.",
     "staff_personal": "Stores personal, contact, identification numbers (PAN, Aadhaar, AICTE, Anna Univ, APAAR), and identity documents.",
     "staff_academics": "Stores academic designation, department, qualification, and detailed breakdown of past and SREC experience.",
     "staff_edu": "Stores educational qualifications (UG, PG, Ph.D.), degrees, institutes, marks, and certificate file references.",

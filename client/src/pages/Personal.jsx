@@ -673,7 +673,7 @@ export default function Personal({ auth }) {
                   {(auth.name || auth.staffId || 'F').charAt(0).toUpperCase()}
                 </div>
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{auth.name || personal.staff_name || 'Faculty Member'}</h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                   <span style={{ background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', fontWeight: 700, fontSize: '0.78rem', padding: '2px 8px', borderRadius: '6px', border: '1px solid hsla(var(--primary), 0.2)' }}>
@@ -683,6 +683,13 @@ export default function Personal({ auth }) {
                   <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>• {getDeptWithAcronym(auth.dept || auth.department || (academics && academics.Department))}</span>
                 </div>
               </div>
+              <a 
+                href="/cv-generator"
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.82rem', fontWeight: 700, background: '#f5f3ff', color: '#7c3aed', borderColor: '#c4b5fd', textDecoration: 'none', borderRadius: '10px' }}
+              >
+                <span>✨ 1-Click AI CV</span>
+              </a>
             </div>
             
             <form onSubmit={handleSaveAllPersonalDetails} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

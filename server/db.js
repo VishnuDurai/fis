@@ -633,6 +633,16 @@ const createTables = async () => {
       valid_until DATE,
       created_by VARCHAR(100),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // 41. staff_push_subscriptions
+    `CREATE TABLE IF NOT EXISTS staff_push_subscriptions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      staff_id VARCHAR(100) NOT NULL,
+      endpoint TEXT NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
