@@ -650,7 +650,8 @@ export default function CVGenerator({ auth }) {
                         {phone && <div><strong>Mobile:</strong> {phone}</div>}
                         {academics.orcid_id && <div><strong>ORCID:</strong> {academics.orcid_id}</div>}
                         {academics.scopus_id && <div><strong>Scopus ID:</strong> {academics.scopus_id}</div>}
-                        {academics.aicte_id && <div><strong>AICTE ID:</strong> {academics.aicte_id}</div>}
+                        {(personal.aicte_id || academics.aicte_id) && <div><strong>AICTE ID:</strong> {personal.aicte_id || academics.aicte_id}</div>}
+                        {(personal.anna_univ_id || academics.anna_univ_id) && <div><strong>Anna Univ ID:</strong> {personal.anna_univ_id || academics.anna_univ_id}</div>}
                       </div>
                     )}
                   </div>
@@ -692,7 +693,7 @@ export default function CVGenerator({ auth }) {
                       </tr>
                       <tr>
                         <td style={{ border: '1px solid #000', padding: '6px', fontWeight: 'bold' }}>3. Staff ID & AICTE ID</td>
-                        <td style={{ border: '1px solid #000', padding: '6px' }}>{personal.staff_id || auth?.staffId} / {academics.aicte_id || 'N/A'}</td>
+                        <td style={{ border: '1px solid #000', padding: '6px' }}>{personal.staff_id || auth?.staffId} / {personal.aicte_id || academics.aicte_id || 'N/A'}</td>
                       </tr>
                       <tr>
                         <td style={{ border: '1px solid #000', padding: '6px', fontWeight: 'bold' }}>4. Date of Birth & Age</td>
@@ -737,6 +738,7 @@ export default function CVGenerator({ auth }) {
                         <span>✉️ {email}</span>
                         {phone && <span>📱 {phone}</span>}
                         {academics.orcid_id && <span>🆔 ORCID: {academics.orcid_id}</span>}
+                        {(personal.aicte_id || academics.aicte_id) && <span>🏛️ AICTE: {personal.aicte_id || academics.aicte_id}</span>}
                       </div>
                     )}
                   </div>
