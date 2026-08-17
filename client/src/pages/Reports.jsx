@@ -602,7 +602,7 @@ export default function Reports({ auth }) {
       />
 
       {/* FILTER & CONFIGURATION CARD */}
-      <div className="card" style={{ marginBottom: '32px' }}>
+      <div className="card no-print" style={{ marginBottom: '32px' }}>
         <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>Configure Custom Report & Dossier</h3>
 
         {/* 1. REPORT SCOPE SELECTION */}
@@ -1509,7 +1509,7 @@ export default function Reports({ auth }) {
           </div>
         </div>
       ) : (
-        <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'hsl(var(--text-muted))' }}>
+        <div className="card no-print" style={{ textAlign: 'center', padding: '40px', color: 'hsl(var(--text-muted))' }}>
           Please select your report scope above and click "⚡ Generate Report" to load and preview the dossier.
         </div>
       )}

@@ -774,15 +774,16 @@ tr:hover td {
     min-width: 100% !important;
   }
 
-  .cv-generator-page, .cv-grid-container {
+  .cv-generator-page, .cv-grid-container, .container {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  .cv-canvas-root {
+  .cv-canvas-root, .report-print-area {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
