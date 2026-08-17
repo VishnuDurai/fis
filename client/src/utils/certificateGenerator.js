@@ -405,7 +405,13 @@ export const downloadExperienceCertificate = async (faculty, options = {}) => {
   doc.text('Coimbatore - 641 022', pageWidth - 20, footerY + 9, { align: 'right' });
 
   const safeFilename = `Experience_Certificate_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-  doc.save(safeFilename);
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  const result = { doc, blob, blobUrl, safeFilename, pageTitle: `Experience Certificate - ${displayName} (${staffId})` };
+  if (!options?.preview) {
+    doc.save(safeFilename);
+  }
+  return result;
 };
 
 /**
@@ -531,7 +537,13 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
   doc.text('Sri Ramakrishna Engineering College', pageWidth - 20, footerY + 5, { align: 'right' });
 
   const safeFilename = `Relieving_Order_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-  doc.save(safeFilename);
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  const result = { doc, blob, blobUrl, safeFilename, pageTitle: `Official Relieving Order - ${displayName} (${staffId})` };
+  if (!options?.preview) {
+    doc.save(safeFilename);
+  }
+  return result;
 };
 
 /**
@@ -690,5 +702,11 @@ export const downloadSalaryCertificate = async (faculty, salaryData = {}, option
   doc.text('Coimbatore - 641 022', pageWidth - 20, footerY + 9, { align: 'right' });
 
   const safeFilename = `Salary_Certificate_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
-  doc.save(safeFilename);
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  const result = { doc, blob, blobUrl, safeFilename, pageTitle: `Salary Certificate - ${displayName} (${staffId})` };
+  if (!options?.preview) {
+    doc.save(safeFilename);
+  }
+  return result;
 };

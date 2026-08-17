@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar.jsx';
 import SearchableSelect from '../components/SearchableSelect.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import PhdCompletionModal from '../components/PhdCompletionModal.jsx';
+import PdfPreviewModal from '../components/PdfPreviewModal.jsx';
 import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { exportNbaB2FacultyDetails, exportNbaB2FacultyDetailsPdf } from '../utils/reportGenerator.js';
 import { downloadExperienceCertificate, downloadRelievingOrder, downloadSalaryCertificate, parseDateSafe, resolveFacultyDetails } from '../utils/certificateGenerator.js';
@@ -17,6 +18,7 @@ export default function AdminUsers({ auth, initialTab }) {
   const [deptAdmins, setDeptAdmins] = useState([]);
   const [systemAdmins, setSystemAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [previewPdf, setPreviewPdf] = useState(null);
 
   // Transfer & Edit Faculty State
   const [transferTarget, setTransferTarget] = useState(null);
@@ -1219,18 +1221,23 @@ export default function AdminUsers({ auth, initialTab }) {
     });
   };
 
-  const handleGenerateCertificatePdf = async () => {
+  const handleGenerateCertificatePdf = async (action = 'preview') => {
     if (!certificateTarget) return;
     try {
+      let result = null;
       if (certificateType === 'experience') {
-        await downloadExperienceCertificate(certificateTarget, certOptions);
-        showSuccess(`Experience Certificate generated successfully for ${certificateTarget.staff_name}`);
+        result = await downloadExperienceCertificate(certificateTarget, { ...certOptions, preview: action === 'preview' });
+        if (action === 'download') showSuccess(`Experience Certificate downloaded successfully for ${certificateTarget.staff_name}`);
       } else if (certificateType === 'relieving') {
-        await downloadRelievingOrder(certificateTarget, certOptions);
-        showSuccess(`Relieving Order generated successfully for ${certificateTarget.staff_name}`);
+        result = await downloadRelievingOrder(certificateTarget, { ...certOptions, preview: action === 'preview' });
+        if (action === 'download') showSuccess(`Relieving Order downloaded successfully for ${certificateTarget.staff_name}`);
       } else if (certificateType === 'salary') {
-        await downloadSalaryCertificate(certificateTarget, salaryData, certOptions);
-        showSuccess(`Salary Certificate generated successfully for ${certificateTarget.staff_name}`);
+        result = await downloadSalaryCertificate(certificateTarget, salaryData, { ...certOptions, preview: action === 'preview' });
+        if (action === 'download') showSuccess(`Salary Certificate downloaded successfully for ${certificateTarget.staff_name}`);
+      }
+
+      if (action === 'preview' && result) {
+        setPreviewPdf(result);
       }
       setCertificateTarget(null);
     } catch (err) {
@@ -4234,7 +4241,7 @@ export default function AdminUsers({ auth, initialTab }) {
             </div>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '16px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setCertificateTarget(null)}
@@ -4245,7 +4252,15 @@ export default function AdminUsers({ auth, initialTab }) {
               </button>
               <button
                 type="button"
-                onClick={handleGenerateCertificatePdf}
+                onClick={() => handleGenerateCertificatePdf('preview')}
+                className="btn btn-outline-primary"
+                style={{ fontWeight: 800, padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Eye size={17} /> View / Preview PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGenerateCertificatePdf('download')}
                 className="btn btn-primary"
                 style={{ fontWeight: 800, padding: '9px 20px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--primary))' }}
               >
@@ -4255,6 +4270,26 @@ export default function AdminUsers({ auth, initialTab }) {
 
           </div>
         </div>
+      )}
+
+      {/* PDF PREVIEW MODAL */}
+      {previewPdf && (
+        <PdfPreviewModal
+          isOpen={Boolean(previewPdf)}
+          onClose={() => {
+            if (previewPdf.blobUrl) URL.revokeObjectURL(previewPdf.blobUrl);
+            setPreviewPdf(null);
+          }}
+          pdfBlobUrl={previewPdf.blobUrl}
+          filename={previewPdf.safeFilename}
+          title={previewPdf.pageTitle || 'Official Document Preview'}
+          onDownload={() => {
+            if (previewPdf.doc && previewPdf.safeFilename) {
+              previewPdf.doc.save(previewPdf.safeFilename);
+              showSuccess(`PDF "${previewPdf.safeFilename}" downloaded successfully!`);
+            }
+          }}
+        />
       )}
     </div>
   );
