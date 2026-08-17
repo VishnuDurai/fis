@@ -1,13 +1,12 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, X, User, Download, FileText, Check, Mail, ShieldCheck, AlertCircle, RefreshCw, PhoneCall, TrendingUp } from 'lucide-react';
+import { Search, Eye, X, User, Download, FileText, Check, Mail, ShieldCheck, AlertCircle, RefreshCw, PhoneCall, TrendingUp, Sparkles } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import EditableField from '../components/EditableField.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { validateEmail, validateMobile, validatePan, validateAadhar } from '../utils/validators.js';
-import { generateAcademicCV } from '../utils/cvGenerator.js';
 import { sendFirebaseMobileOtp, verifyFirebaseMobileOtp } from '../config/firebase.js';
 
 export default function Personal({ auth }) {
@@ -630,14 +629,26 @@ export default function Personal({ auth }) {
                 Personal Details
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
+                <a
+                  href="/cv-generator"
                   className="btn btn-primary"
-                  onClick={() => generateAcademicCV(auth)}
-                  style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#0f5233' }}
+                  style={{ 
+                    padding: '8px 16px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: 700, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', 
+                    color: '#ffffff',
+                    border: 'none',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)'
+                  }}
                 >
-                  <FileText size={16} /> Download Academic CV
-                </button>
+                  <Sparkles size={16} /> Generate Academic CV
+                </a>
                 <ReportButtons 
                   pageTitle="Personal Details" 
                   departmentName={auth.dept || auth.department || (academics && academics.Department) || ''} 
@@ -703,13 +714,6 @@ export default function Personal({ auth }) {
                   <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>• {getDeptWithAcronym(auth.dept || auth.department || (academics && academics.Department))}</span>
                 </div>
               </div>
-              <a 
-                href="/cv-generator"
-                className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.82rem', fontWeight: 700, background: '#f5f3ff', color: '#7c3aed', borderColor: '#c4b5fd', textDecoration: 'none', borderRadius: '10px' }}
-              >
-                <span>✨ 1-Click AI CV</span>
-              </a>
             </div>
             
             <form onSubmit={handleSaveAllPersonalDetails} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
