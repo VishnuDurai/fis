@@ -224,7 +224,64 @@ router.post('/:slug/data', upload.single('file'), (req, res) => {
   });
 });
 
-// 7. DELETE /api/dynamic-pages/:slug/data/:dataId - Delete single record
+// 7. PUT /api/dynamic-pages/:slug/data/:dataId - Edit single record
+router.put('/:slug/data/:dataId', upload.single('file'), (req, res) => {
+  const { slug, dataId } = req.params;
+
+  db.get(`SELECT * FROM dynamic_pages WHERE slug = ?`, [slug], (pErr, page) => {
+    if (pErr || !page) return res.status(404).json({ error: 'Dynamic page not found' });
+
+    db.get(`SELECT * FROM dynamic_page_data WHERE id = ? AND page_id = ?`, [dataId, page.id], (dErr, existing) => {
+      if (dErr || !existing) return res.status(404).json({ error: 'Record not found' });
+
+      // Permission check: regular faculty can only edit their own records
+      if (req.user?.role === 'faculty' && !req.user?.isHod && !req.user?.isInstitutionalAdmin) {
+        if (existing.staff_id !== req.user.staffId) {
+          return res.status(403).json({ error: 'You do not have permission to edit this record' });
+        }
+      }
+
+      // Parse non-file form values into data object
+      const formData = { ...req.body };
+      delete formData.staff_id;
+      delete formData.staff_name;
+      delete formData.department;
+
+      let filePath = req.file ? req.file.filename : (formData.existing_file || existing.file || null);
+      delete formData.existing_file;
+
+      // Validate required fields defined in page schema
+      const fields = typeof page.fields === 'string' ? JSON.parse(page.fields || '[]') : (page.fields || []);
+      for (const f of fields) {
+        if (f.required) {
+          if (f.type === 'file') {
+            if (!filePath && !formData[f.id] && !formData[f.name]) {
+              return res.status(400).json({ error: `Field "${f.label || f.name}" is required. Please upload a file.` });
+            }
+          } else {
+            const val = formData[f.id] ?? formData[f.name];
+            if (val === undefined || val === null || String(val).trim() === '') {
+              return res.status(400).json({ error: `Field "${f.label || f.name}" is required.` });
+            }
+          }
+        }
+      }
+
+      const dataJson = JSON.stringify(formData);
+
+      db.run(
+        `UPDATE dynamic_page_data SET data = ?, file = ? WHERE id = ?`,
+        [dataJson, filePath, dataId],
+        function (err) {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ message: 'Record updated successfully', id: dataId });
+        }
+      );
+    });
+  });
+});
+
+// 8. DELETE /api/dynamic-pages/:slug/data/:dataId - Delete single record
 router.delete('/:slug/data/:dataId', (req, res) => {
   const dataId = req.params.dataId;
 

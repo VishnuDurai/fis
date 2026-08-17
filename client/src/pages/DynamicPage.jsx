@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import { showSuccess, showError } from '../context/AlertContext.jsx';
 import { 
-  FileText, Plus, Search, Trash2, Eye, Download, X, Save, 
+  FileText, Plus, Search, Trash2, Edit2, Eye, Download, X, Save, 
   Award, BookOpen, Layers, Sparkles, Folder, GraduationCap, Users, Star, ShieldAlert 
 } from 'lucide-react';
 
@@ -19,6 +19,7 @@ export default function DynamicPage({ auth }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState(null);
   const [formData, setFormData] = useState({});
   const [fileAttachment, setFileAttachment] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,6 +70,21 @@ export default function DynamicPage({ auth }) {
     setFormData({ ...formData, [fieldId]: val });
   };
 
+  const handleEditClick = (record) => {
+    setEditingRecordId(record.id);
+    setFormData({ ...(record.data || {}), existing_file: record.file || '' });
+    setFileAttachment(null);
+    setShowAddForm(true);
+    window.scrollTo({ top: 180, behavior: 'smooth' });
+  };
+
+  const handleCancelForm = () => {
+    setShowAddForm(false);
+    setEditingRecordId(null);
+    setFormData({});
+    setFileAttachment(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -81,16 +97,22 @@ export default function DynamicPage({ auth }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/dynamic-pages/${slug}/data`, {
-        method: 'POST',
+      const url = editingRecordId
+        ? `${API_BASE_URL}/api/dynamic-pages/${slug}/data/${editingRecordId}`
+        : `${API_BASE_URL}/api/dynamic-pages/${slug}/data`;
+      const method = editingRecordId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Authorization': `Bearer ${auth.token}` },
         body
       });
       const data = await res.json();
       if (res.ok) {
-        showSuccess('Record saved successfully!');
+        showSuccess(editingRecordId ? 'Record updated successfully!' : 'Record saved successfully!');
         setFormData({});
         setFileAttachment(null);
+        setEditingRecordId(null);
         setShowAddForm(false);
         fetchPageData();
       } else {
@@ -196,7 +218,16 @@ export default function DynamicPage({ auth }) {
             {auth.role === 'faculty' && (
               <button 
                 className="btn btn-primary"
-                onClick={() => setShowAddForm(!showAddForm)}
+                onClick={() => {
+                  if (showAddForm) {
+                    handleCancelForm();
+                  } else {
+                    setEditingRecordId(null);
+                    setFormData({});
+                    setFileAttachment(null);
+                    setShowAddForm(true);
+                  }
+                }}
                 style={{ padding: '12px 24px', fontWeight: 700, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
               >
                 <Plus size={18} /> {showAddForm ? 'Close Form' : 'Submit New Record'}
@@ -206,11 +237,16 @@ export default function DynamicPage({ auth }) {
         </div>
       </div>
 
-      {/* Submit Record Form Card */}
+      {/* Submit / Edit Record Form Card */}
       {showAddForm && (
         <div className="card" style={{ marginBottom: '32px', border: '2px solid hsl(var(--primary))' }}>
-          <h3 style={{ marginBottom: '20px', fontSize: '1.15rem', color: '#0f172a', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px' }}>
-            Submit Record: {pageInfo.title}
+          <h3 style={{ marginBottom: '20px', fontSize: '1.15rem', color: '#0f172a', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <span>{editingRecordId ? `✏️ Edit Record: ${pageInfo.title}` : `Submit Record: ${pageInfo.title}`}</span>
+            {editingRecordId && (
+              <span style={{ fontSize: '0.8rem', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                Editing Mode
+              </span>
+            )}
           </h3>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -332,7 +368,19 @@ export default function DynamicPage({ auth }) {
                   {/* ── Special ── */}
                   {f.type === 'file' && (
                     <div>
-                      <input type="file" className="form-control" onChange={handleFileAttachmentChange} required={f.required} />
+                      {(formData[f.id] || formData.existing_file) && (
+                        <div style={{ marginBottom: '8px', fontSize: '0.82rem', background: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <FileText size={15} color="hsl(var(--primary))" />
+                          <span>Current File: <strong>{formData[f.id] || formData.existing_file}</strong></span>
+                          <span style={{ color: '#64748b' }}>(Upload below to replace)</span>
+                        </div>
+                      )}
+                      <input 
+                        type="file" 
+                        className="form-control" 
+                        onChange={handleFileAttachmentChange} 
+                        required={f.required && !formData[f.id] && !formData.existing_file} 
+                      />
                       <span style={{ fontSize: '0.76rem', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
                         Accepted files: PDF, DOC, Images (Max file size: 5MB)
                       </span>
@@ -367,6 +415,13 @@ export default function DynamicPage({ auth }) {
                     <span>Supporting Document Attachment</span>
                     <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
                   </label>
+                  {formData.existing_file && (
+                    <div style={{ marginBottom: '8px', fontSize: '0.82rem', background: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <FileText size={15} color="hsl(var(--primary))" />
+                      <span>Current File: <strong>{formData.existing_file}</strong></span>
+                      <span style={{ color: '#64748b' }}>(Upload below to replace)</span>
+                    </div>
+                  )}
                   <input type="file" className="form-control" onChange={handleFileAttachmentChange} />
                   <span style={{ fontSize: '0.76rem', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
                     Attach proof document (PDF, Word, or Image up to 5MB)
@@ -376,9 +431,9 @@ export default function DynamicPage({ auth }) {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>Cancel</button>
+              <button type="button" className="btn btn-secondary" onClick={handleCancelForm}>Cancel</button>
               <button type="submit" className="btn btn-primary" style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <Save size={18} /> Save Record
+                <Save size={18} /> {editingRecordId ? 'Update Record' : 'Save Record'}
               </button>
             </div>
           </form>
@@ -471,13 +526,24 @@ export default function DynamicPage({ auth }) {
                     )}
                     <td>
                       {(auth.role === 'admin' || auth.role === 'dept_admin' || auth.staffId === r.staff_id) && (
-                        <button 
-                          className="btn"
-                          style={{ padding: '4px 10px', fontSize: '0.8rem', background: 'hsla(var(--danger), 0.1)', color: 'hsl(var(--danger))', border: '1px solid hsl(var(--danger))', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          onClick={() => handleDelete(r.id)}
-                        >
-                          <Trash2 size={14} /> Delete
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <button 
+                            className="btn"
+                            style={{ padding: '4px 10px', fontSize: '0.8rem', background: 'hsla(var(--primary), 0.1)', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary))', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                            onClick={() => handleEditClick(r)}
+                            title="Edit Record"
+                          >
+                            <Edit2 size={13} /> Edit
+                          </button>
+                          <button 
+                            className="btn"
+                            style={{ padding: '4px 10px', fontSize: '0.8rem', background: 'hsla(var(--danger), 0.1)', color: 'hsl(var(--danger))', border: '1px solid hsl(var(--danger))', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                            onClick={() => handleDelete(r.id)}
+                            title="Delete Record"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
