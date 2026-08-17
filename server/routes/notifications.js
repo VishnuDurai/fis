@@ -6,9 +6,9 @@ import { authenticateToken } from './auth.js';
 const router = express.Router();
 
 // Configure VAPID Keys
-// Default persistent VAPID keys for SREC FIS Portal
-const DEFAULT_VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BCc5p-9g5eS9lJmZ4Y-cE48G6Y3kU1Q7I4k_R-QGzF4eO3w3C-t0G-N0lA0z4wE6uH8q0rO6uM8h0_L5n7g8_kQ';
-const DEFAULT_VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'N2p5-rU3G-Y8v_W0mR4k-lQ2b_M4sE6tU8oV-wP0y_M';
+// Persistent, cryptographically valid P-256 VAPID keys for SREC FIS Portal
+const DEFAULT_VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BCsAWxdGtdYVjB01FWDDO4xRXZZ09Pr03QXq9SFLpvgeDYOo3wcYrpWJe40ITsu0ZWc-7QxQP3XSVizmufNJJjs';
+const DEFAULT_VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'g5D2Oaw2Qrvd1LiaTphc4G1rMHanR2BMwdjX5L7jF50';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:fis-admin@srec.ac.in';
 
 let vapidPublicKey = DEFAULT_VAPID_PUBLIC_KEY;

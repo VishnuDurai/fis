@@ -62,15 +62,31 @@ export default function NotificationPrompt({ isOpen, onClose }) {
         throw new Error('VAPID public key not found on server.');
       }
 
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey)
-        });
+      // Ensure ServiceWorker is ready / registered
+      let registration;
+      if (navigator.serviceWorker.controller) {
+        registration = await navigator.serviceWorker.ready;
+      } else {
+        await navigator.serviceWorker.register('/sw.js');
+        registration = await navigator.serviceWorker.ready;
       }
+
+      // Unsubscribe any stale previous subscription to ensure clean key sync
+      let subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        try {
+          await subscription.unsubscribe();
+        } catch (unsubErr) {
+          console.warn('Error clearing old subscription:', unsubErr);
+        }
+      }
+
+      // Subscribe with verified VAPID applicationServerKey
+      const appKey = urlBase64ToUint8Array(publicKey);
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appKey
+      });
 
       // Send subscription to backend
       const token = localStorage.getItem('srec_token') || localStorage.getItem('token');
@@ -94,7 +110,12 @@ export default function NotificationPrompt({ isOpen, onClose }) {
       setTestStatus({ success: true, message: 'Push notifications enabled successfully!' });
     } catch (err) {
       console.error('Push subscribe error:', err);
-      setErrorMessage(err.message || 'Failed to enable push notifications.');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('push service error') || msg.toLowerCase().includes('registration failed')) {
+        setErrorMessage('Push Service Error: If using Brave browser, please enable "Use Google services for push messaging" in brave://settings/privacy to allow browser push alerts.');
+      } else {
+        setErrorMessage(msg || 'Failed to enable push notifications.');
+      }
     } finally {
       setLoading(false);
     }
