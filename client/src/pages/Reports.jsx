@@ -524,8 +524,76 @@ export default function Reports({ auth }) {
 
       Object.keys(reportData).forEach((key) => {
         const rows = reportData[key];
+        if (!rows || rows.length === 0) return;
+
+        if (key === 'scholars') {
+          const phdPursuitRows = rows.filter(s => 
+            (s.desgination || '').toLowerCase().includes('scholar') || 
+            (personal && s.staff_id === personal.staff_id && s.sup_name) ||
+            (personal?.staff_name && s.staff_name === personal.staff_name && s.sup_name)
+          );
+          const guidedRows = rows.filter(s => !phdPursuitRows.includes(s));
+
+          if (phdPursuitRows.length > 0) {
+            if (currentY > 165) { doc.addPage(); currentY = 20; }
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`Doctoral Research / Ph.D. Pursuit (${phdPursuitRows.length} Records)`, 10, currentY);
+            currentY += 4;
+
+            autoTable(doc, {
+              head: [['Reg No / Ref ID', 'University', 'Ph.D. Supervisor', 'Research Center / Institution', 'Category', 'Status', 'Reg Period']],
+              body: phdPursuitRows.map(s => [
+                s.res_id || 'N/A',
+                s.university || 'Anna University',
+                s.sup_name || 'N/A',
+                s.organisation || 'Sri Ramakrishna Engineering College',
+                s.supervisor_type || 'Internal',
+                s.status || 'Provisionally Confirmed',
+                s.registration_year || s.date || 'N/A'
+              ]),
+              startY: currentY,
+              margin: { left: 10, right: 10, bottom: 22 },
+              styles: { font: 'times', fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+              headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255], fontStyle: 'bold' },
+              alternateRowStyles: { fillColor: [248, 250, 252] }
+            });
+            currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+          }
+
+          if (guidedRows.length > 0) {
+            if (currentY > 165) { doc.addPage(); currentY = 20; }
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`Doctoral Research Guidance / Scholars Supervised (${guidedRows.length} Records)`, 10, currentY);
+            currentY += 4;
+
+            autoTable(doc, {
+              head: [['Scholar Name', 'Registration No', 'University', 'Institution', 'Supervisor Type', 'Status', 'Reg Year']],
+              body: guidedRows.map(s => [
+                s.staff_name || 'N/A',
+                s.res_id || 'N/A',
+                s.university || 'Anna University',
+                s.organisation || 'SREC',
+                s.supervisor_type || 'Internal',
+                s.status || 'Ongoing',
+                s.registration_year || s.date || 'N/A'
+              ]),
+              startY: currentY,
+              margin: { left: 10, right: 10, bottom: 22 },
+              styles: { font: 'times', fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+              headStyles: { fillColor: [2, 132, 199], textColor: [255, 255, 255], fontStyle: 'bold' },
+              alternateRowStyles: { fillColor: [248, 250, 252] }
+            });
+            currentY = (doc.lastAutoTable.finalY || currentY) + 12;
+          }
+          return;
+        }
+
         const conf = sectionConfigs[key];
-        if (!conf || !rows || rows.length === 0) return;
+        if (!conf) return;
 
         if (currentY > 165) {
           doc.addPage();
@@ -1530,44 +1598,89 @@ export default function Reports({ auth }) {
             </div>
           )}
 
-          {/* Research Scholars Section */}
-          {sections.scholars && reportData.scholars && (
-            <div style={{ marginBottom: '28px' }}>
-              <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
-                Research Scholars Supervised ({reportData.scholars.length} Records)
-              </h3>
-              {reportData.scholars.length > 0 ? (
-                <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
-                  <thead>
-                    <tr style={{ background: '#f1f5f9' }}>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Research ID / Reg No</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Scholar Name</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>University</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Organization</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Supervisor Type</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
-                      <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Reg Year</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.scholars.map((s, idx) => (
-                      <tr key={s.id || idx}>
-                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{s.res_id || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.staff_name || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.university || 'Anna University'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.organisation || 'SREC'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.supervisor_type || 'Internal'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.status || 'Ongoing'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.registration_year || s.date || 'N/A'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ color: '#64748b', fontStyle: 'italic', margin: '4px 0 16px 0', fontSize: '0.85rem' }}>No research scholars reported.</p>
-              )}
-            </div>
-          )}
+          {/* Research Scholars / Doctoral Research Section */}
+          {sections.scholars && reportData.scholars && (() => {
+            const phdPursuitRows = reportData.scholars.filter(s => 
+              (s.desgination || '').toLowerCase().includes('scholar') || 
+              (personal && s.staff_id === personal.staff_id && s.sup_name) ||
+              (personal?.staff_name && s.staff_name === personal.staff_name && s.sup_name)
+            );
+            const guidedRows = reportData.scholars.filter(s => !phdPursuitRows.includes(s));
+
+            return (
+              <>
+                {/* 1. Ph.D. Pursuit (When Faculty is Pursuing Doctoral Research) */}
+                {phdPursuitRows.length > 0 && (
+                  <div style={{ marginBottom: '28px' }}>
+                    <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                      Doctoral Research / Ph.D. Pursuit ({phdPursuitRows.length} Records)
+                    </h3>
+                    <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f1f5f9' }}>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Registration No / Ref ID</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>University</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Ph.D. Supervisor</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Research Center / Institution</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Category</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Current Status</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Reg Period</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {phdPursuitRows.map((s, idx) => (
+                          <tr key={s.id || idx}>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 700 }}>{s.res_id || 'N/A'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.university || 'Anna University'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600, color: '#0369a1' }}>{s.sup_name || 'N/A'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.organisation || 'Sri Ramakrishna Engineering College'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.supervisor_type || 'Internal'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{s.status || 'Provisionally Confirmed'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.registration_year || s.date || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 2. Research Scholars Supervised (When Faculty is Approved Supervisor) */}
+                {guidedRows.length > 0 && (
+                  <div style={{ marginBottom: '28px' }}>
+                    <h3 style={{ color: '#000', fontSize: '1.05rem', borderBottom: '1.5px solid #000', paddingBottom: '4px', marginBottom: '12px', fontWeight: 800 }}>
+                      Doctoral Research Guidance / Scholars Supervised ({guidedRows.length} Records)
+                    </h3>
+                    <table style={{ border: '1px solid #ccc', borderCollapse: 'collapse', width: '100%', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f1f5f9' }}>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Research ID / Reg No</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Scholar Name</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>University</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Organization</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Supervisor Type</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Status</th>
+                          <th style={{ border: '1px solid #ccc', padding: '6px', color: '#000' }}>Reg Year</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {guidedRows.map((s, idx) => (
+                          <tr key={s.id || idx}>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{s.res_id || 'N/A'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.staff_name || 'N/A'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.university || 'Anna University'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.organisation || 'SREC'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.supervisor_type || 'Internal'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px' }}>{s.status || 'Ongoing'}</td>
+                            <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{s.registration_year || s.date || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* Footer Signature */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '60px', paddingTop: '20px', borderTop: '1px dashed #000' }}>
