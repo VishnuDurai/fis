@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, Download, Printer, Sparkles, RefreshCw, CheckSquare, Square, 
   User, Award, BookOpen, FileCheck, Layers, Briefcase, GraduationCap, 
-  Compass, Phone, Mail, MapPin, Globe, Eye, Copy, Check, ChevronRight
+  Compass, Phone, Mail, MapPin, Globe, Eye, Copy, Check, ChevronRight,
+  ShieldCheck, ExternalLink, Calendar, Building, BookMarked
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
@@ -112,7 +113,6 @@ export default function CVGenerator({ auth }) {
   const academics = cvData?.academics || {};
   const education = cvData?.education || [];
   const experience = cvData?.experience || [];
-  const designationHistory = cvData?.designationHistory || [];
   const publications = cvData?.publications || [];
   const books = cvData?.books || [];
   const patents = cvData?.patents || [];
@@ -120,9 +120,12 @@ export default function CVGenerator({ auth }) {
   const consultancy = cvData?.consultancy || [];
   const seedMoney = cvData?.seedMoney || [];
   const fdp = cvData?.fdp || [];
+  const eventsOrganized = cvData?.eventsOrganized || [];
   const memberships = cvData?.memberships || [];
   const awards = cvData?.awards || [];
   const scholars = cvData?.scholars || [];
+  const phdPursuing = cvData?.phdPursuing || null;
+  const isSupervisor = cvData?.isSupervisor || false;
   const responsibilities = cvData?.responsibilities || [];
   const metrics = cvData?.metrics || {};
 
@@ -132,8 +135,15 @@ export default function CVGenerator({ auth }) {
   const designation = academics.Designation || personal.designation || 'Faculty Member';
   const department = academics.Department || '';
   const email = personal.email || `${personal.staff_id || 'faculty'}@srec.ac.in`;
-  const phone = personal.phone || personal.mobile_no || '';
-  const photoUrl = personal.profile_photo ? (personal.profile_photo.startsWith('http') ? personal.profile_photo : `${API_BASE_URL}/${personal.profile_photo}`) : null;
+  const phone = personal.mobile || personal.phone || personal.mobile_no || '';
+
+  // Resolving photo URL
+  const rawPhoto = cvData?.profilePic || personal.passport_file || personal.profile_pic || auth?.profilePic;
+  const photoUrl = rawPhoto 
+    ? (rawPhoto.startsWith('http') 
+        ? rawPhoto 
+        : `${API_BASE_URL}/uploads/${(rawPhoto.includes('dynamic') || rawPhoto.includes('passport') || rawPhoto.includes('doc')) ? 'document' : 'upload'}/${rawPhoto}?token=${auth?.token}`)
+    : null;
 
   // Filtered publications based on toggle
   const displayPubs = sections.pubFilter === '5' 
@@ -166,10 +176,10 @@ export default function CVGenerator({ auth }) {
             </span>
           </div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-            1-Click CV & Bio-Data Generator
+            Academic CV & Bio-Data Generator
           </h1>
           <p style={{ margin: '6px 0 0', opacity: 0.9, fontSize: '0.88rem' }}>
-            Generate executive institutional dossiers, statutory inspection bio-data, and technical CVs with live AI summaries.
+            Generate official institutional dossiers, statutory inspection bio-data, and technical CVs with live AI summaries.
           </p>
         </div>
 
@@ -249,26 +259,27 @@ export default function CVGenerator({ auth }) {
                 <Layers size={18} color="#15583b" />
                 <span>Format & Template</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
-                  { id: 'institutional', label: '🏛️ SREC Letterhead', desc: 'Formal college crest & NAAC/NBA header' },
-                  { id: 'aicte', label: '📋 AICTE / Anna Univ', desc: 'Statutory inspection regulatory bio-data' },
-                  { id: 'modern', label: '💼 Modern Europass', desc: '2-column minimalist technical resume' }
+                  { id: 'institutional', title: '🏛️ Official Institutional (SREC)', desc: 'Official letterhead layout for college dossiers & accreditations' },
+                  { id: 'aicte', title: '📜 Statutory / AICTE Inspection', desc: 'Compliant table format for AICTE, NBA & Anna University visits' },
+                  { id: 'modern', title: '💼 Modern Executive Profile', desc: 'Contemporary two-column format for external forums & conferences' }
                 ].map(t => (
                   <div
                     key={t.id}
                     onClick={() => setTemplate(t.id)}
                     style={{
-                      padding: '10px 14px',
-                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
                       border: template === t.id ? '2px solid #15583b' : '1px solid #e2e8f0',
                       background: template === t.id ? '#f0fdf4' : '#ffffff',
                       cursor: 'pointer',
                       transition: 'all 0.15s'
                     }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: template === t.id ? '#15583b' : '#1e293b' }}>
-                      {t.label}
+                    <div style={{ fontWeight: 700, fontSize: '0.84rem', color: template === t.id ? '#0f331f' : '#1e293b' }}>
+                      {t.title}
                     </div>
                     <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
                       {t.desc}
@@ -278,7 +289,7 @@ export default function CVGenerator({ auth }) {
               </div>
             </div>
 
-            {/* 2. AI Academic Summary Tone & Editor */}
+            {/* 2. AI Summary Customizer */}
             <div style={{
               background: '#ffffff',
               borderRadius: '16px',
@@ -288,15 +299,14 @@ export default function CVGenerator({ auth }) {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Sparkles size={18} color="#d97706" />
-                  <span>AI Summary Statement</span>
+                  <Sparkles size={18} color="#15583b" />
+                  <span>AI Academic Bio</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleCopyBio}
-                  title="Copy AI Summary"
                   style={{
-                    background: 'transparent',
+                    background: 'none',
                     border: 'none',
                     color: copiedBio ? '#16a34a' : '#64748b',
                     cursor: 'pointer',
@@ -374,21 +384,21 @@ export default function CVGenerator({ auth }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
                 {[
-                  { key: 'photo', label: 'Passport Photo' },
-                  { key: 'contact', label: 'Contact & Phone / Email' },
+                  { key: 'photo', label: 'Passport Photo / Avatar' },
+                  { key: 'contact', label: 'Contact Details & IDs' },
                   { key: 'aiSummary', label: 'AI Academic Statement' },
                   { key: 'education', label: `Education & Degrees (${education.length})` },
-                  { key: 'experience', label: `Career Experience (${experience.length + designationHistory.length})` },
+                  { key: 'experience', label: `Career Appointments (${experience.length})` },
                   { key: 'publications', label: `Publications (${publications.length})` },
                   { key: 'books', label: `Books & Chapters (${books.length})` },
                   { key: 'patents', label: `Patents & IPR (${patents.length})` },
                   { key: 'funding', label: `Sponsored Grants (${funding.length})` },
                   { key: 'consultancy', label: `Consultancies (${consultancy.length})` },
                   { key: 'seedMoney', label: `Seed Money (${seedMoney.length})` },
-                  { key: 'scholars', label: `Ph.D Supervision (${scholars.length})` },
+                  { key: 'scholars', label: isSupervisor ? `Ph.D Guidance (${scholars.length})` : (phdPursuing ? 'Ph.D. Status (Pursuing)' : 'Ph.D. Guidance (0)') },
                   { key: 'memberships', label: `Memberships (${memberships.length})` },
                   { key: 'awards', label: `Awards & Honors (${awards.length})` },
-                  { key: 'fdp', label: `FDPs & Workshops (${fdp.length})` },
+                  { key: 'fdp', label: `FDPs & Workshops (${fdp.length + eventsOrganized.length})` },
                   { key: 'responsibilities', label: `Responsibilities (${responsibilities.length})` },
                   { key: 'declaration', label: 'Official Declaration & Sign-off' }
                 ].map(item => (
@@ -448,55 +458,20 @@ export default function CVGenerator({ auth }) {
             </div>
           </div>
 
-          {/* RIGHT CANVAS: LIVE WYSIWYG PRINT-READY PREVIEW */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            boxShadow: '0 10px 35px -5px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
-            overflow: 'hidden'
-          }}>
-            {/* Top Toolbar */}
-            <div className="no-print" style={{
-              background: '#f8fafc',
-              padding: '12px 20px',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Eye size={16} />
-                <span>Live Document Preview ({template.toUpperCase()} FORMAT)</span>
-              </div>
-              <button
-                type="button"
-                onClick={handlePrint}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#15583b',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '6px 14px',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <Printer size={14} />
-                <span>Print Document</span>
-              </button>
-            </div>
-
-            {/* A4 CANVAS CONTAINER */}
+          {/* RIGHT SIDE: LIVE CV DOCUMENT CANVAS (A4 PREVIEW & PRINT) */}
+          <div style={{ overflowX: 'auto' }}>
             <div 
               ref={printRef}
-              className={`cv-canvas-root cv-template-${template}`}
+              className="cv-canvas-root"
               style={{
-                padding: '40px',
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                padding: '40px 48px',
+                boxShadow: '0 4px 25px rgba(0,0,0,0.06)',
+                border: '1px solid #e2e8f0',
+                minHeight: '1050px',
+                maxWidth: '900px',
+                margin: '0 auto',
                 color: '#0f172a',
                 fontFamily: template === 'aicte' ? '"Times New Roman", Times, serif' : 'system-ui, -apple-system, sans-serif',
                 lineHeight: '1.5'
@@ -548,15 +523,19 @@ export default function CVGenerator({ auth }) {
                         Comprehensive Faculty Academic Profile & Bio-Data
                       </div>
                     </div>
-                    {sections.photo && photoUrl ? (
-                      <img 
-                        src={photoUrl} 
-                        alt={name} 
-                        style={{ width: '80px', height: '95px', objectFit: 'cover', borderRadius: '6px', border: '1.5px solid #15583b' }}
-                      />
-                    ) : (
-                      <div style={{ width: '80px', height: '95px', border: '1px dashed #94a3b8', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', color: '#94a3b8', textAlign: 'center', padding: '4px' }}>
-                        Official Photo
+                    {sections.photo && (
+                      photoUrl ? (
+                        <img 
+                          src={photoUrl} 
+                          alt={name} 
+                          style={{ width: '85px', height: '100px', objectFit: 'cover', borderRadius: '6px', border: '1.5px solid #15583b' }}
+                          onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                      ) : null
+                    )}
+                    {sections.photo && (
+                      <div style={{ display: photoUrl ? 'none' : 'flex', width: '85px', height: '100px', border: '1.5px solid #15583b', borderRadius: '6px', background: '#f0fdf4', color: '#15583b', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.4rem' }}>
+                        {(name || 'F').charAt(0).toUpperCase()}
                       </div>
                     )}
                   </div>
@@ -582,7 +561,7 @@ export default function CVGenerator({ auth }) {
                       </div>
                       {academics.Date_of_joining && (
                         <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-                          <strong>Date of Joining SREC:</strong> {new Date(academics.Date_of_joining).toLocaleDateString('en-GB')} ({metrics.yearsExperience} Years Service)
+                          <strong>Date of Joining SREC:</strong> {new Date(academics.Date_of_joining).toLocaleDateString('en-GB')} ({metrics.yearsExperience || 1} Years Service)
                         </div>
                       )}
                     </div>
@@ -621,10 +600,12 @@ export default function CVGenerator({ auth }) {
                         <td style={{ border: '1px solid #000', padding: '6px', width: '25%', fontWeight: 'bold' }}>1. Name of the Faculty</td>
                         <td style={{ border: '1px solid #000', padding: '6px', width: '45%' }}>{fullDisplayName}</td>
                         <td rowSpan={4} style={{ border: '1px solid #000', padding: '6px', width: '30%', textAlign: 'center', verticalAlign: 'middle' }}>
-                          {sections.photo && photoUrl ? (
-                            <img src={photoUrl} alt={name} style={{ width: '90px', height: '110px', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Affix Photo</div>
+                          {sections.photo && (
+                            photoUrl ? (
+                              <img src={photoUrl} alt={name} style={{ width: '90px', height: '110px', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                            ) : (
+                              <div style={{ height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', border: '1px dashed #ccc' }}>Official Photo</div>
+                            )
                           )}
                         </td>
                       </tr>
@@ -643,7 +624,7 @@ export default function CVGenerator({ auth }) {
                       <tr>
                         <td style={{ border: '1px solid #000', padding: '6px', fontWeight: 'bold' }}>5. Date of Joining SREC</td>
                         <td style={{ border: '1px solid #000', padding: '6px' }}>{academics.Date_of_joining ? new Date(academics.Date_of_joining).toLocaleDateString('en-GB') : 'N/A'}</td>
-                        <td style={{ border: '1px solid #000', padding: '6px' }}><strong>Total Exp:</strong> {metrics.yearsExperience} Years</td>
+                        <td style={{ border: '1px solid #000', padding: '6px' }}><strong>Total Exp:</strong> {metrics.yearsExperience || 1} Years</td>
                       </tr>
                       <tr>
                         <td style={{ border: '1px solid #000', padding: '6px', fontWeight: 'bold' }}>6. Email & Phone</td>
@@ -682,12 +663,18 @@ export default function CVGenerator({ auth }) {
                       </div>
                     )}
                   </div>
-                  {sections.photo && photoUrl && (
-                    <img 
-                      src={photoUrl} 
-                      alt={name} 
-                      style={{ width: '90px', height: '105px', objectFit: 'cover', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
-                    />
+                  {sections.photo && (
+                    photoUrl ? (
+                      <img 
+                        src={photoUrl} 
+                        alt={name} 
+                        style={{ width: '90px', height: '105px', objectFit: 'cover', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                      />
+                    ) : (
+                      <div style={{ width: '90px', height: '105px', borderRadius: '12px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.5rem' }}>
+                        {(name || 'F').charAt(0).toUpperCase()}
+                      </div>
+                    )
                   )}
                 </div>
               )}
@@ -753,21 +740,42 @@ export default function CVGenerator({ auth }) {
                       {education.map((edu, idx) => (
                         <tr key={idx}>
                           <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{edu.degree || edu.category || 'N/A'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{edu.specialization || edu.course || 'N/A'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{edu.institution || edu.university || 'N/A'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{edu.year_of_passing || 'N/A'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{edu.specialization || edu.course || 'General'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{edu.institute || edu.board || edu.university || edu.institution || 'N/A'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{edu.year || edu.year_of_passing || 'N/A'}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{edu.percentage ? `${edu.percentage}%` : (edu.class_obtained || 'N/A')}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Highlight Pursuing Ph.D status if applicable */}
+                  {phdPursuing && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: '#eff6ff',
+                      borderRadius: '6px',
+                      border: '1px solid #bfdbfe',
+                      fontSize: '0.78rem',
+                      color: '#1e40af',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <GraduationCap size={16} />
+                      <div>
+                        <strong>Ph.D. Research Status:</strong> Currently Pursuing Ph.D. in <em>{phdPursuing.university || 'Anna University'}</em> (Status: <strong>{phdPursuing.status || 'Provisionally Confirmed'}</strong>) under supervisor <strong>{phdPursuing.sup_name || 'Dr. Supervisor'}</strong>.
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* ==================================================== */}
               {/* SECTION: CAREER & TEACHING EXPERIENCE               */}
               {/* ==================================================== */}
-              {sections.experience && (experience.length > 0 || designationHistory.length > 0) && (
+              {sections.experience && experience.length > 0 && (
                 <div style={{ marginBottom: '22px' }}>
                   <div style={{
                     fontSize: '0.95rem',
@@ -785,31 +793,61 @@ export default function CVGenerator({ auth }) {
                       <tr style={{ background: template === 'institutional' ? '#f1f5f9' : (template === 'modern' ? '#f0f9ff' : '#eee') }}>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Designation / Position</th>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Institution / Organization</th>
-                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '140px' }}>Period / Duration</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '160px' }}>Period / Duration</th>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Roles / Highlights</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Current & SREC Promotions */}
-                      {designationHistory.map((des, idx) => (
-                        <tr key={`des-${idx}`}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{des.designation}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>Sri Ramakrishna Engineering College</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>
-                            {des.effective_date ? new Date(des.effective_date).toLocaleDateString('en-GB') : 'N/A'} - Present
-                          </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{des.remarks || 'Academic & Research'}</td>
-                        </tr>
-                      ))}
-                      {/* Previous External Experience */}
                       {experience.map((exp, idx) => (
                         <tr key={`exp-${idx}`}>
                           <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{exp.designation || exp.role || 'Faculty'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{exp.organization || exp.institution || 'External Org'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{exp.organization || 'Sri Ramakrishna Engineering College'}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>
-                            {exp.from_date || exp.start_date || 'N/A'} to {exp.to_date || exp.end_date || 'N/A'}
+                            {exp.from_date || 'N/A'} to {exp.to_date || 'Present'} {exp.years ? `(${exp.years} Yrs)` : ''}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{exp.nature_of_work || exp.experience_type || 'Teaching/Industry'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{exp.nature_of_work || 'Academic & Research'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* SECTION: DOCTORAL / Ph.D RESEARCH GUIDANCE          */}
+              {/* ONLY SHOWN IF FACULTY IS AN ACTUAL SUPERVISOR       */}
+              {/* ==================================================== */}
+              {sections.scholars && isSupervisor && scholars.length > 0 && (
+                <div style={{ marginBottom: '22px' }}>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    color: template === 'institutional' ? '#0f331f' : (template === 'modern' ? '#0284c7' : '#000000'),
+                    borderBottom: '1.5px solid #cbd5e1',
+                    paddingBottom: '4px',
+                    marginBottom: '8px'
+                  }}>
+                    {template === 'aicte' ? '10. Doctoral (Ph.D.) Research Guidance' : 'Doctoral Research Guidance & Supervision'}
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead>
+                      <tr style={{ background: template === 'institutional' ? '#f1f5f9' : (template === 'modern' ? '#f0f9ff' : '#eee') }}>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Scholar Name & Reg No</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Research Title / Area</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '110px' }}>University</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '100px' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scholars.map((s, idx) => (
+                        <tr key={idx}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{s.scholar || s.scholar_name || s.name}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{s.supj || s.research_title || s.area || 'Engineering & Technology'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{s.university || 'Anna University'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', fontWeight: 700, color: (s.status || '').toLowerCase().includes('completed') ? '#16a34a' : '#0369a1' }}>
+                            {s.status || 'Active'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -835,7 +873,7 @@ export default function CVGenerator({ auth }) {
                     alignItems: 'center'
                   }}>
                     <span>
-                      {template === 'aicte' ? '10. Research Publications in Journals & Conferences' : 'Peer-Reviewed Research Publications'}
+                      {template === 'aicte' ? '11. Research Publications in Journals & Conferences' : 'Peer-Reviewed Research Publications'}
                     </span>
                     <span style={{ fontSize: '0.74rem', textTransform: 'none', color: '#64748b' }}>
                       Showing {displayPubs.length} of {publications.length} Papers
@@ -844,16 +882,45 @@ export default function CVGenerator({ auth }) {
                   <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {displayPubs.map((pub, idx) => (
                       <li key={idx} style={{ color: '#334155', textAlign: 'justify' }}>
-                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{pub.title_of_paper || pub.title}</span>. 
-                        <em> {pub.journal_name || pub.conference_name || 'Academic Forum'}</em>, 
-                        {pub.volume && ` Vol. ${pub.volume}`}{pub.issue && `, Issue ${pub.issue}`}, 
-                        {pub.page_no && ` pp. ${pub.page_no},`} {pub.year_of_pub || pub.year}. 
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{pub.title || pub.title_of_paper}</span>. 
+                        <em> {pub.journel || pub.journal_name || pub.conference_name || 'Academic Forum'}</em>, 
+                        {pub.volume_pub && ` Vol. ${pub.volume_pub}`}{pub.issue_no && `, Issue ${pub.issue_no}`}, 
+                        {pub.pp && ` pp. ${pub.pp},`} {pub.month_pub || pub.year_of_pub || pub.date_con || ''}. 
                         {pub.doi && <span style={{ color: '#0369a1' }}> DOI: {pub.doi}</span>}
-                        {pub.indexed_in && (
+                        {(pub.index_pub || pub.web_of_science || pub.indexed_in) && (
                           <span style={{ marginLeft: '6px', fontSize: '0.72rem', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                            {pub.indexed_in}
+                            {pub.index_pub || pub.web_of_science || pub.indexed_in}
                           </span>
                         )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* SECTION: BOOKS & BOOK CHAPTERS                     */}
+              {/* ==================================================== */}
+              {sections.books && books.length > 0 && (
+                <div style={{ marginBottom: '22px' }}>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    color: template === 'institutional' ? '#0f331f' : (template === 'modern' ? '#0284c7' : '#000000'),
+                    borderBottom: '1.5px solid #cbd5e1',
+                    paddingBottom: '4px',
+                    marginBottom: '8px'
+                  }}>
+                    Books & Book Chapters Authored
+                  </div>
+                  <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {books.map((b, idx) => (
+                      <li key={idx} style={{ color: '#334155' }}>
+                        <strong>{b.title}</strong>, Publisher: <em>{b.publisher || 'Reputed Academic Publisher'}</em>
+                        {b.edition && `, Edition: ${b.edition}`}
+                        {b.isbn && `, ISBN: ${b.isbn}`}
+                        {(b.dateofpublication || b.date) && ` (${b.dateofpublication || b.date})`}.
                       </li>
                     ))}
                   </ol>
@@ -874,15 +941,15 @@ export default function CVGenerator({ auth }) {
                     paddingBottom: '4px',
                     marginBottom: '8px'
                   }}>
-                    {template === 'aicte' ? '11. Patents & Intellectual Property Rights (IPR)' : 'Patents & Intellectual Property Rights'}
+                    {template === 'aicte' ? '12. Patents & Intellectual Property Rights (IPR)' : 'Patents & Intellectual Property Rights'}
                   </div>
                   <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {patents.map((pat, idx) => (
                       <li key={idx} style={{ color: '#334155' }}>
                         <strong>{pat.title || pat.patent_title}</strong>. 
                         Application No: <em>{pat.application_no || pat.app_no || 'N/A'}</em>, 
-                        Status: <span style={{ fontWeight: 700, color: (pat.status || '').toLowerCase().includes('grant') ? '#16a34a' : '#d97706' }}>{pat.status || 'Published'}</span>, 
-                        Year: {pat.year || pat.filing_year || 'N/A'}.
+                        Status: <span style={{ fontWeight: 700, color: (pat.status || '').toLowerCase().includes('grant') ? '#16a34a' : '#d97706' }}>{pat.status || 'Published'}</span>
+                        {(pat.date || pat.year) && `, Year: ${pat.date || pat.year}`}.
                       </li>
                     ))}
                   </ol>
@@ -891,6 +958,7 @@ export default function CVGenerator({ auth }) {
 
               {/* ==================================================== */}
               {/* SECTION: SPONSORED RESEARCH & GRANTS                */}
+              {/* ==================================================== */}
               {sections.funding && funding.length > 0 && (
                 <div style={{ marginBottom: '22px' }}>
                   <div style={{
@@ -902,14 +970,14 @@ export default function CVGenerator({ auth }) {
                     paddingBottom: '4px',
                     marginBottom: '8px'
                   }}>
-                    {template === 'aicte' ? '12. Sponsored Research Projects & Grants' : 'Sponsored Research Projects & External Grants'}
+                    {template === 'aicte' ? '13. Sponsored Research Projects & Grants' : 'Sponsored Research Projects & External Grants'}
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                     <thead>
                       <tr style={{ background: template === 'institutional' ? '#f1f5f9' : (template === 'modern' ? '#f0f9ff' : '#eee') }}>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Project / Event Title</th>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Funding Agency</th>
-                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '100px' }}>Sanctioned (₹)</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '110px' }}>Sanctioned (₹)</th>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '90px' }}>Duration</th>
                         <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '90px' }}>Status</th>
                       </tr>
@@ -917,12 +985,12 @@ export default function CVGenerator({ auth }) {
                     <tbody>
                       {funding.map((f, idx) => (
                         <tr key={idx}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{f.project_title || f.title || 'Research Grant'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{f.funding_agency || f.agency || 'Government / AICTE'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{f.title || f.project_title || 'Research Grant'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{f.fa || f.funding_agency || f.agency || 'Government / AICTE'}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', fontWeight: 700 }}>
                             ₹{Number(f.amount || f.grant_amount || 0).toLocaleString('en-IN')}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{f.duration || f.year || 'N/A'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{f.duration || 'N/A'}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{f.status || 'Completed'}</td>
                         </tr>
                       ))}
@@ -932,8 +1000,9 @@ export default function CVGenerator({ auth }) {
               )}
 
               {/* ==================================================== */}
-              {/* SECTION: DOCTORAL / Ph.D RESEARCH SCHOLARS          */}
-              {sections.scholars && scholars.length > 0 && (
+              {/* SECTION: FDPs, WORKSHOPS & CONFERENCES PARTICIPATION */}
+              {/* ==================================================== */}
+              {sections.fdp && (fdp.length > 0 || eventsOrganized.length > 0) && (
                 <div style={{ marginBottom: '22px' }}>
                   <div style={{
                     fontSize: '0.95rem',
@@ -944,26 +1013,55 @@ export default function CVGenerator({ auth }) {
                     paddingBottom: '4px',
                     marginBottom: '8px'
                   }}>
-                    {template === 'aicte' ? '13. Doctoral (Ph.D.) Research Guidance' : 'Doctoral Research Guidance & Supervision'}
+                    Professional Development Programs, FDPs & Workshops
+                  </div>
+                  <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {fdp.map((item, idx) => (
+                      <li key={`fdp-${idx}`} style={{ color: '#334155' }}>
+                        <strong>{item.title}</strong> — {item.type || 'FDP / Workshop'}, organized by <em>{item.organizer || 'Academic Institution'}</em>
+                        {(item.from_date || item.to_date) ? ` (${item.from_date || ''} ${item.to_date ? `to ${item.to_date}` : ''})` : ''}.
+                      </li>
+                    ))}
+                    {eventsOrganized.map((evt, idx) => (
+                      <li key={`evt-${idx}`} style={{ color: '#334155' }}>
+                        <strong>[Organized] {evt.title}</strong> — {evt.type || 'Event / Seminar'}, Role: <em>{evt.role || 'Coordinator / Organizer'}</em>
+                        {(evt.from_date || evt.to_date) ? ` (${evt.from_date || ''} ${evt.to_date ? `to ${evt.to_date}` : ''})` : ''}.
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* SECTION: INSTITUTIONAL & DEPT RESPONSIBILITIES       */}
+              {/* ==================================================== */}
+              {sections.responsibilities && responsibilities.length > 0 && (
+                <div style={{ marginBottom: '22px' }}>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    color: template === 'institutional' ? '#0f331f' : (template === 'modern' ? '#0284c7' : '#000000'),
+                    borderBottom: '1.5px solid #cbd5e1',
+                    paddingBottom: '4px',
+                    marginBottom: '8px'
+                  }}>
+                    Institutional & Departmental Responsibilities Handled
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                     <thead>
                       <tr style={{ background: template === 'institutional' ? '#f1f5f9' : (template === 'modern' ? '#f0f9ff' : '#eee') }}>
-                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Scholar Name & Reg No</th>
-                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Research Title / Area</th>
-                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '110px' }}>University</th>
-                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '100px' }}>Status</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left' }}>Assigned Responsibility / Portfolio</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'left', width: '160px' }}>Level</th>
+                        <th style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', width: '120px' }}>Academic Year</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {scholars.map((s, idx) => (
+                      {responsibilities.map((r, idx) => (
                         <tr key={idx}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{s.scholar_name || s.name} ({s.reg_no || 'N/A'})</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{s.research_title || s.area || 'Engineering'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{s.university || 'Anna University'}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center', fontWeight: 700, color: (s.status || '').toLowerCase().includes('completed') ? '#16a34a' : '#0369a1' }}>
-                            {s.status || 'Ongoing'}
-                          </td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600 }}>{r.responsibility || r.duty_name}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px' }}>{r.level || 'Department Level'}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 8px', textAlign: 'center' }}>{r.academic_year || 'Current'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -973,6 +1071,7 @@ export default function CVGenerator({ auth }) {
 
               {/* ==================================================== */}
               {/* SECTION: PROFESSIONAL MEMBERSHIPS & AWARDS          */}
+              {/* ==================================================== */}
               {(sections.memberships && memberships.length > 0) || (sections.awards && awards.length > 0) ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '22px' }}>
                   {sections.memberships && memberships.length > 0 && (
@@ -991,7 +1090,9 @@ export default function CVGenerator({ auth }) {
                       <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {memberships.map((m, idx) => (
                           <li key={idx}>
-                            <strong>{m.society_name || m.name}</strong> {m.membership_id ? `(ID: ${m.membership_id})` : ''} - {m.membership_type || 'Member'}
+                            <strong>{m.organization || m.society_name || m.name}</strong> 
+                            {(m.membershipid || m.membership_id) ? ` (ID: ${m.membershipid || m.membership_id})` : ''} 
+                            {m.membership_type ? ` — ${m.membership_type}` : ''}
                           </li>
                         ))}
                       </ul>
@@ -1014,7 +1115,7 @@ export default function CVGenerator({ auth }) {
                       <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {awards.map((a, idx) => (
                           <li key={idx}>
-                            <strong>{a.award_name || a.title}</strong> by {a.awarding_body || a.agency} ({a.year || 'N/A'})
+                            <strong>{a.awardname || a.award_name || a.title}</strong> by {a.awardby || a.awarding_body || a.agency} ({(a.awa_date || a.year || 'N/A')})
                           </li>
                         ))}
                       </ul>
@@ -1025,6 +1126,7 @@ export default function CVGenerator({ auth }) {
 
               {/* ==================================================== */}
               {/* SECTION: OFFICIAL DECLARATION & SIGN-OFF            */}
+              {/* ==================================================== */}
               {sections.declaration && (
                 <div style={{
                   marginTop: '30px',
@@ -1076,6 +1178,7 @@ export default function CVGenerator({ auth }) {
             padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
+            max-width: 100% !important;
           }
           table {
             page-break-inside: auto;

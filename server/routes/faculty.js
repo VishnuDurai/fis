@@ -3523,7 +3523,8 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       responsibilities,
       certificates,
       eventsOrganized,
-      resourceRoles
+      resourceRoles,
+      userRow
     ] = await Promise.all([
       runGet('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runGet('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
@@ -3534,15 +3535,16 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       runQuery('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_development WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_seed_money WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_interaction WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_interaction WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [targetStaffId]),
       runQuery('SELECT * FROM staff_member WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_award WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_scholars WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_supervisor WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runQuery('SELECT * FROM staff_responsibilities WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [targetStaffId]),
       runQuery('SELECT * FROM staff_certificate WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_event_organized WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
-      runQuery('SELECT * FROM staff_resource WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId])
+      runQuery('SELECT * FROM staff_event_organized WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [targetStaffId]),
+      runQuery('SELECT * FROM staff_resource WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
+      runGet('SELECT file FROM staff_user WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId])
     ]);
 
     if (!personal && !academics) {
@@ -3566,41 +3568,70 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       }
     }
 
-    const journalCount = publications.filter(p => (p.paper_type || '').toLowerCase().includes('journal')).length;
-    const confCount = publications.filter(p => (p.paper_type || '').toLowerCase().includes('conference')).length;
+    const journalCount = publications.filter(p => (p.type_pub || p.paper_type || p.type || '').toLowerCase().includes('journal')).length;
+    const confCount = publications.filter(p => (p.type_pub || p.paper_type || p.type || '').toLowerCase().includes('conf')).length;
     const sciScopusCount = publications.filter(p => {
-      const dbStr = `${p.indexed_in || ''} ${p.indexing || ''}`.toLowerCase();
+      const dbStr = `${p.index_pub || ''} ${p.web_of_science || ''} ${p.indexed_in || ''} ${p.indexing || ''}`.toLowerCase();
       return dbStr.includes('sci') || dbStr.includes('scopus') || dbStr.includes('wos');
     }).length;
     const patentCount = patents.length;
     const grantedPatents = patents.filter(p => (p.status || '').toLowerCase().includes('grant')).length;
-    const scholarCount = scholars.length;
-    const completedScholars = scholars.filter(s => (s.status || '').toLowerCase().includes('completed') || (s.status || '').toLowerCase().includes('awarded')).length;
+    
+    // Check if faculty is a PhD supervisor vs pursuing PhD
+    const isSupervisor = (supervisor && supervisor.length > 0) || (academics?.Qualification || '').toLowerCase().includes('ph.d');
+    const scholarCount = supervisor.length;
+    const completedScholars = supervisor.filter(s => (s.status || '').toLowerCase().includes('completed') || (s.status || '').toLowerCase().includes('awarded')).length;
+    const phdPursuing = (scholars && scholars.length > 0) ? scholars[0] : null;
+
     const totalFundingAmount = funding.reduce((acc, f) => acc + (parseFloat(f.amount || f.grant_amount) || 0), 0);
-    const membershipNames = memberships.map(m => m.society_name || m.name).filter(Boolean).slice(0, 3).join(', ');
+    const membershipNames = memberships.map(m => m.organization || m.society_name || m.name).filter(Boolean).slice(0, 3).join(', ');
 
     // Generate 3 AI Academic Summary Variants
     const aiSummaries = {
-      executive: `${fullName} is ${['a', 'e', 'i', 'o', 'u'].includes(designation.toLowerCase()[0]) ? 'an' : 'a'} ${designation} in the Department of ${department} at Sri Ramakrishna Engineering College, bringing over ${yearsExp > 0 ? yearsExp + '+' : 'several'} years of academic, teaching, and research excellence. Specializing in ${specialization}, ${name.split(' ')[0]} has authored ${publications.length} peer-reviewed research papers (${sciScopusCount > 0 ? sciScopusCount + ' in SCI/Scopus indexed forums' : 'in reputed national and international journals'})${patentCount > 0 ? `, holds ${patentCount} patent(s)${grantedPatents > 0 ? ` (${grantedPatents} granted)` : ''}` : ''}${totalFundingAmount > 0 ? `, and has secured external funding of ₹${(totalFundingAmount / 100000).toFixed(1)} Lakhs` : ''}.${scholarCount > 0 ? ` Active in doctoral research mentorship, supervising ${scholarCount} research scholar(s).` : ''}${membershipNames ? ` A committed professional serving as an active member of ${membershipNames}.` : ''}`,
+      executive: `${fullName} is ${['a', 'e', 'i', 'o', 'u'].includes(designation.toLowerCase()[0]) ? 'an' : 'a'} ${designation} in the Department of ${department} at Sri Ramakrishna Engineering College, bringing over ${yearsExp > 0 ? yearsExp + '+' : 'several'} years of academic, teaching, and research experience. Specializing in ${specialization}${phdPursuing ? ` and currently pursuing Ph.D. research` : ''}, ${name.split(' ')[0]} has authored ${publications.length} peer-reviewed research papers (${sciScopusCount > 0 ? sciScopusCount + ' in SCI/Scopus indexed forums' : 'in reputed national and international forums'})${patentCount > 0 ? `, holds ${patentCount} patent(s)${grantedPatents > 0 ? ` (${grantedPatents} granted)` : ''}` : ''}${totalFundingAmount > 0 ? `, and has secured external funding of ₹${(totalFundingAmount / 100000).toFixed(1)} Lakhs` : ''}.${isSupervisor && scholarCount > 0 ? ` Active in doctoral research mentorship, supervising ${scholarCount} research scholar(s).` : ''}${membershipNames ? ` A committed professional serving as an active member of ${membershipNames}.` : ''}`,
       
-      research: `Distinguished academician and active researcher in ${specialization} with ${publications.length} scientific publications, ${patentCount} intellectual property filings, and ₹${(totalFundingAmount / 100000).toFixed(1)} Lakhs in sanctioned grant capital. Key contributions span advanced investigations in ${specialization}, doctoral candidate mentorship (${scholarCount} Ph.D. scholars), and technological innovation.${memberships.length > 0 ? ` Associated with professional bodies including ${membershipNames}.` : ''}`,
+      research: `Distinguished academician and active researcher in ${specialization} with ${publications.length} scientific publications, ${patentCount} intellectual property filings, and ₹${(totalFundingAmount / 100000).toFixed(1)} Lakhs in sanctioned grant capital.${phdPursuing ? ` Currently pursuing Ph.D. investigations in ${phdPursuing.university || 'Engineering'}.` : ''} Key contributions span advanced investigations in ${specialization}, technical innovation, and interdisciplinary collaboration.${memberships.length > 0 ? ` Associated with professional bodies including ${membershipNames}.` : ''}`,
       
-      teaching: `Dedicated educator and mentor with ${yearsExp > 0 ? yearsExp + '+' : 'extensive'} years of university teaching experience in ${department}. Passionate about outcome-based pedagogical practices, experiential laboratory training, student project supervision, and organizing high-impact technical symposiums and FDPs.${responsibilities.length > 0 ? ` Currently fulfilling key institutional leadership roles in ${responsibilities.map(r => r.duty_name || r.responsibility).slice(0, 2).join(' and ')}.` : ''}`
+      teaching: `Dedicated educator and mentor with ${yearsExp > 0 ? yearsExp + '+' : 'extensive'} years of university teaching experience in ${department}. Passionate about outcome-based pedagogical practices, experiential laboratory training, student project supervision, and organizing high-impact technical symposiums and FDPs.${responsibilities.length > 0 ? ` Currently fulfilling key institutional leadership roles in ${responsibilities.map(r => r.responsibility || r.duty_name).slice(0, 2).join(' and ')}.` : ''}`
     };
 
-    const expList = [
-      { role: academics?.Designation || 'Faculty', org: 'Sri Ramakrishna Engineering College', years: academics?.exp_srec_years || yearsExp }
-    ];
-    if (academics?.prev_exp_academic_years) {
-      expList.push({ role: 'Teaching Faculty', org: 'Past Academic Institutions', years: academics.prev_exp_academic_years });
+    // Build structured career experience
+    const expList = [];
+    if (academics?.Date_of_joining) {
+      expList.push({
+        designation: academics?.Designation || designation || 'Faculty',
+        organization: 'Sri Ramakrishna Engineering College',
+        from_date: new Date(academics.Date_of_joining).toLocaleDateString('en-GB'),
+        to_date: 'Present',
+        nature_of_work: 'Academic & Research',
+        years: academics?.exp_srec_years || yearsExp
+      });
     }
-    if (academics?.prev_exp_industry_years) {
-      expList.push({ role: 'Industry Specialist / Engineer', org: 'Industrial Organizations', years: academics.prev_exp_industry_years });
+    if (academics?.prev_exp_academic_years && Number(academics.prev_exp_academic_years) > 0) {
+      expList.push({
+        designation: 'Teaching Faculty',
+        organization: 'Past Academic Institutions',
+        from_date: 'Prior Service',
+        to_date: academics?.Date_of_joining ? new Date(academics.Date_of_joining).toLocaleDateString('en-GB') : 'Prior to SREC',
+        nature_of_work: 'Teaching & Academics',
+        years: academics.prev_exp_academic_years
+      });
+    }
+    if (academics?.prev_exp_industry_years && Number(academics.prev_exp_industry_years) > 0) {
+      expList.push({
+        designation: 'Industry Specialist / Engineer',
+        organization: 'Industrial Organizations',
+        from_date: 'Prior Service',
+        to_date: academics?.Date_of_joining ? new Date(academics.Date_of_joining).toLocaleDateString('en-GB') : 'Prior to SREC',
+        nature_of_work: 'Industry Practice',
+        years: academics.prev_exp_industry_years
+      });
     }
 
     res.json({
       personal,
       academics,
+      profilePic: userRow?.file || personal?.passport_file || personal?.pan_file || null,
       education,
       experience: expList,
       publications,
@@ -3612,8 +3643,9 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       fdp,
       memberships,
       awards,
-      scholars,
-      supervisor,
+      scholars: isSupervisor ? supervisor : [],
+      phdPursuing,
+      isSupervisor,
       responsibilities,
       certificates,
       eventsOrganized,
@@ -3625,8 +3657,8 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
         sciScopusCount,
         patentCount,
         grantedPatents,
-        scholarCount,
-        completedScholars,
+        scholarCount: isSupervisor ? scholarCount : 0,
+        completedScholars: isSupervisor ? completedScholars : 0,
         totalFundingAmount,
         yearsExperience: (academics?.total_exp_years || yearsExp)
       },
