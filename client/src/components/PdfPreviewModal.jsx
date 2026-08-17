@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, Printer, X, FileText, ExternalLink, CheckCircle } from 'lucide-react';
 
 export default function PdfPreviewModal({ 
@@ -57,29 +58,33 @@ export default function PdfPreviewModal({
     }
   };
 
-  return (
+  const modalContent = (
     <div style={{
       position: 'fixed',
-      inset: 0,
-      zIndex: 99999,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 999999,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(15, 23, 42, 0.75)',
+      backgroundColor: 'rgba(15, 23, 42, 0.8)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      padding: '16px',
-      animation: 'fadeIn 0.2s ease-out'
+      padding: '20px',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         background: '#ffffff',
-        borderRadius: '18px',
-        width: '95vw',
-        maxWidth: '1200px',
-        height: '92vh',
+        borderRadius: '16px',
+        width: 'min(94vw, 1200px)',
+        height: 'min(92vh, 950px)',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5)',
         overflow: 'hidden',
         border: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
@@ -213,4 +218,6 @@ export default function PdfPreviewModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
