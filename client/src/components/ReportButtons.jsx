@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FileSpreadsheet, FileText, Calendar, Filter, X, SlidersHorizontal, CheckSquare, Square, Archive } from 'lucide-react';
 import { downloadExcelReport, downloadPdfReport } from '../utils/reportGenerator';
 import { showSuccess, showError, showWarning } from '../context/AlertContext.jsx';
+import PdfPreviewModal from './PdfPreviewModal.jsx';
 
 // Robust date parser for various institutional date formats
 const parseAnyDate = (dateStr) => {
@@ -44,6 +45,7 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [previewPdf, setPreviewPdf] = useState(null);
 
   // Field selection state
   const [showFieldSelector, setShowFieldSelector] = useState(false);
@@ -172,16 +174,17 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
     if (disabled || !effectiveRows || effectiveRows.length === 0) return;
     setDownloading(true);
     try {
-      await downloadPdfReport({
+      const result = await downloadPdfReport({
         filename: filename || pageTitle,
         pageTitle: getEffectivePageTitle(),
         departmentName: getEffectiveDepartmentName(),
         headers: effectiveHeaders,
         rows: effectiveRows,
         orientation: orientation,
-        auth: auth || {}
+        auth: auth || {},
+        preview: true
       });
-      showSuccess(`PDF report "${filename || pageTitle}" generated and downloaded!`);
+      setPreviewPdf(result);
     } catch (err) {
       console.error('PDF Export Error:', err);
       showError(`Failed to generate PDF report: ${err?.message || err}`);
@@ -667,6 +670,26 @@ export default function ReportButtons({ pageTitle, departmentName, headers, rows
             </div>
           </div>
         </div>
+      )}
+
+      {/* PDF PREVIEW MODAL */}
+      {previewPdf && (
+        <PdfPreviewModal
+          isOpen={Boolean(previewPdf)}
+          onClose={() => {
+            if (previewPdf.blobUrl) URL.revokeObjectURL(previewPdf.blobUrl);
+            setPreviewPdf(null);
+          }}
+          pdfBlobUrl={previewPdf.blobUrl}
+          filename={previewPdf.safeFilename}
+          title={previewPdf.pageTitle || pageTitle}
+          onDownload={() => {
+            if (previewPdf.doc && previewPdf.safeFilename) {
+              previewPdf.doc.save(previewPdf.safeFilename);
+              showSuccess(`PDF report "${previewPdf.safeFilename}" downloaded successfully!`);
+            }
+          }}
+        />
       )}
     </div>
   );

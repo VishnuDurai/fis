@@ -31,6 +31,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Navbar from '../components/Navbar.jsx';
+import PdfPreviewModal from '../components/PdfPreviewModal.jsx';
 import { showSuccess, showError, showInfo } from '../context/AlertContext.jsx';
 import { 
   downloadExcelReport, 
@@ -110,6 +111,7 @@ export default function Reports({ auth }) {
   const [loading, setLoading] = useState(false);
   const [personal, setPersonal] = useState(null);
   const [academics, setAcademics] = useState(null);
+  const [previewPdf, setPreviewPdf] = useState(null);
 
   // Initial Data Fetching (Departments & Faculty list)
   useEffect(() => {
@@ -525,8 +527,14 @@ export default function Reports({ auth }) {
       }
 
       const safeFilename = `SREC_FIS_${(targetDept || (isInstitutional ? 'Institutional' : 'Faculty')).replace(/[^a-z0-9]/gi, '_')}_Report.pdf`;
-      doc.save(safeFilename);
-      showSuccess(`PDF report "${safeFilename}" generated and downloaded!`);
+      const blob = doc.output('blob');
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewPdf({
+        blobUrl,
+        safeFilename,
+        title: `Comprehensive Performance Dossier - ${targetDept || (isInstitutional ? 'Institution' : 'Faculty')}`,
+        doc
+      });
     } catch (err) {
       console.error('PDF Generation Error:', err);
       showError('Failed to generate PDF report: ' + err.message);
@@ -1504,6 +1512,26 @@ export default function Reports({ auth }) {
         <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'hsl(var(--text-muted))' }}>
           Please select your report scope above and click "⚡ Generate Report" to load and preview the dossier.
         </div>
+      )}
+
+      {/* PDF PREVIEW MODAL */}
+      {previewPdf && (
+        <PdfPreviewModal
+          isOpen={Boolean(previewPdf)}
+          onClose={() => {
+            if (previewPdf.blobUrl) URL.revokeObjectURL(previewPdf.blobUrl);
+            setPreviewPdf(null);
+          }}
+          pdfBlobUrl={previewPdf.blobUrl}
+          filename={previewPdf.safeFilename}
+          title={previewPdf.title || 'Performance Report Preview'}
+          onDownload={() => {
+            if (previewPdf.doc && previewPdf.safeFilename) {
+              previewPdf.doc.save(previewPdf.safeFilename);
+              showSuccess(`PDF report "${previewPdf.safeFilename}" downloaded successfully!`);
+            }
+          }}
+        />
       )}
     </div>
   );

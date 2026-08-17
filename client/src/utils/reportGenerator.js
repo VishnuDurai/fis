@@ -259,188 +259,198 @@ export const downloadExcelReport = ({ filename, pageTitle, departmentName, heade
  *    - Department Admin: Left side "Faculty In-charge", Right side "HOD-[Department Acronym]" (e.g. HOD - IT)
  *    - System Admin: Bottom right end "PRINCIPAL", "Sri Ramakrishna Engineering College"
  */
-export const downloadPdfReport = async ({ filename, pageTitle, departmentName, headers, rows, orientation, auth = {} }) => {
-  try {
-    const { cleanHeaders, cleanRows } = prepareReportData(headers, rows, departmentName);
+export const generatePdfReportDoc = async ({ filename, pageTitle, departmentName, headers, rows, orientation, auth = {} }) => {
+  const { cleanHeaders, cleanRows } = prepareReportData(headers, rows, departmentName);
 
-    // Determine orientation: default vertical (portrait), horizontal (landscape) if > 5 columns or requested
-    const isLandscape = orientation === 'landscape' || cleanHeaders.length > 5;
-    const doc = new jsPDF({
-      orientation: isLandscape ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
+  // Determine orientation: default vertical (portrait), horizontal (landscape) if > 5 columns or requested
+  const isLandscape = orientation === 'landscape' || cleanHeaders.length > 5;
+  const doc = new jsPDF({
+    orientation: isLandscape ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Fetch official SREC Header Banner image as base64 data URL
-    const headerBanner = await fetchImageAsBase64('/srec-header-banner.png') ||
-                         await fetchImageAsBase64('/report-logo-left.png') ||
-                         await fetchImageAsBase64('/logo.png');
+  // Fetch official SREC Header Banner image as base64 data URL
+  const headerBanner = await fetchImageAsBase64('/srec-header-banner.png') ||
+                       await fetchImageAsBase64('/report-logo-left.png') ||
+                       await fetchImageAsBase64('/logo.png');
 
-    const isInstitutional = !departmentName || 
-      ['ALL', 'ALL DEPARTMENTS', 'SRI RAMAKRISHNA ENGINEERING COLLEGE', 'N/A', ''].includes(departmentName.toString().trim().toUpperCase());
+  const isInstitutional = !departmentName || 
+    ['ALL', 'ALL DEPARTMENTS', 'SRI RAMAKRISHNA ENGINEERING COLLEGE', 'N/A', ''].includes(departmentName.toString().trim().toUpperCase());
 
-    const fullDeptName = isInstitutional ? '' : getFullDepartmentName(departmentName || auth.dept || auth.department);
-    const deptAcronym = isInstitutional ? '' : getDepartmentAcronym(departmentName || auth.dept || auth.department);
+  const fullDeptName = isInstitutional ? '' : getFullDepartmentName(departmentName || auth.dept || auth.department);
+  const deptAcronym = isInstitutional ? '' : getDepartmentAcronym(departmentName || auth.dept || auth.department);
 
-    const titleLine1 = isInstitutional ? 'Sri Ramakrishna Engineering College' : `Department of ${fullDeptName}`;
-    const titleLine2 = `${pageTitle} Report`;
+  const titleLine1 = isInstitutional ? 'Sri Ramakrishna Engineering College' : `Department of ${fullDeptName}`;
+  const titleLine2 = `${pageTitle} Report`;
 
-    // Calculate Header Banner dimensions (Aspect ratio approx 1024:186 => 5.505)
-    // Compact, elegantly centered logo banner (125mm in portrait, 165mm in landscape)
-    const bannerWidth = isLandscape ? 165 : 125;
-    const bannerHeight = bannerWidth / 5.505;
-    const bannerX = (pageWidth - bannerWidth) / 2;
+  // Calculate Header Banner dimensions (Aspect ratio approx 1024:186 => 5.505)
+  // Compact, elegantly centered logo banner (125mm in portrait, 165mm in landscape)
+  const bannerWidth = isLandscape ? 165 : 125;
+  const bannerHeight = bannerWidth / 5.505;
+  const bannerX = (pageWidth - bannerWidth) / 2;
 
-    const title1Y = 4 + bannerHeight + 5;
-    const title2Y = title1Y + 6;
-    const dateY = title2Y + 5;
-    const dividerY = dateY + 4;
-    const tableStartY = dividerY + 5;
-    const numCols = cleanHeaders.length;
-    const fontSize = numCols > 8 ? 8 : numCols > 6 ? 9 : numCols > 4 ? 10 : 11;
-    const headFontSize = numCols > 8 ? 8.5 : numCols > 6 ? 9.5 : numCols > 4 ? 10.5 : 11.5;
-    const cellPadding = numCols > 8 ? 2 : numCols > 6 ? 2.5 : 3.5;
+  const title1Y = 4 + bannerHeight + 5;
+  const title2Y = title1Y + 6;
+  const dateY = title2Y + 5;
+  const dividerY = dateY + 4;
+  const tableStartY = dividerY + 5;
+  const numCols = cleanHeaders.length;
+  const fontSize = numCols > 8 ? 8 : numCols > 6 ? 9 : numCols > 4 ? 10 : 11;
+  const headFontSize = numCols > 8 ? 8.5 : numCols > 6 ? 9.5 : numCols > 4 ? 10.5 : 11.5;
+  const cellPadding = numCols > 8 ? 2 : numCols > 6 ? 2.5 : 3.5;
 
-    // Execute autoTable using standard ES module autoTable(doc, options)
-    autoTable(doc, {
-      head: [cleanHeaders],
-      body: cleanRows,
-      startY: tableStartY,
-      margin: { top: tableStartY, bottom: 25, left: 10, right: 10 },
-      styles: {
-        font: 'times',
-        fontSize: fontSize,
-        cellPadding: cellPadding,
-        textColor: [15, 23, 42],
-        valign: 'middle',
-        overflow: 'linebreak'
-      },
-      headStyles: {
-        font: 'times',
-        fontStyle: 'bold',
-        fontSize: headFontSize,
-        fillColor: [2, 132, 199], // #0284c7 theme blue
-        textColor: [255, 255, 255],
-        halign: 'left'
-      },
-      bodyStyles: {
-        font: 'times',
-        fontSize: fontSize
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252]
-      },
-      didDrawPage: (data) => {
-        // 1. Draw Official Header Banner at top of page (centered & compact)
-        if (headerBanner) {
-          try {
-            doc.addImage(headerBanner, 'PNG', bannerX, 4, bannerWidth, bannerHeight);
-          } catch (e) {
-            console.error('Failed to add banner image to PDF:', e);
-          }
+  // Execute autoTable using standard ES module autoTable(doc, options)
+  autoTable(doc, {
+    head: [cleanHeaders],
+    body: cleanRows,
+    startY: tableStartY,
+    margin: { top: tableStartY, bottom: 25, left: 10, right: 10 },
+    styles: {
+      font: 'times',
+      fontSize: fontSize,
+      cellPadding: cellPadding,
+      textColor: [15, 23, 42],
+      valign: 'middle',
+      overflow: 'linebreak'
+    },
+    headStyles: {
+      font: 'times',
+      fontStyle: 'bold',
+      fontSize: headFontSize,
+      fillColor: [2, 132, 199], // #0284c7 theme blue
+      textColor: [255, 255, 255],
+      halign: 'left'
+    },
+    bodyStyles: {
+      font: 'times',
+      fontSize: fontSize
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252]
+    },
+    didDrawPage: (data) => {
+      // 1. Draw Official Header Banner at top of page (centered & compact)
+      if (headerBanner) {
+        try {
+          doc.addImage(headerBanner, 'PNG', bannerX, 4, bannerWidth, bannerHeight);
+        } catch (e) {
+          console.error('Failed to add banner image to PDF:', e);
         }
-
-        // 2. Render 2 Header Titles (Font: Times New Roman, Size: 14pt, Bold)
-        doc.setFont('times', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(15, 23, 42); // #0f172a
-
-        doc.text(titleLine1, pageWidth / 2, title1Y, { align: 'center' });
-        doc.text(titleLine2, pageWidth / 2, title2Y, { align: 'center' });
-
-        // 3. Sub-date line
-        doc.setFont('times', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Generated Date: ${new Date().toLocaleDateString('en-GB')}`, pageWidth / 2, dateY, { align: 'center' });
-
-        // 4. Horizontal Divider Line
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.5);
-        doc.line(10, dividerY, pageWidth - 10, dividerY);
-
-        // 5. Footer - Page Numbering & Institution Disclaimer
-        const pageCount = doc.internal.getNumberOfPages();
-        doc.setFont('times', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(148, 163, 184);
-        doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth - 10, pageHeight - 8, { align: 'right' });
-        doc.text('Sri Ramakrishna Engineering College - Faculty Information System (FIS)', 10, pageHeight - 8, { align: 'left' });
-      }
-    });
-
-    // 6. Draw Footer Signatures / Approvals on the final page
-    let finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 22 : pageHeight - 40;
-
-    // If table ended too near the bottom, add a new page for signatures
-    if (finalY > pageHeight - 35) {
-      doc.addPage();
-      finalY = tableStartY + 15;
-    }
-
-    const sigY = finalY;
-    const userRole = (auth.role || 'faculty').toLowerCase();
-    const facultyName = auth.name || auth.staff_name || auth.userName || '';
-    const designation = auth.designation || auth.Designation || '';
-
-    doc.setFont('times', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-
-    if (userRole === 'faculty') {
-      // Faculty Portal Report Footer:
-      // Left side: Signature of Faculty, (Below: Faculty Name, Designation)
-      doc.text('Signature of Faculty', 14, sigY);
-      if (facultyName) {
-        doc.setFont('times', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(30, 41, 59);
-        doc.text(facultyName, 14, sigY + 6);
-      }
-      if (designation) {
-        doc.setFont('times', 'normal');
-        doc.setFontSize(9.5);
-        doc.setTextColor(100, 116, 139);
-        doc.text(designation, 14, sigY + 11);
       }
 
-      // Right side: HOD-[Department Acronym] (e.g. HOD - IT)
+      // 2. Render 2 Header Titles (Font: Times New Roman, Size: 14pt, Bold)
       doc.setFont('times', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`HOD - ${deptAcronym}`, pageWidth - 14, sigY, { align: 'right' });
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42); // #0f172a
 
-    } else if (userRole === 'dept_admin') {
-      // Department Admin Panel Report Footer:
-      // Left side: Faculty In-charge
-      doc.text('Faculty In-charge', 14, sigY);
+      doc.text(titleLine1, pageWidth / 2, title1Y, { align: 'center' });
+      doc.text(titleLine2, pageWidth / 2, title2Y, { align: 'center' });
 
-      // Right side: HOD-[Department Acronym] (e.g. HOD - IT)
-      doc.text(`HOD - ${deptAcronym}`, pageWidth - 14, sigY, { align: 'right' });
+      // 3. Sub-date line
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated Date: ${new Date().toLocaleDateString('en-GB')}`, pageWidth / 2, dateY, { align: 'center' });
 
-    } else if (userRole === 'admin') {
-      // System Admin Panel Report Footer:
-      // Bottom right end: PRINCIPAL, Sri Ramakrishna Engineering College
-      doc.text('PRINCIPAL', pageWidth - 14, sigY, { align: 'right' });
+      // 4. Horizontal Divider Line
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(10, dividerY, pageWidth - 10, dividerY);
+
+      // 5. Footer - Page Numbering & Institution Disclaimer
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth - 10, pageHeight - 8, { align: 'right' });
+      doc.text('Sri Ramakrishna Engineering College - Faculty Information System (FIS)', 10, pageHeight - 8, { align: 'left' });
+    }
+  });
+
+  // 6. Draw Footer Signatures / Approvals on the final page
+  let finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 22 : pageHeight - 40;
+
+  // If table ended too near the bottom, add a new page for signatures
+  if (finalY > pageHeight - 35) {
+    doc.addPage();
+    finalY = tableStartY + 15;
+  }
+
+  const sigY = finalY;
+  const userRole = (auth.role || 'faculty').toLowerCase();
+  const facultyName = auth.name || auth.staff_name || auth.userName || '';
+  const designation = auth.designation || auth.Designation || '';
+
+  doc.setFont('times', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+
+  if (userRole === 'faculty') {
+    // Faculty Portal Report Footer:
+    // Left side: Signature of Faculty, (Below: Faculty Name, Designation)
+    doc.text('Signature of Faculty', 14, sigY);
+    if (facultyName) {
+      doc.setFont('times', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text(facultyName, 14, sigY + 6);
+    }
+    if (designation) {
       doc.setFont('times', 'normal');
       doc.setFontSize(9.5);
       doc.setTextColor(100, 116, 139);
-      doc.text('Sri Ramakrishna Engineering College', pageWidth - 14, sigY + 6, { align: 'right' });
+      doc.text(designation, 14, sigY + 11);
     }
 
-    // Digital Verification Seal & Authenticity Metadata
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    const verCode = `SREC-FIS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-    doc.text(`Digital Verification Code: ${verCode}`, 10, pageHeight - 14);
-    doc.text(`Verified Online Portal: https://srec-fis.duckdns.org/verify`, 10, pageHeight - 10);
+    // Right side: HOD-[Department Acronym] (e.g. HOD - IT)
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`HOD - ${deptAcronym}`, pageWidth - 14, sigY, { align: 'right' });
 
-    const safeFilename = `${(filename || pageTitle).toLowerCase().replace(/[^a-z0-9]/gi, '_')}_report.pdf`;
-    doc.save(safeFilename);
+  } else if (userRole === 'dept_admin') {
+    // Department Admin Panel Report Footer:
+    // Left side: Faculty In-charge
+    doc.text('Faculty In-charge', 14, sigY);
+
+    // Right side: HOD-[Department Acronym] (e.g. HOD - IT)
+    doc.text(`HOD - ${deptAcronym}`, pageWidth - 14, sigY, { align: 'right' });
+
+  } else if (userRole === 'admin') {
+    // System Admin Panel Report Footer:
+    // Bottom right end: PRINCIPAL, Sri Ramakrishna Engineering College
+    doc.text('PRINCIPAL', pageWidth - 14, sigY, { align: 'right' });
+    doc.setFont('times', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Sri Ramakrishna Engineering College', pageWidth - 14, sigY + 6, { align: 'right' });
+  }
+
+  // Digital Verification Seal & Authenticity Metadata
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  const verCode = `SREC-FIS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+  doc.text(`Digital Verification Code: ${verCode}`, 10, pageHeight - 14);
+  doc.text(`Verified Online Portal: https://srec-fis.duckdns.org/verify`, 10, pageHeight - 10);
+
+  const safeFilename = `${(filename || pageTitle).toLowerCase().replace(/[^a-z0-9]/gi, '_')}_report.pdf`;
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  return { doc, blob, blobUrl, safeFilename, pageTitle };
+};
+
+export const downloadPdfReport = async ({ filename, pageTitle, departmentName, headers, rows, orientation, auth = {}, preview = false }) => {
+  try {
+    const result = await generatePdfReportDoc({ filename, pageTitle, departmentName, headers, rows, orientation, auth });
+    if (!preview) {
+      result.doc.save(result.safeFilename);
+    }
+    return result;
   } catch (err) {
     console.error('Failed to generate PDF report:', err);
     throw err;
@@ -682,11 +692,18 @@ export const exportNbaB2FacultyDetailsPdf = async (facultyList, departmentName =
     }
 
     const b2Filename = `NBA_B2_Faculty_Details_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.pdf`;
-    doc.save(b2Filename);
-    showSuccess(`NBA Form B2 PDF "${b2Filename}" generated and downloaded!`);
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    const result = { doc, blob, blobUrl, safeFilename: b2Filename, pageTitle: 'NBA Criterion 5 - Form B2 Faculty Details' };
+    if (!options?.preview) {
+      doc.save(b2Filename);
+      showSuccess(`NBA Form B2 PDF "${b2Filename}" generated and downloaded!`);
+    }
+    return result;
   } catch (err) {
     console.error('Failed to generate NBA B2 PDF:', err);
     showError('Failed to generate NBA Form B2 PDF.');
+    throw err;
   }
 };
 
@@ -837,11 +854,18 @@ export const exportNaacCriterion3Pdf = async (data, departmentName = 'Institutio
     });
 
     const naacFilename = `NAAC_Criterion_3_Research_Report_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`;
-    doc.save(naacFilename);
-    showSuccess(`NAAC Criterion 3 PDF "${naacFilename}" generated and downloaded!`);
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    const result = { doc, blob, blobUrl, safeFilename: naacFilename, pageTitle: 'NAAC Criterion 3 - Research & Extension Inspection Dossier' };
+    if (!options?.preview) {
+      doc.save(naacFilename);
+      showSuccess(`NAAC Criterion 3 PDF "${naacFilename}" generated and downloaded!`);
+    }
+    return result;
   } catch (err) {
     console.error('Failed to generate NAAC PDF:', err);
     showError('Failed to generate NAAC PDF report.');
+    throw err;
   }
 };
 
@@ -1010,11 +1034,18 @@ export const exportNbaCriterion5Pdf = async (data, departmentName = 'Institution
     });
 
     const nba5Filename = `NBA_Criterion_5_Faculty_Contributions_${(departmentName || 'Institution').replace(/[^a-z0-9]/gi, '_')}.pdf`;
-    doc.save(nba5Filename);
-    showSuccess(`NBA Criterion 5 PDF "${nba5Filename}" generated and downloaded!`);
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    const result = { doc, blob, blobUrl, safeFilename: nba5Filename, pageTitle: 'NBA Criterion 5 - Faculty Information & Contributions' };
+    if (!options?.preview) {
+      doc.save(nba5Filename);
+      showSuccess(`NBA Criterion 5 PDF "${nba5Filename}" generated and downloaded!`);
+    }
+    return result;
   } catch (err) {
     console.error('Failed to generate NBA PDF:', err);
     showError('Failed to generate NBA PDF report.');
+    throw err;
   }
 };
 export const exportNbaTier1SarExcel = (data, departmentName = 'Department', academicYear = '2026-2027') => {
@@ -1454,11 +1485,18 @@ export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', 
     doc.text('Principal / Head of Institution', pageWidth - 14, sigY, { align: 'right' });
 
     const safeFilename = `NBA_Tier1_SAR_Criterion5_Dossier_${(departmentName || 'Dept').replace(/[^a-z0-9]/gi, '_')}.pdf`;
-    doc.save(safeFilename);
-    showSuccess(`NBA Tier-1 SAR PDF Dossier with Vector Graphics "${safeFilename}" generated and downloaded!`);
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    const result = { doc, blob, blobUrl, safeFilename, pageTitle: 'NBA Tier-1 SAR Criterion 5 Comprehensive Dossier' };
+    if (!options?.preview) {
+      doc.save(safeFilename);
+      showSuccess(`NBA Tier-1 SAR PDF Dossier with Vector Graphics "${safeFilename}" generated and downloaded!`);
+    }
+    return result;
   } catch (err) {
     console.error('Failed to generate NBA Tier-1 PDF:', err);
     showError('Failed to generate NBA Tier-1 PDF report: ' + err.message);
+    throw err;
   }
 };
 

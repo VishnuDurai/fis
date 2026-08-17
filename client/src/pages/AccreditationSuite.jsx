@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { useAlert } from '../context/AlertContext';
+import PdfPreviewModal from '../components/PdfPreviewModal.jsx';
 import { 
   exportNbaB2FacultyDetails, 
   exportNbaB2FacultyDetailsPdf, 
@@ -501,6 +502,7 @@ export default function AccreditationSuite({ auth }) {
   const [radarData, setRadarData] = useState(null);
   const [loadingNbaTier1, setLoadingNbaTier1] = useState(false);
   const [exportingAccreditation, setExportingAccreditation] = useState(false);
+  const [previewPdf, setPreviewPdf] = useState(null);
 
   // Fetch Departments
   useEffect(() => {
@@ -580,8 +582,8 @@ export default function AccreditationSuite({ auth }) {
       const data = await res.json();
 
       if (format === 'pdf') {
-        await exportNaacCriterion3Pdf(data, targetDept || 'Institution', auth);
-        showSuccess('NAAC Accreditation PDF Dossier downloaded successfully!');
+        const result = await exportNaacCriterion3Pdf(data, targetDept || 'Institution', auth, { preview: true });
+        setPreviewPdf(result);
       } else {
         const wb = XLSX.utils.book_new();
         const pubSheet = XLSX.utils.json_to_sheet(data.naac_3_1_publications || []);
@@ -821,7 +823,14 @@ export default function AccreditationSuite({ auth }) {
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={() => exportNbaTier1SarPdf(nbaTier1Data, nbaTier1Data.department, nbaAssessmentYear, auth)}
+                    onClick={async () => {
+                      try {
+                        const result = await exportNbaTier1SarPdf(nbaTier1Data, nbaTier1Data.department, nbaAssessmentYear, auth, { preview: true });
+                        setPreviewPdf(result);
+                      } catch (err) {
+                        console.error('Failed to preview SAR PDF:', err);
+                      }
+                    }}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 700 }}
                   >
                     <FileText size={18} /> Download Complete NBA Tier-1 Dossier (PDF)
@@ -1057,7 +1066,14 @@ export default function AccreditationSuite({ auth }) {
                     <button
                       type="button"
                       className="btn btn-outline-primary"
-                      onClick={() => exportNbaB2FacultyDetailsPdf(nbaTier1Data.facultyList, nbaTier1Data.department, nbaAssessmentYear, auth)}
+                      onClick={async () => {
+                        try {
+                          const result = await exportNbaB2FacultyDetailsPdf(nbaTier1Data.facultyList, nbaTier1Data.department, nbaAssessmentYear, auth, { preview: true });
+                          setPreviewPdf(result);
+                        } catch (err) {
+                          console.error('Failed to preview Form B2 PDF:', err);
+                        }
+                      }}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', fontWeight: 700 }}
                     >
                       <FileText size={15} /> Export Form B2 (PDF)
@@ -1153,6 +1169,26 @@ export default function AccreditationSuite({ auth }) {
           </>
         )}
       </div>
+
+      {/* PDF PREVIEW MODAL */}
+      {previewPdf && (
+        <PdfPreviewModal
+          isOpen={Boolean(previewPdf)}
+          onClose={() => {
+            if (previewPdf.blobUrl) URL.revokeObjectURL(previewPdf.blobUrl);
+            setPreviewPdf(null);
+          }}
+          pdfBlobUrl={previewPdf.blobUrl}
+          filename={previewPdf.safeFilename}
+          title={previewPdf.pageTitle || 'Accreditation Dossier Preview'}
+          onDownload={() => {
+            if (previewPdf.doc && previewPdf.safeFilename) {
+              previewPdf.doc.save(previewPdf.safeFilename);
+              showSuccess(`PDF report "${previewPdf.safeFilename}" downloaded successfully!`);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
