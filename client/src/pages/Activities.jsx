@@ -1040,9 +1040,21 @@ export default function Activities({ auth }) {
       }
     }
 
-    // Mandatory Supporting Document Attachment Validation for New Records
-    if (!editItem && config.headers.includes('Attachment') && !file) {
-      showError('Mandatory Attachment Missing: Please attach a supporting document (PDF / Image) for this activity entry.');
+    // Dynamic Supporting Document Attachment Validation based on sysPageConfig
+    const fileField = (sysPageConfig?.fields || []).find(f => f.name === 'file');
+    let isFileRequired = fileField ? Boolean(fileField.required) : true;
+    let isFileHidden = fileField?.status === 'hidden';
+    if (type === 'publications') {
+      const selectedCat = formData.type_pub || 'Journal';
+      if (sysPageConfig?.publication_type_constraints?.[selectedCat]) {
+        const catRules = sysPageConfig.publication_type_constraints[selectedCat];
+        if (catRules.requiredFields?.includes('file')) isFileRequired = true;
+        else if (catRules.optionalFields?.includes('file')) isFileRequired = false;
+        else if (catRules.hiddenFields?.includes('file')) isFileHidden = true;
+      }
+    }
+    if (!isFileHidden && isFileRequired && !file && !editItem?.file) {
+      showError(`Mandatory Attachment Missing: Please upload ${fileField?.label || 'a supporting document (PDF / Image)'}.`);
       return;
     }
 
@@ -1472,15 +1484,41 @@ export default function Activities({ auth }) {
               })}
             </div>
 
-            {config.headers.includes('Attachment') && (
-              <div style={{ marginBottom: '24px' }}>
-                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Attach Supporting Document (Certificate / PDF / Image) <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span></span>
-                  <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB</span>
-                </label>
-                <Dropzone onFileSelect={(f) => setFile(f)} accept=".pdf,.jpg,.jpeg,.png" />
-              </div>
-            )}
+            {(() => {
+              const fileField = (sysPageConfig?.fields || []).find(f => f.name === 'file');
+              const isHidden = fileField?.status === 'hidden';
+              if (isHidden || !config.headers.includes('Attachment')) return null;
+
+              let isRequired = fileField ? Boolean(fileField.required) : true;
+              if (type === 'publications') {
+                const selectedCat = formData.type_pub || 'Journal';
+                if (sysPageConfig?.publication_type_constraints?.[selectedCat]) {
+                  const catRules = sysPageConfig.publication_type_constraints[selectedCat];
+                  if (catRules.requiredFields?.includes('file')) isRequired = true;
+                  else if (catRules.optionalFields?.includes('file')) isRequired = false;
+                  else if (catRules.hiddenFields?.includes('file')) return null;
+                }
+              }
+
+              const fieldLabel = fileField?.label || 'Upload Supporting Document / Certificate (PDF/Image)';
+
+              return (
+                <div style={{ marginBottom: '24px' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      {fieldLabel} {isRequired && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--primary))', fontWeight: 700 }}>Max size: 5MB (PDF/JPG/PNG)</span>
+                  </label>
+                  <Dropzone onFileSelect={(f) => setFile(f)} accept=".pdf,.jpg,.jpeg,.png" />
+                  {editItem?.file && !file && (
+                    <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={14} /> Current file attached: <strong>{editItem.file}</strong> (uploading new replaces it)
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ display: 'flex', gap: '12px' }}>
               <button type="submit" className="btn btn-primary">Save Entry</button>

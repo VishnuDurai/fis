@@ -386,7 +386,11 @@ const createTables = async () => {
       staff_name TEXT,
       membershipid TEXT,
       organization TEXT,
-      membership_type TEXT
+      membership_type TEXT,
+      file TEXT,
+      type TEXT,
+      size DOUBLE,
+      date TEXT
     )`,
     // 22. staff_event_organized
     `CREATE TABLE IF NOT EXISTS staff_event_organized (
@@ -722,6 +726,17 @@ const createTables = async () => {
     'ALTER TABLE clubs ADD COLUMN co_faculty_incharge_id VARCHAR(100)'
   ];
   for (const alterQuery of clubCols) {
+    try { await pool.query(alterQuery); } catch (e) {}
+  }
+
+  // Safe column migration for staff_member (file upload support)
+  const memberCols = [
+    'ALTER TABLE staff_member ADD COLUMN file TEXT',
+    'ALTER TABLE staff_member ADD COLUMN type TEXT',
+    'ALTER TABLE staff_member ADD COLUMN size DOUBLE',
+    'ALTER TABLE staff_member ADD COLUMN date TEXT'
+  ];
+  for (const alterQuery of memberCols) {
     try { await pool.query(alterQuery); } catch (e) {}
   }
 

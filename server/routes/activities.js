@@ -103,7 +103,7 @@ const tableMap = {
   },
   memberships: {
     table: 'staff_member',
-    cols: ['staff_id', 'staff_name', 'membershipid', 'organization', 'membership_type']
+    cols: ['staff_id', 'staff_name', 'membershipid', 'organization', 'membership_type', 'file', 'type', 'size', 'date']
   },
   seed_money: {
     table: 'staff_seed_money',

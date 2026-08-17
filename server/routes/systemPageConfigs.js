@@ -57,26 +57,27 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'conf_venue', label: 'Conference Venue / Location', type: 'text', required: false, status: 'active' },
       { name: 'conf_dates', label: 'Conference Date Range', type: 'date', required: false, status: 'active' },
       { name: 'patent_no', label: 'Patent Application / Grant No', type: 'text', required: false, status: 'active' },
-      { name: 'patent_status', label: 'Patent Status', type: 'select', options: ['Filed', 'Published', 'Granted'], required: false, status: 'active' }
+      { name: 'patent_status', label: 'Patent Status', type: 'select', options: ['Filed', 'Published', 'Granted'], required: false, status: 'active' },
+      { name: 'file', label: 'Upload Paper / Certificate Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ],
     publication_type_constraints: {
       Journal: {
-        requiredFields: ['type_pub', 'type', 'title', 'journel', 'co_authors', 'date_con', 'month_pub', 'organizer', 'index_pub'],
+        requiredFields: ['type_pub', 'type', 'title', 'journel', 'co_authors', 'date_con', 'month_pub', 'organizer', 'index_pub', 'file'],
         optionalFields: ['author_position', 'doi', 'paper_url', 'pp', 'citations', 'issn_no', 'volume_pub', 'issue_no', 'impact'],
         hiddenFields: ['isbn', 'conf_venue', 'conf_dates', 'patent_no', 'patent_status']
       },
       Conference: {
-        requiredFields: ['type_pub', 'type', 'title', 'journel', 'co_authors', 'date_con', 'organizer'],
+        requiredFields: ['type_pub', 'type', 'title', 'journel', 'co_authors', 'date_con', 'organizer', 'file'],
         optionalFields: ['author_position', 'isbn', 'conf_venue', 'conf_dates', 'doi', 'paper_url', 'pp', 'citations', 'index_pub'],
         hiddenFields: ['issn_no', 'volume_pub', 'issue_no', 'impact', 'patent_no', 'patent_status']
       },
       'Book Chapter': {
-        requiredFields: ['type_pub', 'type', 'title', 'journel', 'co_authors', 'organizer'],
+        requiredFields: ['type_pub', 'type', 'title', 'journel', 'co_authors', 'organizer', 'file'],
         optionalFields: ['isbn', 'doi', 'paper_url', 'pp', 'date_con', 'month_pub'],
         hiddenFields: ['issn_no', 'volume_pub', 'issue_no', 'impact', 'conf_venue', 'conf_dates', 'patent_no', 'patent_status']
       },
       Patent: {
-        requiredFields: ['type_pub', 'type', 'title', 'patent_no', 'patent_status', 'date_con'],
+        requiredFields: ['type_pub', 'type', 'title', 'patent_no', 'patent_status', 'date_con', 'file'],
         optionalFields: ['co_authors', 'organizer', 'paper_url', 'doi'],
         hiddenFields: ['journel', 'issn_no', 'volume_pub', 'issue_no', 'impact', 'isbn', 'conf_venue', 'conf_dates', 'pp', 'citations', 'index_pub']
       }
@@ -94,7 +95,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'publisher', label: 'Publisher Name', type: 'text', required: true, status: 'active' },
       { name: 'edition', label: 'Edition', type: 'text', required: true, status: 'active' },
       { name: 'isbn', label: 'ISBN Code', type: 'text', required: true, status: 'active' },
-      { name: 'dateofpublication', label: 'Date of Publication', type: 'date', required: true, status: 'active' }
+      { name: 'dateofpublication', label: 'Date of Publication', type: 'date', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Book Cover / Chapter Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   awards: {
@@ -107,7 +109,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'awardname', label: 'Award Title', type: 'text', required: true, status: 'active' },
       { name: 'awardby', label: 'Awarding Body / Agency', type: 'text', required: true, status: 'active' },
       { name: 'event', label: 'Name of the Event', type: 'text', required: true, status: 'active' },
-      { name: 'awa_date', label: 'Date of Award', type: 'date', required: true, status: 'active' }
+      { name: 'awa_date', label: 'Date of Award', type: 'date', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Award Certificate Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   resource: {
@@ -123,7 +126,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'from_date', label: 'From Date', type: 'date', required: true, status: 'active' },
       { name: 'to_date', label: 'To Date', type: 'date', required: true, status: 'active' },
       { name: 'organizer', label: 'Organizer Agency', type: 'text', required: true, status: 'active' },
-      { name: 'ben', label: 'Beneficiary Student/Faculty Count', type: 'number', required: true, status: 'active' }
+      { name: 'ben', label: 'Beneficiary Student/Faculty Count', type: 'number', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Certificate / Appreciation Letter (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   funding: {
@@ -144,7 +148,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'from_date', label: 'Duration From Date', type: 'date', required: false, status: 'active' },
       { name: 'to_date', label: 'Duration To Date', type: 'date', required: false, status: 'active' },
       { name: 'referenceno', label: 'Grant No & Order Date', type: 'text', required: false, status: 'active' },
-      { name: 'status', label: 'Current Status', type: 'select', options: ['Sanctioned', 'Received', 'Applied', 'Ongoing', 'Completed'], required: true, status: 'active' }
+      { name: 'status', label: 'Current Status', type: 'select', options: ['Sanctioned', 'Received', 'Applied', 'Ongoing', 'Completed'], required: true, status: 'active' },
+      { name: 'file', label: 'Upload Sanction Order / Grant Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   seed_money: {
@@ -162,7 +167,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'sanctioned_date', label: 'Sanctioned Date', type: 'date', required: false, status: 'active' },
       { name: 'duration', label: 'Duration (e.g. 6 Months / 1 Year)', type: 'text', required: false, status: 'active' },
       { name: 'amount', label: 'Amount (INR - Only Through College Account)', type: 'number', required: true, status: 'active' },
-      { name: 'status', label: 'Current Status', type: 'select', options: ['Received', 'Sanctioned', 'Applied', 'Ongoing', 'Completed'], required: true, status: 'active' }
+      { name: 'status', label: 'Current Status', type: 'select', options: ['Received', 'Sanctioned', 'Applied', 'Ongoing', 'Completed'], required: true, status: 'active' },
+      { name: 'file', label: 'Upload Sanction / Approval Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   ipr: {
@@ -177,7 +183,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'patent_status', label: 'Patent Status', type: 'select', options: ['Filed', 'Published', 'Granted'], required: true, status: 'active' },
       { name: 'institution', label: 'File Number', type: 'text', required: true, status: 'active' },
       { name: 'generation', label: 'Date of Filing/Publication', type: 'date', required: true, status: 'active' },
-      { name: 'propose', label: 'Purpose / Brief Summary', type: 'textarea', required: true, status: 'active' }
+      { name: 'propose', label: 'Purpose / Brief Summary', type: 'textarea', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Patent / Copyright Document Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   certifications: {
@@ -191,7 +198,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'organisation', label: 'Issuing Authority (NPTEL/Coursera)', type: 'text', required: true, status: 'active' },
       { name: 'duration_weeks', label: 'Course Duration (Weeks)', type: 'select', options: ['4 Weeks', '8 Weeks', '12 Weeks'], required: true, status: 'active' },
       { name: 'mark', label: 'Marks / Percentage / Grade', type: 'text', required: true, status: 'active' },
-      { name: 'data_of_exam', label: 'Completion Date', type: 'date', required: true, status: 'active' }
+      { name: 'data_of_exam', label: 'Completion Date', type: 'date', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Certification Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   events: {
@@ -210,7 +218,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'res_person', label: 'Resource Person Details', type: 'textarea', required: true, status: 'active' },
       { name: 'ben_person', label: 'Number of Beneficiaries', type: 'number', required: true, status: 'active' },
       { name: 'sponsership', label: 'Sponsor Details', type: 'text', required: true, status: 'active' },
-      { name: 'granted', label: 'Sponsorship Grant Amount (INR)', type: 'number', required: true, status: 'active' }
+      { name: 'granted', label: 'Sponsorship Grant Amount (INR)', type: 'number', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Event Approval / Report Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   memberships: {
@@ -222,7 +231,8 @@ export const DEFAULT_PAGE_CONFIGS = {
     fields: [
       { name: 'membershipid', label: 'Membership ID / Number', type: 'text', required: true, status: 'active' },
       { name: 'organization', label: 'Professional Society / Organization', type: 'text', required: true, status: 'active' },
-      { name: 'membership_type', label: 'Membership Type', type: 'select', options: ['Annual Member', 'Life Member'], required: true, status: 'active' }
+      { name: 'membership_type', label: 'Membership Type', type: 'select', options: ['Annual Member', 'Life Member'], required: true, status: 'active' },
+      { name: 'file', label: 'Upload Membership Certificate / Card Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   interactions: {
@@ -236,7 +246,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'title', label: 'Interaction Title', type: 'text', required: true, status: 'active' },
       { name: 'from_date', label: 'From Date', type: 'date', required: true, status: 'active' },
       { name: 'to_date', label: 'To Date', type: 'date', required: true, status: 'active' },
-      { name: 'organizer', label: 'Organizer Agency / Venue', type: 'text', required: true, status: 'active' }
+      { name: 'organizer', label: 'Organizer Agency / Venue', type: 'text', required: true, status: 'active' },
+      { name: 'file', label: 'Upload FDP / Workshop Certificate Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   scholars: {
@@ -254,7 +265,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'organisation', label: 'Institution', type: 'text', required: true, status: 'active' },
       { name: 'university', label: 'Affiliated University', type: 'text', required: true, status: 'active' },
       { name: 'desgination', label: 'Category', type: 'select', options: ['Full Time', 'Part Time'], required: true, status: 'active' },
-      { name: 'status', label: 'Research Status', type: 'select', options: ['Provisionally Registered', 'Provisionally Confirmed', 'Submitted Synopsis', 'Submitted Thesis', 'Degree Awarded'], required: true, status: 'active' }
+      { name: 'status', label: 'Research Status', type: 'select', options: ['Provisionally Registered', 'Provisionally Confirmed', 'Submitted Synopsis', 'Submitted Thesis', 'Degree Awarded'], required: true, status: 'active' },
+      { name: 'file', label: 'Upload Registration / Synopsis Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   supervisors: {
@@ -265,7 +277,8 @@ export const DEFAULT_PAGE_CONFIGS = {
     icon: 'Award',
     fields: [
       { name: 'res_sup_id', label: 'Supervisor Reference Number', type: 'text', required: true, status: 'active' },
-      { name: 'recognition_month_year', label: 'Recognition Month & Year', type: 'month', required: true, status: 'active' }
+      { name: 'recognition_month_year', label: 'Recognition Month & Year', type: 'month', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Supervisor Recognition Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   clubs: {
@@ -285,7 +298,8 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'res_person', label: 'Resource Person Details', type: 'textarea', required: true, status: 'active' },
       { name: 'ben_person', label: 'Number of Beneficiaries', type: 'number', required: true, status: 'active' },
       { name: 'sponsership', label: 'Sponsor Details', type: 'text', required: true, status: 'active' },
-      { name: 'granted', label: 'Sponsorship Grant Amount (INR)', type: 'number', required: true, status: 'active' }
+      { name: 'granted', label: 'Sponsorship Grant Amount (INR)', type: 'number', required: true, status: 'active' },
+      { name: 'file', label: 'Upload Club Activity Report / Proof (PDF/Image)', type: 'file', required: true, status: 'active' }
     ]
   },
   personal: {
@@ -351,7 +365,7 @@ export const DEFAULT_PAGE_CONFIGS = {
       { name: 'board', label: 'University / Board Name', type: 'text', required: true, status: 'active' },
       { name: 'year', label: 'Year of Passing', type: 'number', required: true, status: 'active' },
       { name: 'percentage', label: 'Marks Percentage / CGPA', type: 'text', required: true, status: 'active' },
-      { name: 'file', label: 'Educational Certificate Proof', type: 'file', required: false, status: 'active' }
+      { name: 'file', label: 'Educational Certificate Proof', type: 'file', required: true, status: 'active' }
     ]
   },
   responsibilities: {
@@ -372,10 +386,19 @@ export const DEFAULT_PAGE_CONFIGS = {
 // Parse single db row
 const parseConfigRow = (row) => {
   if (!row) return null;
+  const parsedFields = typeof row.fields === 'string' ? JSON.parse(row.fields || '[]') : (row.fields || []);
+  const def = DEFAULT_PAGE_CONFIGS[row.page_key];
+  if (def && Array.isArray(def.fields)) {
+    def.fields.forEach(df => {
+      if (!parsedFields.some(f => f.name === df.name)) {
+        parsedFields.push({ ...df });
+      }
+    });
+  }
   return {
     ...row,
     portals: typeof row.portals === 'string' ? JSON.parse(row.portals || '[]') : (row.portals || []),
-    fields: typeof row.fields === 'string' ? JSON.parse(row.fields || '[]') : (row.fields || []),
+    fields: parsedFields,
     publication_type_constraints: typeof row.publication_type_constraints === 'string' 
       ? JSON.parse(row.publication_type_constraints || '{}') 
       : (row.publication_type_constraints || {})
