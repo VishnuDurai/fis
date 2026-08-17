@@ -194,6 +194,23 @@ router.post('/:slug/data', upload.single('file'), (req, res) => {
 
     let filePath = req.file ? req.file.filename : (req.body.file || null);
 
+    // Validate required fields defined in page schema
+    const fields = typeof page.fields === 'string' ? JSON.parse(page.fields || '[]') : (page.fields || []);
+    for (const f of fields) {
+      if (f.required) {
+        if (f.type === 'file') {
+          if (!filePath && !formData[f.id] && !formData[f.name]) {
+            return res.status(400).json({ error: `Field "${f.label || f.name}" is required. Please upload a file.` });
+          }
+        } else {
+          const val = formData[f.id] ?? formData[f.name];
+          if (val === undefined || val === null || String(val).trim() === '') {
+            return res.status(400).json({ error: `Field "${f.label || f.name}" is required.` });
+          }
+        }
+      }
+    }
+
     const dataJson = JSON.stringify(formData);
 
     db.run(
