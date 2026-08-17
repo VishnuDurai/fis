@@ -1226,7 +1226,159 @@ export const exportNbaTier1SarExcel = (data, departmentName = 'Department', acad
   }
 };
 
-export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', academicYear = '2026-2027', auth = {}) => {
+// ── Vector Graphic Chart for 5.2 Cadre Proportion ──
+function drawCadrePdfChart(doc, x, y, w, h, qualificationTable) {
+  if (!qualificationTable || qualificationTable.length === 0) return;
+  
+  // Background card container
+  doc.setFillColor(250, 245, 255); // light purple
+  doc.setDrawColor(233, 213, 255);
+  doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+
+  // Title
+  doc.setFont('times', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(107, 33, 168);
+  doc.text('Cadre Distribution by Assessment Year', x + 4, y + 5);
+
+  const rowCount = qualificationTable.length;
+  const barStartY = y + 8;
+  const availableH = h - 12;
+  const rowH = availableH / Math.max(rowCount, 1);
+
+  qualificationTable.forEach((q, idx) => {
+    const rowY = barStartY + (idx * rowH);
+    const prof = q.cadre?.profCount || 0;
+    const assoc = q.cadre?.assocCount || 0;
+    const asst = q.cadre?.asstCount || 0;
+    const total = prof + assoc + asst || 1;
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${q.yearLabel || ''}`, x + 4, rowY + 3.5);
+
+    const barX = x + 24;
+    const barMaxW = w - 30;
+    const profW = (prof / total) * barMaxW;
+    const assocW = (assoc / total) * barMaxW;
+    const asstW = (asst / total) * barMaxW;
+
+    // Draw stacked bar
+    if (profW > 0) {
+      doc.setFillColor(124, 58, 237); // Purple for Prof
+      doc.rect(barX, rowY + 0.5, profW, 4, 'F');
+    }
+    if (assocW > 0) {
+      doc.setFillColor(59, 130, 246); // Blue for Assoc
+      doc.rect(barX + profW, rowY + 0.5, assocW, 4, 'F');
+    }
+    if (asstW > 0) {
+      doc.setFillColor(16, 185, 129); // Green for Asst
+      doc.rect(barX + profW + assocW, rowY + 0.5, asstW, 4, 'F');
+    }
+
+    doc.setFontSize(5.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`P:${prof} A:${assoc} AP:${asst}`, barX + barMaxW - 18, rowY + 3.5);
+  });
+}
+
+// ── Vector Graphic Chart for 5.3 Faculty Qualification ──
+function drawFqPdfChart(doc, x, y, w, h, qualificationTable) {
+  if (!qualificationTable || qualificationTable.length === 0) return;
+
+  // Background card container
+  doc.setFillColor(240, 249, 255); // light sky blue
+  doc.setDrawColor(186, 230, 253);
+  doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+
+  // Title
+  doc.setFont('times', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(3, 105, 161);
+  doc.text('Ph.D. (X) vs PG (Y) Qualification Mix', x + 4, y + 5);
+
+  const rowCount = qualificationTable.length;
+  const barStartY = y + 8;
+  const availableH = h - 12;
+  const rowH = availableH / Math.max(rowCount, 1);
+
+  qualificationTable.forEach((q, idx) => {
+    const rowY = barStartY + (idx * rowH);
+    const phd = q.X || 0;
+    const pg = q.Y || 0;
+    const total = q.F || (phd + pg) || 1;
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${q.yearLabel || ''}`, x + 4, rowY + 3.5);
+
+    const barX = x + 24;
+    const barMaxW = w - 30;
+    const phdPct = Math.round((phd / total) * 100);
+    const pgPct = 100 - phdPct;
+    const phdW = (phd / total) * barMaxW;
+    const pgW = (pg / total) * barMaxW;
+
+    // Draw stacked bar (Ph.D = Indigo, PG = Cyan)
+    if (phdW > 0) {
+      doc.setFillColor(79, 70, 229);
+      doc.rect(barX, rowY + 0.5, phdW, 4, 'F');
+    }
+    if (pgW > 0) {
+      doc.setFillColor(14, 165, 233);
+      doc.rect(barX + phdW, rowY + 0.5, pgW, 4, 'F');
+    }
+
+    doc.setFontSize(5.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Ph.D: ${phdPct}% | PG: ${pgPct}%`, barX + barMaxW - 22, rowY + 3.5);
+  });
+}
+
+// ── Vector Graphic Chart for 5.7 Faculty Retention ──
+function drawRetentionPdfChart(doc, x, y, w, h, retention) {
+  if (!retention) return;
+
+  // Background card container
+  doc.setFillColor(240, 253, 244); // light green
+  doc.setDrawColor(187, 247, 208);
+  doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+
+  // Title
+  doc.setFont('times', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(21, 128, 61);
+  doc.text(`Cohort Retention: ${retention.retentionRate || 0}% (${retention.retentionMarks || 0}/25 Marks)`, x + 4, y + 5);
+
+  const steps = [
+    { label: 'Base Year (CAYm2)', count: retention.nBase || 0, pct: 100, color: [59, 130, 246] },
+    { label: 'Retained Year 1 (CAYm1)', count: retention.nRetainedCAYm1 || 0, pct: retention.retentionRate || 100, color: [14, 165, 233] },
+    { label: 'Retained Year 2 (CAY)', count: retention.nRetainedCAY || 0, pct: retention.retentionRate || 100, color: [16, 185, 129] }
+  ];
+
+  const barStartY = y + 8;
+  const rowH = (h - 12) / 3;
+
+  steps.forEach((s, idx) => {
+    const rowY = barStartY + (idx * rowH);
+    doc.setFont('times', 'normal');
+    doc.setFontSize(6);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${s.label}: ${s.count} Faculty`, x + 4, rowY + 3.5);
+
+    const barX = x + 4;
+    const barMaxW = w - 8;
+    const barW = (s.pct / 100) * barMaxW;
+
+    doc.setFillColor(...s.color);
+    doc.roundedRect(barX, rowY + 4.5, Math.max(barW, 2), 2.5, 0.5, 0.5, 'F');
+  });
+}
+
+export const exportNbaTier1SarPdf = async (data, departmentName = 'Department', academicYear = '2026-2027', auth = {}, options = {}) => {
   try {
     const isInst = !departmentName || ['ALL', 'ALL DEPARTMENTS', 'INSTITUTION', 'SRI RAMAKRISHNA ENGINEERING COLLEGE'].includes(departmentName.toUpperCase());
     const fullDept = isInst ? 'Sri Ramakrishna Engineering College' : `Department of ${getFullDepartmentName(departmentName)}`;
