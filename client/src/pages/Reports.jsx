@@ -386,12 +386,69 @@ export default function Reports({ auth }) {
 
       currentY = 4 + bannerHeight + 16;
 
+      // Draw Faculty Personal & Academic Summary if single faculty scope
+      if (effectiveScope === 'faculty' && personal) {
+        autoTable(doc, {
+          startY: currentY,
+          margin: { left: 10, right: 10 },
+          theme: 'grid',
+          styles: { font: 'times', fontSize: 8, cellPadding: 2, textColor: [30, 41, 59] },
+          head: [
+            [
+              { content: '1. PERSONAL DETAILS', colSpan: 2, styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' } },
+              { content: '2. ACADEMIC STATUS', colSpan: 2, styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' } }
+            ]
+          ],
+          body: [
+            [
+              { content: 'Staff ID', fontStyle: 'bold', width: 25 }, personal.staff_id || 'N/A',
+              { content: 'Department', fontStyle: 'bold', width: 25 }, academics?.Department || personal.Department || 'N/A'
+            ],
+            [
+              { content: 'Staff Name', fontStyle: 'bold' }, personal.staff_name || 'N/A',
+              { content: 'Designation', fontStyle: 'bold' }, academics?.Designation || personal.Designation || 'N/A'
+            ],
+            [
+              { content: 'Date of Birth', fontStyle: 'bold' }, personal.dob || 'N/A',
+              { content: 'Highest Qual', fontStyle: 'bold' }, academics?.Qualification || personal.Qualification || 'N/A'
+            ],
+            [
+              { content: 'Email Address', fontStyle: 'bold' }, personal.email || 'N/A',
+              { content: 'Specialization', fontStyle: 'bold' }, academics?.area_of_specialization || personal.area_of_specialization || 'N/A'
+            ],
+            [
+              { content: 'Mobile', fontStyle: 'bold' }, personal.mobile || 'N/A',
+              { content: 'Date of Joining', fontStyle: 'bold' }, academics?.Date_of_joining || personal.Date_of_joining || 'N/A'
+            ],
+            [
+              { content: 'AICTE ID', fontStyle: 'bold' }, personal.aicte_id || academics?.aicte_id || 'N/A',
+              { content: 'Anna Univ ID', fontStyle: 'bold' }, personal.anna_univ_id || academics?.anna_univ_id || 'N/A'
+            ]
+          ]
+        });
+        currentY = (doc.lastAutoTable?.finalY || currentY) + 8;
+      }
+
       // Section mapping dictionary for PDF autoTable
       const sectionConfigs = {
         education: {
           title: 'Education & Academic Qualifications',
           headers: ['Degree / Level', 'Course / Branch', 'College / Institution', 'University / Board', 'Year of Passing', 'Percentage / CGPA', 'Class Obtained'],
-          mapRow: (r) => [r.degree_type || r.degree || 'N/A', r.course || r.specialization || 'N/A', r.college || r.institution || 'N/A', r.university || r.board || 'N/A', r.year_of_passing || r.year || 'N/A', r.percentage_cgpa || r.percentage || r.cgpa || 'N/A', r.class_obtained || r.class || 'N/A']
+          mapRow: (r) => {
+            const pct = parseFloat(r.percentage || r.percentage_cgpa || r.cgpa);
+            const calculatedClass = !isNaN(pct)
+              ? (pct >= 75 || (pct >= 7.5 && pct <= 10) ? 'First Class with Distinction' : (pct >= 60 || (pct >= 6.0 && pct <= 10) ? 'First Class' : 'Passed'))
+              : 'N/A';
+            return [
+              r.degree || r.degree_type || r.category || 'N/A',
+              r.specialization || r.course || 'N/A',
+              r.institute || r.college || r.institution || 'N/A',
+              r.board || r.university || 'N/A',
+              r.year || r.year_of_passing || 'N/A',
+              r.percentage || r.percentage_cgpa || r.cgpa || 'N/A',
+              r.class_obtained || r.class || (r.percentage ? calculatedClass : 'N/A')
+            ];
+          }
         },
         memberships: {
           title: 'Professional Society Memberships',
@@ -885,6 +942,12 @@ export default function Reports({ auth }) {
                       <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>DOB:</td><td style={{ border: 'none', padding: '3px' }}>{personal.dob || 'N/A'}</td></tr>
                       <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Email Address:</td><td style={{ border: 'none', padding: '3px' }}>{personal.email || 'N/A'}</td></tr>
                       <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Mobile:</td><td style={{ border: 'none', padding: '3px' }}>{personal.mobile || 'N/A'}</td></tr>
+                      {personal.aicte_id && (
+                        <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>AICTE ID:</td><td style={{ border: 'none', padding: '3px' }}>{personal.aicte_id}</td></tr>
+                      )}
+                      {personal.anna_univ_id && (
+                        <tr style={{ border: 'none' }}><td style={{ border: 'none', padding: '3px', fontWeight: 700 }}>Anna Univ ID:</td><td style={{ border: 'none', padding: '3px' }}>{personal.anna_univ_id}</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -955,17 +1018,23 @@ export default function Reports({ auth }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.education.map((e, idx) => (
-                      <tr key={e.id || idx}>
-                        <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{e.degree_type || e.degree || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.course || e.specialization || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.college || e.institution || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.university || e.board || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{e.year_of_passing || e.year || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{e.percentage_cgpa || e.percentage || e.cgpa || 'N/A'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.class_obtained || e.class || 'N/A'}</td>
-                      </tr>
-                    ))}
+                    {reportData.education.map((e, idx) => {
+                      const pct = parseFloat(e.percentage || e.percentage_cgpa || e.cgpa);
+                      const calculatedClass = !isNaN(pct)
+                        ? (pct >= 75 || (pct >= 7.5 && pct <= 10) ? 'First Class with Distinction' : (pct >= 60 || (pct >= 6.0 && pct <= 10) ? 'First Class' : 'Passed'))
+                        : 'N/A';
+                      return (
+                        <tr key={e.id || idx}>
+                          <td style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 600 }}>{e.degree || e.degree_type || e.category || 'N/A'}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.specialization || e.course || 'N/A'}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.institute || e.college || e.institution || 'N/A'}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.board || e.university || 'N/A'}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{e.year || e.year_of_passing || 'N/A'}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '6px', textAlign: 'center' }}>{e.percentage || e.percentage_cgpa || e.cgpa || 'N/A'}</td>
+                          <td style={{ border: '1px solid #ccc', padding: '6px' }}>{e.class_obtained || e.class || (e.percentage ? calculatedClass : 'N/A')}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
