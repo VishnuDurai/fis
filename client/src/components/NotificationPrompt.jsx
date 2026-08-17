@@ -55,7 +55,7 @@ export default function NotificationPrompt({ isOpen, onClose }) {
       }
 
       // Fetch VAPID Public Key
-      const keyRes = await fetch(`${API_BASE_URL}/notifications/vapid-public-key`);
+      const keyRes = await fetch(`${API_BASE_URL}/api/notifications/vapid-public-key`);
       const { publicKey } = await keyRes.json();
 
       if (!publicKey) {
@@ -73,8 +73,8 @@ export default function NotificationPrompt({ isOpen, onClose }) {
       }
 
       // Send subscription to backend
-      const token = localStorage.getItem('token');
-      const subRes = await fetch(`${API_BASE_URL}/notifications/subscribe`, {
+      const token = localStorage.getItem('srec_token') || localStorage.getItem('token');
+      const subRes = await fetch(`${API_BASE_URL}/api/notifications/subscribe`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,8 +109,8 @@ export default function NotificationPrompt({ isOpen, onClose }) {
 
       if (subscription) {
         await subscription.unsubscribe();
-        const token = localStorage.getItem('token');
-        await fetch(`${API_BASE_URL}/notifications/unsubscribe`, {
+        const token = localStorage.getItem('srec_token') || localStorage.getItem('token');
+        await fetch(`${API_BASE_URL}/api/notifications/unsubscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -134,8 +134,8 @@ export default function NotificationPrompt({ isOpen, onClose }) {
     setLoading(true);
     setTestStatus(null);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/notifications/test-push`, {
+      const token = localStorage.getItem('srec_token') || localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/api/notifications/test-push`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
