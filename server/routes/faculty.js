@@ -3553,8 +3553,7 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
 
     // Compute Metrics for AI Bio Generation
     const name = (personal?.staff_name || targetStaffId).trim();
-    const salutation = (personal?.salutation || (name.toLowerCase().startsWith('dr') ? '' : 'Prof.')).trim();
-    const fullName = salutation ? `${salutation} ${name}` : name;
+    const fullName = name;
     const designation = (academics?.Designation || personal?.designation || 'Faculty Member').trim();
     const department = (academics?.Department || '').trim();
     const doj = academics?.Date_of_joining;

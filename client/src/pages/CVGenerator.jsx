@@ -176,8 +176,7 @@ export default function CVGenerator({ auth }) {
   const metrics = cvData?.metrics || {};
 
   const name = (personal.staff_name || auth?.name || 'Faculty Member').trim();
-  const salutation = personal.salutation || (name.toLowerCase().startsWith('dr') ? '' : 'Prof.');
-  const fullDisplayName = salutation ? `${salutation} ${name}` : name;
+  const fullDisplayName = name;
   const designation = academics.Designation || personal.designation || 'Faculty Member';
   const department = academics.Department || '';
   const email = personal.email || `${personal.staff_id || 'faculty'}@srec.ac.in`;
