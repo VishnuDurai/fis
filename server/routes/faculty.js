@@ -1728,6 +1728,242 @@ router.put('/appraisal/:id/final-approve', authenticateToken, (req, res) => {
   });
 });
 
+// 11d. POST Bulk HOD Appraisal Digital Sign & Approval
+router.post('/appraisals/bulk-hod-sign-approve', authenticateToken, async (req, res) => {
+  const isHod = req.user.isHod || req.user.role === 'dept_admin' || req.user.role === 'admin';
+  if (!isHod) {
+    return res.status(403).json({ error: 'Access denied: Only active Head of Department (HOD) or Department Admin can bulk sign and approve HOD appraisals.' });
+  }
+
+  const { appraisal_ids, ids, remarks } = req.body;
+  const targetIds = Array.isArray(appraisal_ids) ? appraisal_ids : (Array.isArray(ids) ? ids : []);
+
+  if (targetIds.length === 0) {
+    return res.status(400).json({ error: 'No appraisal form IDs provided for bulk sign & approval.' });
+  }
+
+  const signedAt = new Date().toISOString();
+  const signedName = req.user.name || req.user.staffId;
+  const signedIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const defaultRemarks = remarks && remarks.trim() ? remarks.trim() : 'Bulk digitally signed and approved by Head of Department.';
+
+  const isSystemAdmin = req.user.role === 'admin';
+  const hodDepts = getHodDepartments(req.user).map(d => d.toLowerCase().trim());
+
+  const processed = [];
+  const errors = [];
+
+  for (const appId of targetIds) {
+    try {
+      const app = await new Promise((resolve, reject) => {
+        db.get(`
+          SELECT sa.*, a.Department
+          FROM staff_appraisal sa
+          LEFT JOIN staff_academics a ON LOWER(TRIM(sa.staff_id)) = LOWER(TRIM(a.staff_id))
+          WHERE sa.id = ?
+        `, [appId], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+
+      if (!app) {
+        errors.push({ id: appId, error: 'Appraisal not found' });
+        continue;
+      }
+
+      // If dept admin / HOD, verify department authority
+      if (!isSystemAdmin && hodDepts.length > 0) {
+        const appDept = (app.Department || '').toLowerCase().trim();
+        const hasDeptAccess = hodDepts.some(d => d === appDept || appDept.includes(d) || d.includes(appDept));
+        if (!hasDeptAccess) {
+          errors.push({ id: appId, error: `Unauthorized: Faculty belongs to department (${app.Department}) outside your HOD jurisdiction.` });
+          continue;
+        }
+      }
+
+      const scoreA = app.hod_part_a_score !== null && app.hod_part_a_score !== undefined && app.hod_part_a_score !== ''
+        ? parseFloat(app.hod_part_a_score)
+        : (parseFloat(app.part_a_score) || 0);
+      const scoreB = app.hod_part_b_score !== null && app.hod_part_b_score !== undefined && app.hod_part_b_score !== ''
+        ? parseFloat(app.hod_part_b_score)
+        : (parseFloat(app.part_b_score) || 0);
+      const scoreC = app.hod_part_c_score !== null && app.hod_part_c_score !== undefined && app.hod_part_c_score !== ''
+        ? parseFloat(app.hod_part_c_score)
+        : (parseFloat(app.part_c_score) || 0);
+      const scoreD = app.hod_part_d_score !== null && app.hod_part_d_score !== undefined && app.hod_part_d_score !== ''
+        ? parseFloat(app.hod_part_d_score)
+        : (parseFloat(app.part_d_score) || 0);
+      const hodTotal = scoreA + scoreB + scoreC + scoreD;
+
+      await new Promise((resolve, reject) => {
+        db.run(`
+          UPDATE staff_appraisal
+          SET hod_part_a_score = ?,
+              hod_part_b_score = ?,
+              hod_part_c_score = ?,
+              hod_part_d_score = ?,
+              hod_total_score = ?,
+              hod_remarks = ?,
+              status = 'HOD Approved',
+              hod_approved_at = CURRENT_TIMESTAMP,
+              hod_signed_at = ?,
+              hod_signed_name = ?,
+              hod_signed_ip = ?
+          WHERE id = ?
+        `, [
+          scoreA, scoreB, scoreC, scoreD,
+          hodTotal,
+          defaultRemarks,
+          signedAt, signedName, signedIp,
+          appId
+        ], function(err) {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      sendAppraisalStatusEmail(appId, 'HOD Approved', {
+        part_a: scoreA,
+        part_b: scoreB,
+        part_c: scoreC,
+        part_d: scoreD,
+        total_score: hodTotal,
+        remarks: defaultRemarks
+      });
+
+      processed.push(appId);
+    } catch (err) {
+      errors.push({ id: appId, error: err.message });
+    }
+  }
+
+  res.json({
+    success: true,
+    message: `Successfully bulk signed and approved ${processed.length} appraisal form(s)!`,
+    processedCount: processed.length,
+    processedIds: processed,
+    errors: errors.length > 0 ? errors : undefined
+  });
+});
+
+// 11e. POST Bulk Executive / Principal / Admin Final Digital Sign & Approval
+router.post('/appraisals/bulk-final-sign-approve', authenticateToken, async (req, res) => {
+  const isInstAdmin = ['admin', 'principal', 'hr'].includes(req.user.role) || req.user.isInstitutionalAdmin;
+  if (!isInstAdmin) {
+    return res.status(403).json({ error: 'Access denied: Only System Admin, Principal, or HR can bulk sign and finalize appraisal forms.' });
+  }
+
+  const { appraisal_ids, ids, remarks } = req.body;
+  const targetIds = Array.isArray(appraisal_ids) ? appraisal_ids : (Array.isArray(ids) ? ids : []);
+
+  if (targetIds.length === 0) {
+    return res.status(400).json({ error: 'No appraisal form IDs provided for bulk final sign & approval.' });
+  }
+
+  const signedAt = new Date().toISOString();
+  const signedName = req.user.name || req.user.staffId;
+  const signedIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const defaultRemarks = remarks && remarks.trim() ? remarks.trim() : 'Bulk digitally signed and final approved by Executive Authority.';
+
+  const processed = [];
+  const errors = [];
+
+  for (const appId of targetIds) {
+    try {
+      const app = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM staff_appraisal WHERE id = ?', [appId], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+
+      if (!app) {
+        errors.push({ id: appId, error: 'Appraisal not found' });
+        continue;
+      }
+
+      const scoreA = app.final_part_a_score !== null && app.final_part_a_score !== undefined && app.final_part_a_score !== ''
+        ? parseFloat(app.final_part_a_score)
+        : (app.hod_part_a_score !== null && app.hod_part_a_score !== undefined && app.hod_part_a_score !== ''
+          ? parseFloat(app.hod_part_a_score)
+          : (parseFloat(app.part_a_score) || 0));
+
+      const scoreB = app.final_part_b_score !== null && app.final_part_b_score !== undefined && app.final_part_b_score !== ''
+        ? parseFloat(app.final_part_b_score)
+        : (app.hod_part_b_score !== null && app.hod_part_b_score !== undefined && app.hod_part_b_score !== ''
+          ? parseFloat(app.hod_part_b_score)
+          : (parseFloat(app.part_b_score) || 0));
+
+      const scoreC = app.final_part_c_score !== null && app.final_part_c_score !== undefined && app.final_part_c_score !== ''
+        ? parseFloat(app.final_part_c_score)
+        : (app.hod_part_c_score !== null && app.hod_part_c_score !== undefined && app.hod_part_c_score !== ''
+          ? parseFloat(app.hod_part_c_score)
+          : (parseFloat(app.part_c_score) || 0));
+
+      const scoreD = app.final_part_d_score !== null && app.final_part_d_score !== undefined && app.final_part_d_score !== ''
+        ? parseFloat(app.final_part_d_score)
+        : (app.hod_part_d_score !== null && app.hod_part_d_score !== undefined && app.hod_part_d_score !== ''
+          ? parseFloat(app.hod_part_d_score)
+          : (parseFloat(app.part_d_score) || 0));
+
+      const finalTotal = scoreA + scoreB + scoreC + scoreD;
+
+      await new Promise((resolve, reject) => {
+        db.run(`
+          UPDATE staff_appraisal
+          SET status = 'Final Approved',
+              final_part_a_score = ?,
+              final_part_b_score = ?,
+              final_part_c_score = ?,
+              final_part_d_score = ?,
+              final_total_score = ?,
+              final_remarks = ?,
+              remarks = ?,
+              final_approved_by = ?,
+              final_approved_at = CURRENT_TIMESTAMP,
+              principal_signed_at = ?,
+              principal_signed_name = ?,
+              principal_signed_ip = ?
+          WHERE id = ?
+        `, [
+          scoreA, scoreB, scoreC, scoreD,
+          finalTotal,
+          defaultRemarks,
+          defaultRemarks,
+          req.user.staffId || req.user.staff_id,
+          signedAt, signedName, signedIp,
+          appId
+        ], function(err) {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      sendAppraisalStatusEmail(appId, 'Final Approved', {
+        part_a: scoreA,
+        part_b: scoreB,
+        part_c: scoreC,
+        part_d: scoreD,
+        total_score: finalTotal,
+        remarks: defaultRemarks
+      });
+
+      processed.push(appId);
+    } catch (err) {
+      errors.push({ id: appId, error: err.message });
+    }
+  }
+
+  res.json({
+    success: true,
+    message: `Successfully bulk signed and final approved ${processed.length} appraisal form(s)!`,
+    processedCount: processed.length,
+    processedIds: processed,
+    errors: errors.length > 0 ? errors : undefined
+  });
+});
+
 // Helper to send FPI Appraisal Form Confirmation Email with complete scores & details
 const sendAppraisalConfirmationEmail = (staffId, appraisalData) => {
   db.get('SELECT staff_name, email FROM staff_personal WHERE staff_id = ?', [staffId], (err, row) => {

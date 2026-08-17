@@ -253,7 +253,7 @@ def create_portal_workflows_document():
     hod_workflows = [
         ("Workflow 2.1 — Department Faculty Directory & Read-Only Profile Verification: ", "HOD/Dept Admin accesses Faculty Directory (/admin/faculty) to view department faculty listings. Opens Personal Details (/profile/personal) to inspect DOB, Gender, Mobile, PAN, Aadhaar, and Address. All input fields are explicitly disabled (disabled={auth.role === 'dept_admin'}) to prevent unauthorized editing."),
         ("Workflow 2.2 — Department Additional Responsibilities Assignment: ", "HOD accesses /responsibilities to assign official departmental additional duties (e.g. Class Advisor, Lab In-charge, Accreditation Coordinator) to department faculty members."),
-        ("Workflow 2.3 — HOD Annual Appraisal Review & Part-by-Part Evaluation: ", "HOD opens Appraisal Form (/appraisal) and monitors pending department submissions (status === 'Submitted'). Opens Auto-Mapped Activity Verification Panel and clicks 👁️ View Proof next to publications, grants, patents, certifications, and events to inspect original uploaded evidence. Opens evaluation modal, enters HOD evaluated scores for PART A, B, C, D, adds feedback remarks, and clicks 'Approve & Forward to Principal/HR'. Form status updates to 'HOD Approved'."),
+        ("Workflow 2.3 — HOD Annual Appraisal Review, Part-by-Part Evaluation & Bulk Sign/Approval: ", "HOD opens Appraisal Form (/appraisal) and monitors pending department submissions (status === 'Submitted'). Opens Auto-Mapped Activity Verification Panel and clicks 👁️ View Proof next to publications, grants, patents, certifications, and events to inspect original uploaded evidence. For individual reviews, opens evaluation modal, enters HOD evaluated scores for PART A, B, C, D, adds feedback remarks, and clicks 'Approve & Forward to Principal/HR'. For batch actions, HOD selects multiple or all pending forms via checkboxes, clicks '✍️ Sign & Approve Selected', inspects the digital signature credentials (signer name, ISO timestamp, client IP), confirms bulk remarks, and submits in one step. Form status updates to 'HOD Approved' and notification emails are dispatched to faculty."),
         ("Workflow 2.4 — Departmental Report & Dossier Generation: ", "HOD accesses Reports (/reports) to generate department-wide activity summaries, publication dossiers, and appraisal evaluation reports in PDF, Excel, and ZIP formats.")
     ]
 
@@ -269,11 +269,11 @@ def create_portal_workflows_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
-    add_diagram_box(doc, "HOD Part-by-Part Appraisal Verification & Score Evaluation", [
+    add_diagram_box(doc, "HOD Part-by-Part Appraisal Verification & Bulk Score Evaluation", [
         "HOD monitors department submissions queue (Status: 'Submitted').",
-        "HOD opens Auto-Mapped Activity Verification Panel and clicks 👁️ View Proof to verify uploaded evidence.",
-        "HOD inputs evaluated marks for PART A, PART B, PART C, and PART D based on institutional rubric.",
-        "HOD adds qualitative evaluation remarks and submits form.",
+        "HOD verifies uploaded evidence via 👁️ View Proof or selects multiple pending forms in bulk.",
+        "HOD executes individual Part-by-Part evaluation or batch digital signing via /api/faculty/appraisals/bulk-hod-sign-approve.",
+        "System records official digital signature timestamps, IP address, and HOD remarks.",
         "System updates appraisal status to 'HOD Approved' and forwards queue to Principal/HR."
     ])
 
@@ -282,7 +282,7 @@ def create_portal_workflows_document():
 
     p4 = doc.add_paragraph()
     p4.paragraph_format.space_after = Pt(6)
-    r4 = p4.add_run("The System Admin & Executive Portal equips Principal, HR, and System Administrators with institution-wide administration, full CRUD control, dynamic form building, appraisal rubric customization, final executive appraisal approval, and faculty transfer execution.")
+    r4 = p4.add_run("The System Admin & Executive Portal equips Principal, HR, and System Administrators with institution-wide administration, full CRUD control, dynamic form building, appraisal rubric customization, final executive appraisal approval (individual & bulk), and faculty transfer execution.")
     r4.font.name = 'Times New Roman'
     r4.font.size = Pt(14)
 
@@ -291,7 +291,7 @@ def create_portal_workflows_document():
         ("Workflow 3.2 — Institutional Responsibilities Assignment: ", "Principal/HR/Admin accesses /responsibilities to assign institution-level additional responsibilities (e.g. NAAC Coordinator, IQAC Member, Anti-Ragging Committee) to any faculty across all departments."),
         ("Workflow 3.3 — Dynamic Page & Custom Form Builder: ", "Admin accesses Dynamic Page Builder (/admin/dynamic-pages) to create custom survey forms, feedback questionnaires, or data collection pages, specifying target portal visibility."),
         ("Workflow 3.4 — Appraisal Form Builder & Rubric Configurator (/appraisal): ", "Admin opens Form Builder tab in /appraisal to configure evaluation parameters: (a) Designation Overrides: Selects target designation (Assistant Professor, Associate Professor, Professor, Professor & Head) to customize unit marks and max caps. (b) Threshold Brackets (⚙️ Config Bracket): Configures cutoff thresholds (feedback 4.0 cutoff, pass % 80% cutoff, publication splits). (c) Custom PART Addition (➕ Add New PART): Adds new evaluation sections (PART_E, PART_F) and updates titles in real time."),
-        ("Workflow 3.5 — Final Executive Appraisal Approval: ", "Executive Admin reviews HOD-approved submissions (status === 'HOD Approved'). Inspects auto-mapped proof documents (👁️ View Proof), inputs final executive scores and remarks, and clicks 'Final Approve'. Form status updates to 'Final Approved'."),
+        ("Workflow 3.5 — Final Executive Appraisal Approval & Bulk Sign-Off: ", "Executive Admin reviews HOD-approved submissions (status === 'HOD Approved') or submitted forms across all departments. Inspects auto-mapped proof documents (👁️ View Proof), inputs final executive scores and remarks, and clicks 'Final Approve'. For bulk approval, Admin selects multiple submissions, opens Bulk Sign & Approve Modal, selects approval mode (Auto, Final Executive Approval, or HOD Stage), applies digital signatures, and finalizes all selected records in one click. Form status updates to 'Final Approved' with automated email confirmations sent to faculty."),
         ("Workflow 3.6 — Faculty Department Transfer Execution: ", "Admin initiates faculty transfer (/api/admin/faculty/transfer). System logs audit history in staff_department_history, updates staff_academics, moves physical storage directory from /SREC/{old_dept}/{staff_id}/ to /SREC/{new_dept}/{staff_id}/, remaps DB file paths, and re-queues faculty under new HOD.")
     ]
 

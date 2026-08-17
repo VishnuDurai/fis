@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp, Settings } from 'lucide-react';
+import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck, Edit, Save, Search, Eye, CheckCircle, RefreshCw, X, Check, AlertCircle, ChevronDown, ChevronUp, Settings, FileSignature, CheckSquare, Square, CheckCheck } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import { showSuccess, showError } from '../context/AlertContext.jsx';
@@ -208,6 +208,86 @@ export default function Appraisal({ auth }) {
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState(null);
   const [draftId, setDraftId] = useState(null);
+
+  // Bulk Appraisal Sign & Approve State
+  const [selectedAppraisalIds, setSelectedAppraisalIds] = useState([]);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkRemarks, setBulkRemarks] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkActionStage, setBulkActionStage] = useState('auto'); // 'auto' | 'hod' | 'final'
+
+  const handleToggleSelect = (id) => {
+    setSelectedAppraisalIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = (visibleList) => {
+    const visibleIds = visibleList.map(a => a.id);
+    const isAllSelected = visibleIds.length > 0 && visibleIds.every(id => selectedAppraisalIds.includes(id));
+    if (isAllSelected) {
+      setSelectedAppraisalIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    } else {
+      setSelectedAppraisalIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleOpenBulkModal = () => {
+    if (selectedAppraisalIds.length === 0) return;
+    setBulkRemarks('');
+    setBulkActionStage('auto');
+    setBulkModalOpen(true);
+  };
+
+  const handleBulkSignAndApproveSubmit = async () => {
+    if (selectedAppraisalIds.length === 0) return;
+    setBulkProcessing(true);
+    try {
+      const isDeptAdminOrHod = (auth?.role === 'dept_admin' || auth?.isHod) && auth?.role !== 'admin';
+      
+      let endpoint = `${API_BASE_URL}/api/faculty/appraisals/bulk-final-sign-approve`;
+      if (isDeptAdminOrHod) {
+        endpoint = `${API_BASE_URL}/api/faculty/appraisals/bulk-hod-sign-approve`;
+      } else if (auth?.role === 'admin') {
+        if (bulkActionStage === 'hod') {
+          endpoint = `${API_BASE_URL}/api/faculty/appraisals/bulk-hod-sign-approve`;
+        } else if (bulkActionStage === 'final') {
+          endpoint = `${API_BASE_URL}/api/faculty/appraisals/bulk-final-sign-approve`;
+        } else {
+          const selectedApps = appraisals.filter(a => selectedAppraisalIds.includes(a.id));
+          const hasHodApproved = selectedApps.some(a => a.status === 'HOD Approved');
+          endpoint = hasHodApproved
+            ? `${API_BASE_URL}/api/faculty/appraisals/bulk-final-sign-approve`
+            : `${API_BASE_URL}/api/faculty/appraisals/bulk-hod-sign-approve`;
+        }
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth.token}`
+        },
+        body: JSON.stringify({
+          appraisal_ids: selectedAppraisalIds,
+          remarks: bulkRemarks
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to process bulk approval');
+
+      showSuccess(data.message || `Successfully signed and approved ${selectedAppraisalIds.length} appraisal form(s) in bulk!`);
+      setSelectedAppraisalIds([]);
+      setBulkModalOpen(false);
+      setBulkRemarks('');
+      fetchAppraisals();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
 
   // Interactive Approval & Revision Request Modal State for Pending Forms Table
   const [actionModalAppraisal, setActionModalAppraisal] = useState(null);
@@ -4899,7 +4979,12 @@ export default function Appraisal({ auth }) {
           )}
 
           {/* PENDING APPRAISAL FORMS REVIEW TABLE (HOD, PRINCIPAL, SYSTEM ADMIN PORTALS) */}
-          {(isAdminOrHR || isDeptAdmin || auth.role === 'admin') && (
+          {(isAdminOrHR || isDeptAdmin || auth.role === 'admin') && (() => {
+            const isAllPendingSelected = pendingAppraisalsForTable.length > 0 && pendingAppraisalsForTable.every(a => selectedAppraisalIds.includes(a.id));
+            const selectedPendingCount = pendingAppraisalsForTable.filter(a => selectedAppraisalIds.includes(a.id)).length;
+            const totalSelectedCount = selectedAppraisalIds.length;
+
+            return (
             <div className="card" style={{ marginBottom: '28px', padding: '20px', borderRadius: '12px', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 <div>
@@ -4909,13 +4994,149 @@ export default function Appraisal({ auth }) {
                   </h4>
                   <p style={{ fontSize: '0.83rem', color: '#64748b', margin: '2px 0 0 0' }}>
                     {auth.role === 'admin'
-                      ? 'System Admin Portal: Review, evaluate scores across parts, view full appraisal forms, approve, or request revisions.'
+                      ? 'System Admin Portal: Review, evaluate scores across parts, view full appraisal forms, approve individually or in bulk.'
                       : isAdminOrHR
-                      ? 'Principal & HR Portal: Review forwarded forms, evaluate total marks across parts, approve, or request revisions.'
-                      : 'HOD Portal: Review department appraisal forms, evaluate total marks across parts, approve, or request revisions.'}
+                      ? 'Principal & HR Portal: Review forwarded forms, evaluate total marks across parts, approve individually or in bulk.'
+                      : 'HOD Portal: Review department appraisal forms, evaluate total marks across parts, approve individually or in bulk.'}
                   </p>
                 </div>
+
+                {/* Header Actions: Select All & Bulk Sign & Approve Button */}
+                {pendingAppraisalsForTable.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSelectAll(pendingAppraisalsForTable)}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '7px 14px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderRadius: '6px',
+                        background: isAllPendingSelected ? '#e0f2fe' : '#f8fafc',
+                        color: isAllPendingSelected ? '#0369a1' : '#334155',
+                        border: isAllPendingSelected ? '1.5px solid #7dd3fc' : '1px solid #cbd5e1'
+                      }}
+                    >
+                      {isAllPendingSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                      {isAllPendingSelected ? 'Deselect All' : 'Select All Pending'}
+                    </button>
+
+                    {totalSelectedCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleOpenBulkModal}
+                        className="btn btn-success"
+                        style={{
+                          padding: '7px 16px',
+                          fontSize: '0.84rem',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '7px',
+                          borderRadius: '6px',
+                          background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          boxShadow: '0 4px 10px rgba(22, 163, 74, 0.35)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <FileSignature size={16} />
+                        ✍️ Sign &amp; Approve Selected ({totalSelectedCount})
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* FLOATING BULK SELECTION ACTION BANNER */}
+              {totalSelectedCount > 0 && (
+                <div style={{
+                  marginBottom: '16px',
+                  padding: '12px 18px',
+                  background: 'linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%)',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  boxShadow: '0 2px 8px rgba(34, 197, 94, 0.12)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.85rem'
+                    }}>
+                      {totalSelectedCount}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#14532d', fontSize: '0.92rem' }}>
+                        {totalSelectedCount} Appraisal Form{totalSelectedCount > 1 ? 's' : ''} Selected for Bulk Action
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#166534' }}>
+                        {auth.role === 'admin'
+                          ? 'System Admin: Will apply executive digital signature and approve selected forms in batch.'
+                          : isDeptAdmin
+                          ? 'HOD: Will apply department digital signature, set evaluated marks, and forward to Principal/HR.'
+                          : 'Principal / HR: Will apply final executive digital signature and approve forms in batch.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAppraisalIds([])}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: '#475569',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Clear Selection
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenBulkModal}
+                      style={{
+                        background: '#16a34a',
+                        border: 'none',
+                        color: '#ffffff',
+                        padding: '7px 16px',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)'
+                      }}
+                    >
+                      <FileSignature size={15} /> ✍️ Review &amp; Sign &amp; Approve
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {pendingAppraisalsForTable.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', color: '#64748b', fontSize: '0.9rem' }}>
@@ -4926,6 +5147,15 @@ export default function Appraisal({ auth }) {
                   <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
                     <thead>
                       <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
+                        <th style={{ padding: '12px 10px', width: '42px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isAllPendingSelected}
+                            onChange={() => handleToggleSelectAll(pendingAppraisalsForTable)}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#16a34a' }}
+                            title={isAllPendingSelected ? "Deselect all pending forms" : "Select all pending forms"}
+                          />
+                        </th>
                         <th style={{ padding: '12px 14px', fontWeight: 800 }}>Staff ID</th>
                         <th style={{ padding: '12px 14px', fontWeight: 800 }}>Faculty Name</th>
                         <th style={{ padding: '12px 14px', fontWeight: 800 }}>Total Marks Across Parts</th>
@@ -4936,6 +5166,7 @@ export default function Appraisal({ auth }) {
                     </thead>
                     <tbody>
                       {pendingAppraisalsForTable.map((app) => {
+                        const isRowSelected = selectedAppraisalIds.includes(app.id);
                         const partA = app.hod_part_a_score !== null && app.hod_part_a_score !== undefined ? app.hod_part_a_score : (app.part_a_score || 0);
                         const partB = app.hod_part_b_score !== null && app.hod_part_b_score !== undefined ? app.hod_part_b_score : (app.part_b_score || 0);
                         const partC = app.hod_part_c_score !== null && app.hod_part_c_score !== undefined ? app.hod_part_c_score : (app.part_c_score || 0);
@@ -4944,7 +5175,23 @@ export default function Appraisal({ auth }) {
                         const totalScore = app.hod_total_score || app.final_total_score || app.total_fpi_score || calculatedTotal;
 
                         return (
-                          <tr key={app.id} style={{ borderBottom: '1px solid #e2e8f0', background: app.status === 'HOD Approved' ? '#f0f9ff' : '#ffffff' }}>
+                          <tr
+                            key={app.id}
+                            style={{
+                              borderBottom: '1px solid #e2e8f0',
+                              background: isRowSelected ? '#f0fdf4' : (app.status === 'HOD Approved' ? '#f0f9ff' : '#ffffff'),
+                              transition: 'background-color 0.15s ease'
+                            }}
+                          >
+                            <td style={{ padding: '12px 10px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <input
+                                type="checkbox"
+                                checked={isRowSelected}
+                                onChange={() => handleToggleSelect(app.id)}
+                                style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#16a34a' }}
+                                title="Select this form for bulk actions"
+                              />
+                            </td>
                             <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a', verticalAlign: 'middle' }}>
                               {app.staff_id}
                             </td>
@@ -5025,7 +5272,8 @@ export default function Appraisal({ auth }) {
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* ACTION CONFIRMATION MODAL FOR APPROVE / REVISION REQUEST */}
           {actionModalAppraisal && actionType && (
@@ -5240,6 +5488,238 @@ export default function Appraisal({ auth }) {
               </div>
             </div>
           )}
+
+          {/* BULK DIGITAL SIGN & APPROVE MODAL FOR HOD AND SYSTEM ADMIN */}
+          {bulkModalOpen && selectedAppraisalIds.length > 0 && (() => {
+            const selectedApps = appraisals.filter(a => selectedAppraisalIds.includes(a.id));
+            const signerRole = auth.role === 'admin'
+              ? 'System Administrator'
+              : auth.role === 'principal'
+              ? 'Principal'
+              : auth.role === 'hr'
+              ? 'HR / Institutional Admin'
+              : 'Head of Department (HOD)';
+
+            return (
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+                <div className="card" style={{ maxWidth: '720px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '26px', borderRadius: '14px', background: '#ffffff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1.5px solid #cbd5e1' }}>
+                  
+                  {/* Modal Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '2px solid #e2e8f0', paddingBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
+                        <FileSignature size={22} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                          Bulk Digital Sign &amp; Approve
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                          Process batch digital signing &amp; evaluation for {selectedApps.length} selected appraisal form{selectedApps.length > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setBulkModalOpen(false)}
+                      disabled={bulkProcessing}
+                      style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Digital Signature Audit Information Card */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                    border: '1.5px solid #86efac',
+                    borderRadius: '10px',
+                    padding: '14px 18px',
+                    marginBottom: '18px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <ShieldCheck size={18} style={{ color: '#15803d' }} />
+                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#14532d' }}>
+                        Official Digital Signature Credentials
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '0.82rem', color: '#166534' }}>
+                      <div><strong>Signer Name:</strong> {auth.name || auth.staffId}</div>
+                      <div><strong>Authority Role:</strong> {signerRole}</div>
+                      <div><strong>Staff ID:</strong> {auth.staffId || 'N/A'}</div>
+                      <div><strong>Signature Time:</strong> {new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '0.74rem', color: '#15803d', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      🔒 Session IP address &amp; cryptographic timestamp will be recorded into each appraisal audit log.
+                    </div>
+                  </div>
+
+                  {/* Selected Appraisal Forms Preview Table */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '0.86rem', fontWeight: 800, color: '#334155' }}>
+                        Selected Faculty Submissions ({selectedApps.length}):
+                      </label>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        Evaluated scores default to submitted marks
+                      </span>
+                    </div>
+                    
+                    <div style={{ maxHeight: '190px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                        <thead>
+                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', color: '#475569', textAlign: 'left' }}>
+                            <th style={{ padding: '8px 10px', fontWeight: 700 }}>Staff ID</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 700 }}>Faculty Name</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 700 }}>Department</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 700 }}>AY</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 700 }}>Current Status</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'right' }}>Total Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedApps.map(app => {
+                            const partA = app.hod_part_a_score ?? app.part_a_score ?? 0;
+                            const partB = app.hod_part_b_score ?? app.part_b_score ?? 0;
+                            const partC = app.hod_part_c_score ?? app.part_c_score ?? 0;
+                            const partD = app.hod_part_d_score ?? app.part_d_score ?? 0;
+                            const total = (parseFloat(partA)||0) + (parseFloat(partB)||0) + (parseFloat(partC)||0) + (parseFloat(partD)||0);
+                            return (
+                              <tr key={app.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>{app.staff_id}</td>
+                                <td style={{ padding: '8px 10px', fontWeight: 700 }}>{app.staff_name || app.Name || 'Faculty'}</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>{app.Department || 'N/A'}</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>{app.academic_year || 'N/A'}</td>
+                                <td style={{ padding: '8px 10px' }}>
+                                  <span style={{
+                                    fontSize: '0.72rem',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    background: app.status === 'HOD Approved' ? '#e0f2fe' : '#fef3c7',
+                                    color: app.status === 'HOD Approved' ? '#0369a1' : '#92400e'
+                                  }}>
+                                    {app.status}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: '#15803d' }}>
+                                  {total} / 200
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* System Admin Stage Selector */}
+                  {auth.role === 'admin' && (
+                    <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                        System Admin Approval Mode:
+                      </label>
+                      <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#1e293b', fontWeight: bulkActionStage === 'auto' ? 700 : 500 }}>
+                          <input
+                            type="radio"
+                            name="bulkActionStage"
+                            value="auto"
+                            checked={bulkActionStage === 'auto'}
+                            onChange={() => setBulkActionStage('auto')}
+                          />
+                          Auto-Detect Stage (Finalize HOD-approved forms, advance submitted forms)
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#1e293b', fontWeight: bulkActionStage === 'final' ? 700 : 500 }}>
+                          <input
+                            type="radio"
+                            name="bulkActionStage"
+                            value="final"
+                            checked={bulkActionStage === 'final'}
+                            onChange={() => setBulkActionStage('final')}
+                          />
+                          Executive Final Approval (Finalize &amp; Close Submissions)
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#1e293b', fontWeight: bulkActionStage === 'hod' ? 700 : 500 }}>
+                          <input
+                            type="radio"
+                            name="bulkActionStage"
+                            value="hod"
+                            checked={bulkActionStage === 'hod'}
+                            onChange={() => setBulkActionStage('hod')}
+                          />
+                          HOD Level Approval (Forward to Principal/HR Queue)
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Bulk Remarks */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                      Approval Remarks &amp; Feedback Notes (Applied to all selected forms):
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder={
+                        auth.role === 'admin'
+                          ? 'e.g. Bulk digitally signed and final approved by Executive Authority.'
+                          : isDeptAdmin
+                          ? 'e.g. Bulk digitally signed and approved by Head of Department.'
+                          : 'e.g. Bulk digitally signed and approved.'
+                      }
+                      value={bulkRemarks}
+                      onChange={(e) => setBulkRemarks(e.target.value)}
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  {/* Modal Action Buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setBulkModalOpen(false)}
+                      disabled={bulkProcessing}
+                      style={{ padding: '8px 18px', fontSize: '0.85rem', fontWeight: 700 }}
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={handleBulkSignAndApproveSubmit}
+                      disabled={bulkProcessing}
+                      style={{
+                        padding: '9px 24px',
+                        fontSize: '0.88rem',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+                        borderColor: '#15803d',
+                        color: '#ffffff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 12px rgba(22, 163, 74, 0.35)',
+                        cursor: bulkProcessing ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {bulkProcessing ? (
+                        <>
+                          <RefreshCw size={16} className="spin" /> Processing Bulk Signatures...
+                        </>
+                      ) : (
+                        <>
+                          <FileSignature size={16} /> ✍️ Confirm &amp; Digitally Sign All ({selectedApps.length} Forms)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
 
           {/* PROCESSED APPRAISALS — Approved & Revision Requested */}

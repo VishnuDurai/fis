@@ -308,7 +308,8 @@ def create_system_constraints_document():
         ("Threshold Bracket Configurator (⚙️ Config Bracket): ", "Admins can configure cutoff thresholds (e.g. feedback 4.0 cutoff, pass % 80% cutoff, journal vs conference split, patent status splits)."),
         ("Custom PART Addition (➕ Add New PART): ", "Admins can dynamically add new evaluation sections (PART_E, PART_F) and modify section titles in real time."),
         ("Approval Workflow Lifecycle: ", "Submitted (Pending HOD Review) -> HOD Approved (Pending Principal/HR Review) -> Final Approved (Finalized Appraisal)."),
-        ("Proof Document Verification Provision: ", "HODs, Principal, HR, and System Admin have access to the Auto-Mapped Activity Verification Panel inside both the submissions list and View Full FPI Form modal. Each record features an 👁️ View Proof button to inspect original evidence documents (PDF, images) before approving scores.")
+        ("Proof Document Verification Provision: ", "HODs, Principal, HR, and System Admin have access to the Auto-Mapped Activity Verification Panel inside both the submissions list and View Full FPI Form modal. Each record features an 👁️ View Proof button to inspect original evidence documents (PDF, images) before approving scores."),
+        ("Bulk Appraisal Digital Signing & Batch Approval (HOD & System Admin): ", "HODs and System Admins (along with Principal & HR) can select multiple pending appraisal forms using multi-select checkboxes or 'Select All Pending' to review and execute bulk signing and approvals. The system applies cryptographic digital signatures (signer name, ISO timestamp, client IP address), sets evaluated marks matching rubrics/self-scores, logs audit timestamps (hod_approved_at / final_approved_at), and dispatches automated email notifications with score breakdowns to all approved faculty.")
     ]
 
     for title_text, body_text in fpi_rules:
