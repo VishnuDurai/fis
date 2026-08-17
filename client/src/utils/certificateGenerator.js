@@ -504,9 +504,11 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
   });
 
   // Copy To Distribution Section
-  const copyY = tableY + 45;
+  const finalTableY = doc.lastAutoTable ? doc.lastAutoTable.finalY : (tableY + 45);
+  const copyY = finalTableY + 8;
   doc.setFont('times', 'bold');
   doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
   doc.text('Copy To:', 18, copyY);
 
   doc.setFont('times', 'normal');
@@ -517,24 +519,17 @@ export const downloadRelievingOrder = async (faculty, options = {}) => {
   doc.text('3. Accounts & Payroll Section', 22, copyY + 14);
   doc.text('4. Personal File / Establishment Section', 22, copyY + 18.5);
 
-  // Signatures at bottom
-  const footerY = pageHeight - 38;
-
-  doc.setFont('times', 'bold');
-  doc.setFontSize(10.5);
-  doc.setTextColor(15, 23, 42);
-
-  doc.text(`HOD - ${deptAcronym}`, 20, footerY);
-  doc.setFont('times', 'normal');
-  doc.setFontSize(9);
-  doc.text('Department of ' + fullDeptName, 20, footerY + 5);
+  // Signatures at bottom: PRINCIPAL alone (HOD signature removed per official requirements)
+  const footerY = pageHeight - 34;
 
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
   doc.text('PRINCIPAL', pageWidth - 20, footerY, { align: 'right' });
   doc.setFont('times', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(9.5);
   doc.text('Sri Ramakrishna Engineering College', pageWidth - 20, footerY + 5, { align: 'right' });
+  doc.text('Coimbatore - 641 022', pageWidth - 20, footerY + 9, { align: 'right' });
 
   const safeFilename = `Relieving_Order_${staffId}_${displayName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
   const blob = doc.output('blob');
