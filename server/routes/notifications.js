@@ -1,7 +1,7 @@
 import express from 'express';
 import webPush from 'web-push';
 import pool from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken } from './auth.js';
 
 const router = express.Router();
 
