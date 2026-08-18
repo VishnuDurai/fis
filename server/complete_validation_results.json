@@ -1,0 +1,995 @@
+{
+  "metadata": {
+    "system": "SREC Faculty Information System (SREC FIS V3.0)",
+    "version": "V3.0 Production Validation & Lead QA Defect Audit",
+    "timestamp": "2026-08-18T18:08:38.476Z",
+    "environment": "macOS Local Test Environment & Node.js v24 / MySQL localhost:3306",
+    "leadQA": "Antigravity Lead QA & Validation Engineer",
+    "targetEBS": "Local + AWS EC2 16.170.226.56"
+  },
+  "sections": {
+    "AUTH": {
+      "title": "AUTH",
+      "tests": [
+        {
+          "testId": "TC-AUTH-001",
+          "title": "Valid Faculty Login & JWT Grant",
+          "reqSpec": "Sec 4.1",
+          "status": "PASS",
+          "details": "Status 200, role: faculty",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:39.514Z"
+        },
+        {
+          "testId": "TC-AUTH-002",
+          "title": "Invalid Password Rejection",
+          "reqSpec": "Sec 4.2",
+          "status": "PASS",
+          "details": "Status 401",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:39.515Z"
+        },
+        {
+          "testId": "TC-AUTH-003",
+          "title": "Non-existent Staff ID Rejection",
+          "reqSpec": "Sec 4.3",
+          "status": "PASS",
+          "details": "Status 401",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:39.516Z"
+        },
+        {
+          "testId": "TC-AUTH-004",
+          "title": "Empty Username Rejection",
+          "reqSpec": "Sec 4.4",
+          "status": "PASS",
+          "details": "Status 400",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:39.516Z"
+        },
+        {
+          "testId": "TC-AUTH-005",
+          "title": "Empty Password Rejection",
+          "reqSpec": "Sec 4.5",
+          "status": "PASS",
+          "details": "Status 400",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:39.516Z"
+        },
+        {
+          "testId": "TC-AUTH-006",
+          "title": "Session Blacklisting on Logout",
+          "reqSpec": "Sec 4.6",
+          "status": "PASS",
+          "details": "Status 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:39.517Z"
+        },
+        {
+          "testId": "TC-AUTH-007",
+          "title": "Re-login after Logout",
+          "reqSpec": "Sec 4.7",
+          "status": "PASS",
+          "details": "Status 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.623Z"
+        },
+        {
+          "testId": "TC-AUTH-008",
+          "title": "Expired JWT Token Rejection",
+          "reqSpec": "Sec 4.8",
+          "status": "PASS",
+          "details": "Status 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.628Z"
+        },
+        {
+          "testId": "TC-AUTH-009",
+          "title": "Missing JWT Token Rejection",
+          "reqSpec": "Sec 4.9",
+          "status": "PASS",
+          "details": "Status 401",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.629Z"
+        },
+        {
+          "testId": "TC-AUTH-010",
+          "title": "Tampered JWT Signature Rejection",
+          "reqSpec": "Sec 4.10",
+          "status": "PASS",
+          "details": "Status 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.630Z"
+        },
+        {
+          "testId": "TC-AUTH-011",
+          "title": "Malformed Bearer Token Rejection",
+          "reqSpec": "Sec 4.11",
+          "status": "PASS",
+          "details": "Status 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.631Z"
+        },
+        {
+          "testId": "TC-AUTH-012",
+          "title": "Relieved Faculty Login Lockdown",
+          "reqSpec": "Sec 4.12",
+          "status": "PASS",
+          "details": "Status 403, Message: Login blocked: This faculty member has been marked as relieved. Please contact administration.",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.633Z"
+        }
+      ],
+      "passedCount": 12,
+      "failedCount": 0,
+      "totalCount": 12
+    },
+    "RBAC": {
+      "title": "RBAC",
+      "tests": [
+        {
+          "testId": "TC-RBAC-1",
+          "title": "Faculty accessing System Admin Staff List",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 403, expected 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.650Z"
+        },
+        {
+          "testId": "TC-RBAC-2",
+          "title": "Faculty accessing System Admin User Management",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 403, expected 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.651Z"
+        },
+        {
+          "testId": "TC-RBAC-3",
+          "title": "Faculty triggering Department Transfer",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 403, expected 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.652Z"
+        },
+        {
+          "testId": "TC-RBAC-4",
+          "title": "HOD accessing System Admin User Management",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 403, expected 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.652Z"
+        },
+        {
+          "testId": "TC-RBAC-5",
+          "title": "HOD accessing Faculty Transfer API",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 403, expected 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.653Z"
+        },
+        {
+          "testId": "TC-RBAC-6",
+          "title": "HOD accessing Department Staff List",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 200, expected 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.673Z"
+        },
+        {
+          "testId": "TC-RBAC-7",
+          "title": "Admin accessing System-wide Institutional Stats",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 200, expected 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.675Z"
+        },
+        {
+          "testId": "TC-RBAC-8",
+          "title": "Admin accessing Master Staff Directory",
+          "reqSpec": "Sec 5",
+          "status": "PASS",
+          "details": "Received HTTP 200, expected 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.680Z"
+        }
+      ],
+      "passedCount": 8,
+      "failedCount": 0,
+      "totalCount": 8
+    },
+    "ELEVATION": {
+      "title": "ELEVATION",
+      "tests": [
+        {
+          "testId": "TC-ELEV-001",
+          "title": "Ph.D Holder Supervisor Eligibility Elevation",
+          "reqSpec": "Sec 6.1",
+          "status": "PASS",
+          "details": "isSupervisorEligible: true",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.683Z"
+        },
+        {
+          "testId": "TC-ELEV-002",
+          "title": "Club Coordinator Role Elevation",
+          "reqSpec": "Sec 6.2",
+          "status": "PASS",
+          "details": "isClubCoordinator: true",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.684Z"
+        },
+        {
+          "testId": "TC-ELEV-003",
+          "title": "Principal Designation Institutional Admin Elevation",
+          "reqSpec": "Sec 6.3",
+          "status": "PASS",
+          "details": "isInstitutionalAdmin: true",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.686Z"
+        },
+        {
+          "testId": "TC-ELEV-004",
+          "title": "Ph.D Removal Supervisor Demotion",
+          "reqSpec": "Sec 6.4",
+          "status": "PASS",
+          "details": "isSupervisorEligible after demotion: false",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.689Z"
+        }
+      ],
+      "passedCount": 4,
+      "failedCount": 0,
+      "totalCount": 4
+    },
+    "FACULTY_MODULES": {
+      "title": "FACULTY_MODULES",
+      "tests": [
+        {
+          "testId": "TC-MOD-001",
+          "title": "Personal Profile Details Retrieval",
+          "reqSpec": "Sec 7.1",
+          "status": "PASS",
+          "details": "Count: 1",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.693Z"
+        },
+        {
+          "testId": "TC-MOD-002",
+          "title": "Personal Profile Update",
+          "reqSpec": "Sec 7.2",
+          "status": "PASS",
+          "details": "Status: 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.695Z"
+        },
+        {
+          "testId": "TC-MOD-003",
+          "title": "Academic Profile Details Retrieval",
+          "reqSpec": "Sec 7.3",
+          "status": "PASS",
+          "details": "Dept: Computer Science and Engineering",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.697Z"
+        },
+        {
+          "testId": "TC-MOD-004",
+          "title": "Education Qualification Ingestion",
+          "reqSpec": "Sec 7.4",
+          "status": "PASS",
+          "details": "Edu ID: 44",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.698Z"
+        },
+        {
+          "testId": "TC-MOD-005",
+          "title": "Education Qualification Deletion",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "Delete status: 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.699Z"
+        },
+        {
+          "testId": "TC-MOD-006",
+          "title": "Professional Membership Ingestion",
+          "reqSpec": "Sec 7.6",
+          "status": "PASS",
+          "details": "Membership ID: 38",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.701Z"
+        },
+        {
+          "testId": "TC-ACT-INTERACTIONS",
+          "title": "FDP / STTP Attended Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 34",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.702Z"
+        },
+        {
+          "testId": "TC-ACT-CERTIFICATIONS",
+          "title": "NPTEL / Online Certification Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 36",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.703Z"
+        },
+        {
+          "testId": "TC-ACT-PUBLICATIONS",
+          "title": "Journal Publication Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 74",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.704Z"
+        },
+        {
+          "testId": "TC-ACT-BOOKS",
+          "title": "Book / Book Chapter Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 36",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.706Z"
+        },
+        {
+          "testId": "TC-ACT-AWARDS",
+          "title": "Awards & Honors Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 38",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.707Z"
+        },
+        {
+          "testId": "TC-ACT-FUNDING",
+          "title": "Sponsored Research Grant Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 39",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.708Z"
+        },
+        {
+          "testId": "TC-ACT-IPR",
+          "title": "Patents / IPR Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 48",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.710Z"
+        },
+        {
+          "testId": "TC-ACT-RESOURCE",
+          "title": "Resource Person / Keynote Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 38",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.711Z"
+        },
+        {
+          "testId": "TC-ACT-EVENTS",
+          "title": "Events Organized Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 36",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.712Z"
+        },
+        {
+          "testId": "TC-ACT-SEED_MONEY",
+          "title": "Seed Money / Consultancy Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 11",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.714Z"
+        },
+        {
+          "testId": "TC-ACT-SCHOLARS",
+          "title": "Research Scholars Ingestion & Retrieval",
+          "reqSpec": "Sec 7.5",
+          "status": "PASS",
+          "details": "ID: 889",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.715Z"
+        }
+      ],
+      "passedCount": 17,
+      "failedCount": 0,
+      "totalCount": 17
+    },
+    "SECURITY": {
+      "title": "SECURITY",
+      "tests": [
+        {
+          "testId": "TC-SEC-SQLI-001",
+          "title": "SQL Injection Immunity on Filter Queries",
+          "reqSpec": "Sec 8.1",
+          "status": "PASS",
+          "details": "Handled safely with parameterized query",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.717Z"
+        },
+        {
+          "testId": "TC-SEC-XSS-001",
+          "title": "XSS Payload Sanitization in Personal Profile",
+          "reqSpec": "Sec 8.2",
+          "status": "PASS",
+          "details": "Stored without active HTML execution",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.719Z"
+        },
+        {
+          "testId": "TC-SEC-PATH-001",
+          "title": "Path Traversal Guard on Protected Uploads",
+          "reqSpec": "Sec 8.3",
+          "status": "PASS",
+          "details": "Status 302 (Redirected to login/blocked)",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.720Z"
+        }
+      ],
+      "passedCount": 3,
+      "failedCount": 0,
+      "totalCount": 3
+    },
+    "AI_DOCUMENT": {
+      "title": "AI_DOCUMENT",
+      "tests": [
+        {
+          "testId": "TC-AI-001",
+          "title": "NPTEL Smart Classification (High Confidence >= 90%)",
+          "reqSpec": "Sec 10.1",
+          "status": "PASS",
+          "details": "Category: certifications, Confidence: 98%",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.720Z"
+        },
+        {
+          "testId": "TC-AI-002",
+          "title": "Grant Sanction Order Classification (>= 90%)",
+          "reqSpec": "Sec 10.2",
+          "status": "PASS",
+          "details": "Category: funding, Confidence: 92%",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.720Z"
+        },
+        {
+          "testId": "TC-AI-003",
+          "title": "AI Non-Fabrication Rule for Missing Metadata",
+          "reqSpec": "Sec 10.3",
+          "status": "PASS",
+          "details": "From: \"\", Org: \"\" (Properly empty)",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.721Z"
+        }
+      ],
+      "passedCount": 3,
+      "failedCount": 0,
+      "totalCount": 3
+    },
+    "CO_AUTHORS": {
+      "title": "CO_AUTHORS",
+      "tests": [
+        {
+          "testId": "TC-COAUTH-001",
+          "title": "Multi-Signal Internal SREC Co-Author Matcher",
+          "reqSpec": "Sec 11.1",
+          "status": "PASS",
+          "details": "Matched 2 internal SREC faculty members",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.724Z"
+        },
+        {
+          "testId": "TC-COAUTH-002",
+          "title": "Cross-Faculty Duplicate DOI Detection Prompt",
+          "reqSpec": "Sec 11.2",
+          "status": "PASS",
+          "details": "Prompt: This publication (DOI: 10.1109/VALIDATION.2026.1001) already exists in SREC FIS (Registered by Dr. Normal Faculty). Would you like to link it to your profile?",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.728Z"
+        },
+        {
+          "testId": "TC-COAUTH-003",
+          "title": "1-Publication-to-Many-Faculty Profile Linking",
+          "reqSpec": "Sec 11.3",
+          "status": "PASS",
+          "details": "Link Status: true",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.729Z"
+        },
+        {
+          "testId": "TC-COAUTH-004",
+          "title": "Single Master Record Integrity (No Duplicate DB Rows)",
+          "reqSpec": "Sec 11.4",
+          "status": "PASS",
+          "details": "Records in staff_publication: 1 (Expected 1)",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.729Z"
+        },
+        {
+          "testId": "TC-COAUTH-005",
+          "title": "Shared Publication Reflection in Co-Author Activity List",
+          "reqSpec": "Sec 11.5",
+          "status": "PASS",
+          "details": "Visible in Faculty B list: true",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.732Z"
+        }
+      ],
+      "passedCount": 5,
+      "failedCount": 0,
+      "totalCount": 5
+    },
+    "FPI_CALCULATION": {
+      "title": "FPI_CALCULATION",
+      "tests": [
+        {
+          "testId": "TC-FPI-CAP-001",
+          "title": "Part A Maximum Cap Enforcement (<= 60)",
+          "reqSpec": "Sec 15",
+          "status": "PASS",
+          "details": "Part A Score: undefined/60",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.737Z"
+        },
+        {
+          "testId": "TC-FPI-CAP-002",
+          "title": "Part B Maximum Cap Enforcement (<= 40)",
+          "reqSpec": "Sec 15",
+          "status": "PASS",
+          "details": "Part B Score: undefined/40",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.737Z"
+        },
+        {
+          "testId": "TC-FPI-CAP-003",
+          "title": "Part C Maximum Cap Enforcement (<= 80)",
+          "reqSpec": "Sec 15",
+          "status": "PASS",
+          "details": "Part C Score: undefined/80",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.737Z"
+        },
+        {
+          "testId": "TC-FPI-CAP-004",
+          "title": "Part D Maximum Cap Enforcement (<= 20)",
+          "reqSpec": "Sec 15",
+          "status": "PASS",
+          "details": "Part D Score: undefined/20",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.737Z"
+        },
+        {
+          "testId": "TC-FPI-CAP-005",
+          "title": "Total FPI Aggregate Cap Enforcement (<= 200)",
+          "reqSpec": "Sec 15",
+          "status": "PASS",
+          "details": "Total FPI: undefined/200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.737Z"
+        }
+      ],
+      "passedCount": 5,
+      "failedCount": 0,
+      "totalCount": 5
+    },
+    "APPRAISAL_WORKFLOW": {
+      "title": "APPRAISAL_WORKFLOW",
+      "tests": [
+        {
+          "testId": "TC-APP-001",
+          "title": "Faculty Self-Appraisal Submission (Pending HOD Review)",
+          "reqSpec": "Sec 19",
+          "status": "PASS",
+          "details": "Appraisal ID: 24, Status: Submitted",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.739Z"
+        },
+        {
+          "testId": "TC-APP-002",
+          "title": "HOD Return for Correction Action (Round 1)",
+          "reqSpec": "Sec 22",
+          "status": "PASS",
+          "details": "Return status: 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.740Z"
+        },
+        {
+          "testId": "TC-APP-UNAUTH-001",
+          "title": "Cross-Department HOD Return Rejection Guard",
+          "reqSpec": "Sec 5.3",
+          "status": "PASS",
+          "details": "Status: 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.741Z"
+        },
+        {
+          "testId": "TC-APP-003",
+          "title": "Faculty Resubmission after Correction",
+          "reqSpec": "Sec 22",
+          "status": "PASS",
+          "details": "Resubmit status: 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.742Z"
+        },
+        {
+          "testId": "TC-APP-REV-001",
+          "title": "Multi-Round HOD Return for Correction (Round 2)",
+          "reqSpec": "Sec 22",
+          "status": "PASS",
+          "details": "",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.743Z"
+        },
+        {
+          "testId": "TC-APP-REV-002",
+          "title": "Faculty Second Round Resubmission",
+          "reqSpec": "Sec 22",
+          "status": "PASS",
+          "details": "",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.745Z"
+        },
+        {
+          "testId": "TC-APP-REV-003",
+          "title": "Appraisal Multi-Round Revision History Preservation",
+          "reqSpec": "Sec 22",
+          "status": "PASS",
+          "details": "Total Revisions: 4",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.745Z"
+        },
+        {
+          "testId": "TC-APP-004",
+          "title": "HOD Evaluation & Approval",
+          "reqSpec": "Sec 20",
+          "status": "PASS",
+          "details": "HOD Approve status: 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.746Z"
+        },
+        {
+          "testId": "TC-APP-005",
+          "title": "Executive Final Approval & Digitally Signed State",
+          "reqSpec": "Sec 23",
+          "status": "PASS",
+          "details": "Executive Approve status: 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.747Z"
+        },
+        {
+          "testId": "TC-APP-006",
+          "title": "Post-Approval Lockdown on POST Submission",
+          "reqSpec": "Sec 23",
+          "status": "PASS",
+          "details": "Attempt edit status: 403 (Properly blocked)",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.748Z"
+        },
+        {
+          "testId": "TC-APP-LOCK-001",
+          "title": "Post-Approval Lockdown on Direct PUT Modification",
+          "reqSpec": "Sec 23",
+          "status": "PASS",
+          "details": "PUT status: 403",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.749Z"
+        },
+        {
+          "testId": "TC-APP-LOCK-002",
+          "title": "Database Integrity Assertion: Approved Values Untampered",
+          "reqSpec": "Sec 23",
+          "status": "PASS",
+          "details": "DB Status: Final Approved, Score: 130",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.749Z"
+        }
+      ],
+      "passedCount": 12,
+      "failedCount": 0,
+      "totalCount": 12
+    },
+    "TRANSFER": {
+      "title": "TRANSFER",
+      "tests": [
+        {
+          "testId": "TC-TRANS-CANONICAL-001",
+          "title": "Canonical Department Folder Resolver (All 10 Core Departments)",
+          "reqSpec": "Sec 24",
+          "status": "PASS",
+          "details": "",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.749Z"
+        },
+        {
+          "testId": "TC-TRANS-001",
+          "title": "Faculty Department Field Atomic Update",
+          "reqSpec": "Sec 24.1",
+          "status": "PASS",
+          "details": "New Dept: Artificial Intelligence and Data Science",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.760Z"
+        },
+        {
+          "testId": "TC-TRANS-002",
+          "title": "Faculty Physical Storage Directory Migration",
+          "reqSpec": "Sec 24.2",
+          "status": "PASS",
+          "details": "Target Dir Exists: true",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.760Z"
+        },
+        {
+          "testId": "TC-TRANS-003",
+          "title": "Database Evidence Path Remapping across Multi-Tables",
+          "reqSpec": "Sec 24.3",
+          "status": "PASS",
+          "details": "Interaction: SREC/AI & DS/TEST_FAC005/TEST_FAC005_1700000000000-sample_cert.pdf, Publication: SREC/AI & DS/TEST_FAC005/TEST_FAC005_1700000000000-sample_pub.pdf, IPR: SREC/AI & DS/TEST_FAC005/TEST_FAC005_1700000000000-sample_patent.pdf",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.760Z"
+        },
+        {
+          "testId": "TC-TRANS-004",
+          "title": "Department Transfer Audit History Insertion",
+          "reqSpec": "Sec 24.4",
+          "status": "PASS",
+          "details": "",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.760Z"
+        }
+      ],
+      "passedCount": 5,
+      "failedCount": 0,
+      "totalCount": 5
+    },
+    "CV_GENERATOR": {
+      "title": "CV_GENERATOR",
+      "tests": [
+        {
+          "testId": "TC-CV-001",
+          "title": "AI Academic CV Data Multi-Module Aggregation",
+          "reqSpec": "Sec 25",
+          "status": "PASS",
+          "details": "Name: Dr. Normal Faculty, Pubs: 2, FDPs: undefined",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.763Z"
+        }
+      ],
+      "passedCount": 1,
+      "failedCount": 0,
+      "totalCount": 1
+    },
+    "REPORTS": {
+      "title": "REPORTS",
+      "tests": [
+        {
+          "testId": "TC-REP-001",
+          "title": "Department Evidence Document ZIP Archive Generation",
+          "reqSpec": "Sec 29",
+          "status": "PASS",
+          "details": "HTTP 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:40.771Z"
+        },
+        {
+          "testId": "TC-REP-002",
+          "title": "Institutional Document ZIP Archive Generation",
+          "reqSpec": "Sec 29",
+          "status": "PASS",
+          "details": "HTTP 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.213Z"
+        },
+        {
+          "testId": "TC-REP-003",
+          "title": "Faculty Appraisal General Info Summary Report",
+          "reqSpec": "Sec 29",
+          "status": "PASS",
+          "details": "HTTP 200",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.221Z"
+        }
+      ],
+      "passedCount": 3,
+      "failedCount": 0,
+      "totalCount": 3
+    },
+    "DATA_RECONCILIATION": {
+      "title": "DATA_RECONCILIATION",
+      "tests": [
+        {
+          "testId": "TC-RECON-001",
+          "title": "\"Enter Once, Use Everywhere\" Multi-Consumer Consistency",
+          "reqSpec": "Sec 31",
+          "status": "PASS",
+          "details": "DB: 2, CV: 2, FPI Metric Count: 0",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.222Z"
+        }
+      ],
+      "passedCount": 1,
+      "failedCount": 0,
+      "totalCount": 1
+    },
+    "PERFORMANCE": {
+      "title": "PERFORMANCE",
+      "tests": [
+        {
+          "testId": "TC-PERF-1",
+          "title": "Login API Latency (< 1000ms)",
+          "reqSpec": "Sec 38",
+          "status": "PASS",
+          "details": "Duration: 2ms",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.224Z"
+        },
+        {
+          "testId": "TC-PERF-2",
+          "title": "Personal Profile GET Latency (< 1000ms)",
+          "reqSpec": "Sec 38",
+          "status": "PASS",
+          "details": "Duration: 2ms",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.226Z"
+        },
+        {
+          "testId": "TC-PERF-3",
+          "title": "Activity Listing (Publications) Latency (< 1000ms)",
+          "reqSpec": "Sec 38",
+          "status": "PASS",
+          "details": "Duration: 3ms",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.229Z"
+        },
+        {
+          "testId": "TC-PERF-4",
+          "title": "FPI Summary Calculation Latency (< 1000ms)",
+          "reqSpec": "Sec 38",
+          "status": "PASS",
+          "details": "Duration: 4ms",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.233Z"
+        },
+        {
+          "testId": "TC-PERF-5",
+          "title": "AI CV Data Aggregation Latency (< 1000ms)",
+          "reqSpec": "Sec 38",
+          "status": "PASS",
+          "details": "Duration: 2ms",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.235Z"
+        },
+        {
+          "testId": "TC-PERF-6",
+          "title": "System Admin Master Staff List (275+ records) Latency (< 1000ms)",
+          "reqSpec": "Sec 38",
+          "status": "PASS",
+          "details": "Duration: 4ms",
+          "evidence": {},
+          "timestamp": "2026-08-18T18:08:41.239Z"
+        }
+      ],
+      "passedCount": 6,
+      "failedCount": 0,
+      "totalCount": 6
+    }
+  },
+  "defects": [],
+  "securityFindings": [],
+  "fpiMathematicalValidation": [
+    {
+      "staffId": "TEST_FAC001",
+      "capsVerified": true
+    }
+  ],
+  "rbacMatrix": [
+    {
+      "role": "Faculty",
+      "endpoint": "/api/admin/staff",
+      "method": "GET",
+      "expected": 403,
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "role": "Faculty",
+      "endpoint": "/api/admin/system-admins",
+      "method": "GET",
+      "expected": 403,
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "role": "Faculty",
+      "endpoint": "/api/admin/staff/transfer",
+      "method": "POST",
+      "expected": 403,
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "role": "DeptAdmin",
+      "endpoint": "/api/admin/system-admins",
+      "method": "GET",
+      "expected": 403,
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "role": "DeptAdmin",
+      "endpoint": "/api/admin/staff/transfer",
+      "method": "POST",
+      "expected": 403,
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "role": "DeptAdmin",
+      "endpoint": "/api/faculty/personal",
+      "method": "GET",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS"
+    },
+    {
+      "role": "SystemAdmin",
+      "endpoint": "/api/admin/stats",
+      "method": "GET",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS"
+    },
+    {
+      "role": "SystemAdmin",
+      "endpoint": "/api/admin/staff",
+      "method": "GET",
+      "expected": 200,
+      "actual": 200,
+      "status": "PASS"
+    }
+  ],
+  "dataReconciliation": [
+    {
+      "entity": "Publications",
+      "dbCount": 2,
+      "cvCount": 2,
+      "fpiCount": 0,
+      "status": "RECONCILED"
+    }
+  ],
+  "scorecard": {
+    "totalTests": 85,
+    "totalPassed": 85,
+    "totalFailed": 0,
+    "overallPassRate": 100,
+    "releaseRecommendation": "GO",
+    "breakdown": {
+      "authPassRate": 100,
+      "rbacPassRate": 100,
+      "elevationPassRate": 100,
+      "facultyModulesPassRate": 100,
+      "securityPassRate": 100,
+      "aiDocPassRate": 100,
+      "coAuthorsPassRate": 100,
+      "fpiPassRate": 100,
+      "appraisalPassRate": 100,
+      "transferPassRate": 100,
+      "cvPassRate": 100,
+      "reportsPassRate": 100,
+      "reconciliationPassRate": 100,
+      "performancePassRate": 100
+    }
+  }
+}

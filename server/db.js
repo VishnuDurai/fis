@@ -684,6 +684,19 @@ const createTables = async () => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_pub_id (publication_id),
       INDEX idx_pub_staff (staff_id)
+    )`,
+    // 44. appraisal_revision_history (Audit log of appraisal states, HOD remarks, returns, revisions)
+    `CREATE TABLE IF NOT EXISTS appraisal_revision_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      appraisal_id INT NOT NULL,
+      revision_number INT DEFAULT 1,
+      status VARCHAR(100) NOT NULL,
+      remarks TEXT,
+      actor_id VARCHAR(100),
+      actor_name VARCHAR(255),
+      actor_role VARCHAR(100),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_appraisal_rev_id (appraisal_id)
     )`
   ];
 

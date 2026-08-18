@@ -16,6 +16,125 @@ if (!fs.existsSync(SREC_ROOT)) {
 }
 
 /**
+ * Canonical Mapping connecting Academic Department Titles to Physical Filesystem Directory Codes
+ */
+export const DEPARTMENT_FOLDER_MAP = {
+  // CSE
+  'cse': 'CSE',
+  'computer science and engineering': 'CSE',
+  'computer science & engineering': 'CSE',
+  'computer science': 'CSE',
+  'm.tech cse': 'M.Tech CSE',
+  'm.tech computer science and engineering': 'M.Tech CSE',
+  
+  // IT
+  'it': 'IT',
+  'information technology': 'IT',
+  
+  // AI & DS
+  'ai & ds': 'AI & DS',
+  'ai&ds': 'AI & DS',
+  'aids': 'AI & DS',
+  'ai and ds': 'AI & DS',
+  'ai & data science': 'AI & DS',
+  'artificial intelligence and data science': 'AI & DS',
+  'artificial intelligence & data science': 'AI & DS',
+  'artificial intelligence': 'AI & DS',
+  'data science': 'AI & DS',
+  
+  // ECE
+  'ece': 'ECE',
+  'electronics and communication engineering': 'ECE',
+  'electronics & communication engineering': 'ECE',
+  'electronics and communication': 'ECE',
+  
+  // EEE
+  'eee': 'EEE',
+  'electrical and electronics engineering': 'EEE',
+  'electrical & electronics engineering': 'EEE',
+  'electrical and electronics': 'EEE',
+  
+  // MECH
+  'mech': 'MECH',
+  'mechanical engineering': 'MECH',
+  'mechanical': 'MECH',
+  
+  // CIVIL
+  'civil': 'CIVIL',
+  'civil engineering': 'CIVIL',
+  
+  // BME
+  'bme': 'BME',
+  'biomedical engineering': 'BME',
+  'biomedical': 'BME',
+  
+  // AERO
+  'aero': 'AERO',
+  'aeronautical engineering': 'AERO',
+  'aeronautical': 'AERO',
+  
+  // EIE
+  'eie': 'EIE',
+  'electronics and instrumentation engineering': 'EIE',
+  'electronics & instrumentation engineering': 'EIE',
+  'electronics and instrumentation': 'EIE',
+  
+  // R & A
+  'r & a': 'R & A',
+  'r&a': 'R & A',
+  'robotics and automation': 'R & A',
+  'robotics & automation': 'R & A',
+  'research and academics': 'R & A',
+  'research & academics': 'R & A',
+  
+  // S&H
+  'maths': 'MATHS',
+  'mathematics': 'MATHS',
+  'phy': 'PHY',
+  'physics': 'PHY',
+  'chem': 'CHEM',
+  'chemistry': 'CHEM',
+  'eng': 'ENG',
+  'english': 'ENG',
+  'eng (tamil discipline)': 'ENG (Tamil Discipline)',
+  'g.e - s&h': 'G.E - S&H',
+  'general engineering': 'G.E - S&H',
+  
+  // Management & Others
+  'mba': 'MBA',
+  'management': 'MBA',
+  'admin': 'ADMIN',
+  'administration': 'ADMIN',
+  'office': 'Office',
+  'lib': 'LIB',
+  'library': 'LIB',
+  'phy edu': 'PHY EDU',
+  'physical education': 'PHY EDU',
+  'placement cell': 'Placement Cell',
+  'placement': 'Placement Cell'
+};
+
+/**
+ * Resolve academic department name to canonical filesystem directory folder code
+ */
+export function getCanonicalDepartmentFolder(deptName) {
+  if (!deptName) return 'General';
+  const raw = deptName.toString().trim();
+  const normalizedKey = raw.toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  if (DEPARTMENT_FOLDER_MAP[normalizedKey]) {
+    return DEPARTMENT_FOLDER_MAP[normalizedKey];
+  }
+  
+  const directPath = path.join(SREC_ROOT, raw);
+  if (fs.existsSync(directPath)) {
+    return raw;
+  }
+  
+  return sanitizeName(raw);
+}
+
+/**
  * Sanitize directory or file names for filesystem safety
  */
 export function sanitizeName(name) {
@@ -58,8 +177,8 @@ export function getFacultyDepartment(staffId, callback) {
  */
 export function getFacultyStorageDir(staffId, deptName) {
   const cleanId = (staffId || 'UNKNOWN').toString().trim();
-  const cleanDept = sanitizeName(deptName || 'General');
-  const dirPath = path.join(SREC_ROOT, cleanDept, cleanId);
+  const canonicalDept = getCanonicalDepartmentFolder(deptName || 'General');
+  const dirPath = path.join(SREC_ROOT, canonicalDept, cleanId);
 
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -97,59 +216,71 @@ export function moveFacultyDirectory(staffId, oldDept, newDept, callback) {
     return;
   }
 
+  const oldCanonical = getCanonicalDepartmentFolder(oldDept || 'General');
+  const newCanonical = getCanonicalDepartmentFolder(newDept || 'General');
+
   const oldDeptClean = sanitizeName(oldDept || 'General');
   const newDeptClean = sanitizeName(newDept || 'General');
 
-  if (oldDeptClean === newDeptClean) {
-    if (callback) callback(null, true);
-    return;
+  // Candidate source directory paths to search
+  const oldCandidatePaths = [
+    path.join(SREC_ROOT, oldCanonical, cleanId),
+    path.join(SREC_ROOT, oldDeptClean, cleanId),
+    path.join(SREC_ROOT, (oldDept || '').toString().trim(), cleanId)
+  ];
+
+  let actualOldDirPath = null;
+  for (const p of oldCandidatePaths) {
+    if (fs.existsSync(p)) {
+      actualOldDirPath = p;
+      break;
+    }
   }
 
-  const oldDirPath = path.join(SREC_ROOT, oldDeptClean, cleanId);
-  const newDeptParent = path.join(SREC_ROOT, newDeptClean);
+  const newDeptParent = path.join(SREC_ROOT, newCanonical);
   const newDirPath = path.join(newDeptParent, cleanId);
 
   if (!fs.existsSync(newDeptParent)) {
     fs.mkdirSync(newDeptParent, { recursive: true });
   }
 
-  if (fs.existsSync(oldDirPath)) {
+  if (actualOldDirPath && actualOldDirPath !== newDirPath) {
     try {
-      // If target exists, remove or merge
-      if (fs.existsSync(newDirPath) && oldDirPath !== newDirPath) {
-        const files = fs.readdirSync(oldDirPath);
+      if (fs.existsSync(newDirPath)) {
+        const files = fs.readdirSync(actualOldDirPath);
         files.forEach(file => {
-          const src = path.join(oldDirPath, file);
+          const src = path.join(actualOldDirPath, file);
           const dest = path.join(newDirPath, file);
           fs.renameSync(src, dest);
         });
-        fs.rmdirSync(oldDirPath);
+        fs.rmdirSync(actualOldDirPath);
       } else {
-        fs.renameSync(oldDirPath, newDirPath);
+        fs.renameSync(actualOldDirPath, newDirPath);
       }
-      console.log(`[Directory Move] Moved ${oldDirPath} -> ${newDirPath}`);
+      console.log(`[Directory Move] Moved ${actualOldDirPath} -> ${newDirPath}`);
     } catch (e) {
-      console.error(`[Directory Move Error] Failed to move ${oldDirPath} to ${newDirPath}:`, e.message);
+      console.error(`[Directory Move Error] Failed to move ${actualOldDirPath} to ${newDirPath}:`, e.message);
     }
   } else {
-    // Create new dir if old dir didn't exist
     if (!fs.existsSync(newDirPath)) {
       fs.mkdirSync(newDirPath, { recursive: true });
     }
   }
 
-  // Remap paths in DB tables if necessary
-  remapDbFilePaths(cleanId, oldDeptClean, newDeptClean, () => {
+  // Remap paths in DB tables across all potential source variants
+  const oldVariants = Array.from(new Set([oldCanonical, oldDeptClean, (oldDept || '').toString().trim()]));
+  remapDbFilePaths(cleanId, oldVariants, newCanonical, () => {
     if (callback) callback(null, true);
   });
 }
 
 /**
- * Update DB file path references if any table stores full or relative paths mentioning old dept
+ * Update DB file path references across all 18 evidence and activity tables
  */
-export function remapDbFilePaths(staffId, oldDept, newDept, callback) {
-  const oldSegment = `SREC/${oldDept}/${staffId}`;
-  const newSegment = `SREC/${newDept}/${staffId}`;
+export function remapDbFilePaths(staffId, oldDepts, newDept, callback) {
+  const oldDeptList = Array.isArray(oldDepts) ? oldDepts : [oldDepts];
+  const newCanonical = getCanonicalDepartmentFolder(newDept);
+  const newSegment = `SREC/${newCanonical}/${staffId}`;
 
   const tables = [
     { name: 'staff_user', col: 'file' },
@@ -170,22 +301,28 @@ export function remapDbFilePaths(staffId, oldDept, newDept, callback) {
     { name: 'staff_scholars', col: 'file' },
     { name: 'staff_club', col: 'file' },
     { name: 'staff_event_organized', col: 'file' },
+    { name: 'staff_seed_money', col: 'file' },
     { name: 'staff_pan', col: 'path1' },
     { name: 'staff_aadhar', col: 'path1' }
   ];
 
+  let totalQueries = tables.length * oldDeptList.length;
   let done = 0;
-  tables.forEach(({ name, col }) => {
-    const query = `
-      UPDATE ${name} 
-      SET ${col} = REPLACE(${col}, ?, ?) 
-      WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) AND ${col} IS NOT NULL AND ${col} LIKE ?
-    `;
-    db.run(query, [oldSegment, newSegment, staffId, `%${oldSegment}%`], (err) => {
-      done++;
-      if (done === tables.length && callback) {
-        callback();
-      }
+
+  oldDeptList.forEach(oldD => {
+    const oldSegment = `SREC/${oldD}/${staffId}`;
+    tables.forEach(({ name, col }) => {
+      const query = `
+        UPDATE ${name} 
+        SET ${col} = REPLACE(${col}, ?, ?) 
+        WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) AND ${col} IS NOT NULL AND ${col} LIKE ?
+      `;
+      db.run(query, [oldSegment, newSegment, staffId, `%${oldSegment}%`], (err) => {
+        done++;
+        if (done === totalQueries && callback) {
+          callback();
+        }
+      });
     });
   });
 }

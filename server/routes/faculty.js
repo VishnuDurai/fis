@@ -1699,6 +1699,93 @@ router.put('/appraisal/:id/hod-approve', authenticateToken, (req, res) => {
   });
 });
 
+// 11b-2. PUT HOD Return Appraisal for Correction
+router.put('/appraisal/:id/return-correction', authenticateToken, (req, res) => {
+  const isHod = req.user.isHod || req.user.role === 'dept_admin' || req.user.role === 'admin';
+  if (!isHod) {
+    return res.status(403).json({ error: 'Access denied: Only Head of Department (HOD) or Admin can return an appraisal for correction.' });
+  }
+
+  const id = req.params.id;
+  const remarks = (req.body.remarks || req.body.hod_remarks || '').trim();
+
+  if (!remarks) {
+    return res.status(400).json({ error: 'Correction remarks are required when returning an appraisal for correction.' });
+  }
+
+  db.get('SELECT a.*, sa.Department FROM staff_appraisal a LEFT JOIN staff_academics sa ON a.staff_id = sa.staff_id WHERE a.id = ?', [id], (err, appraisal) => {
+    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+    if (!appraisal) return res.status(404).json({ error: 'Appraisal record not found.' });
+
+    // Verify HOD department authority (if dept_admin or regular HOD)
+    if (req.user.role === 'dept_admin' && req.user.department) {
+      const hodDept = (req.user.department || '').trim().toLowerCase();
+      const facDept = (appraisal.Department || '').trim().toLowerCase();
+      if (hodDept !== facDept) {
+        return res.status(403).json({ error: 'Unauthorized: You can only return appraisals for faculty in your assigned department.' });
+      }
+    }
+
+    // Verify appraisal is in a state that permits return
+    const terminalStatuses = ['Approved', 'Final Approved'];
+    if (terminalStatuses.includes(appraisal.status)) {
+      return res.status(400).json({ error: 'Cannot return an appraisal that has already received final executive approval.' });
+    }
+
+    const status = 'Returned for Correction';
+
+    db.run(`
+      UPDATE staff_appraisal
+      SET status = ?,
+          hod_remarks = ?,
+          hod_approved_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [status, remarks, id], function(uErr) {
+      if (uErr) return res.status(500).json({ error: 'Database update error: ' + uErr.message });
+
+      // Record in appraisal_revision_history
+      db.get('SELECT COUNT(*) as revCount FROM appraisal_revision_history WHERE appraisal_id = ?', [id], (cErr, cRow) => {
+        const nextRev = (cRow?.revCount || 0) + 1;
+        db.run(`
+          INSERT INTO appraisal_revision_history (
+            appraisal_id, revision_number, status, remarks, actor_id, actor_name, actor_role
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [
+          id,
+          nextRev,
+          status,
+          remarks,
+          req.user.staffId || req.user.id || 'HOD',
+          req.user.name || 'Head of Department',
+          req.user.role || 'HOD'
+        ]);
+      });
+
+      // Send email notification to faculty
+      sendAppraisalStatusEmail(id, status, {
+        remarks: remarks,
+        academic_year: appraisal.academic_year
+      });
+
+      res.json({
+        success: true,
+        message: 'Appraisal returned to faculty for correction successfully.',
+        status: status,
+        hod_remarks: remarks
+      });
+    });
+  });
+});
+
+// 11b-3. GET Appraisal Revision History
+router.get('/appraisal/:id/revisions', authenticateToken, (req, res) => {
+  const id = req.params.id;
+  db.all('SELECT * FROM appraisal_revision_history WHERE appraisal_id = ? ORDER BY id ASC', [id], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching revision history: ' + err.message });
+    res.json(rows || []);
+  });
+});
+
 // 11c. PUT Principal & HR Final Approval
 router.put('/appraisal/:id/final-approve', authenticateToken, (req, res) => {
   const id = req.params.id;
@@ -2351,7 +2438,6 @@ router.put('/appraisal/:id/draft', authenticateToken, (req, res) => {
   });
 });
 
-
 // 12. POST New Appraisal Form (Final Submit — status = Submitted)
 router.post('/appraisal', authenticateToken, (req, res) => {
   const staffId = req.user.staffId;
@@ -2369,32 +2455,107 @@ router.post('/appraisal', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Academic Year is required.' });
   }
 
-  db.run(`
-    INSERT INTO staff_appraisal (
-      staff_id, academic_year, courses_taught, pass_percentage, student_feedback,
-      innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
-      a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
-      a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
-      publications_count, books_count, patents_count,
-      grants_amount, fdp_attended, events_organized, self_appraisal_score, goals_next_year, status,
-      part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    staffId, academic_year, courses_taught, pass_percentage, student_feedback,
-    innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
-    a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
-    a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
-    publications_count || 0, books_count || 0, patents_count || 0,
-    grants_amount, fdp_attended, events_organized, self_appraisal_score || total_fpi_score, goals_next_year, 'Submitted',
-    part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0
-  ], function(err) {
-    if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
-    
-    // Trigger appraisal confirmation email to faculty
-    sendAppraisalConfirmationEmail(staffId, req.body);
+  // Pre-check: Enforce Post-Approval Lockdown Constraint
+  db.get(
+    'SELECT id, status FROM staff_appraisal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) AND academic_year = ? ORDER BY id DESC LIMIT 1',
+    [staffId, academic_year.trim()],
+    (cErr, existingRow) => {
+      if (cErr) return res.status(500).json({ error: 'Database error: ' + cErr.message });
 
-    res.json({ success: true, id: this.lastID, message: 'Annual Appraisal Form submitted successfully!' });
-  });
+      if (existingRow) {
+        const lockedStatuses = ['Approved', 'Final Approved'];
+        if (lockedStatuses.includes(existingRow.status)) {
+          return res.status(403).json({ error: 'Appraisal for this academic year has already been approved and finalized.' });
+        }
+        if (existingRow.status === 'HOD Approved') {
+          return res.status(403).json({ error: 'Appraisal for this academic year has already been approved by HOD and is locked for final executive review.' });
+        }
+        if (existingRow.status === 'Submitted') {
+          return res.status(400).json({ error: 'An appraisal for this academic year has already been submitted and is currently pending review.' });
+        }
+
+        // If existing record is Draft or Returned for Correction, update it in-place and mark Submitted
+        db.run(`
+          UPDATE staff_appraisal SET
+            courses_taught = ?, pass_percentage = ?, student_feedback = ?,
+            innovative_methods = ?, a1_ict_tools = ?, a2_econtent = ?, a3_lab_experiments = ?,
+            a4_feedback_scores = ?, a5_pass_percentage = ?, a6_industry_partnerships = ?,
+            a7_hackathons = ?, b4_curriculum_dev = ?, b7_industry_training = ?, c3_community_service = ?,
+            publications_count = ?, books_count = ?, patents_count = ?,
+            grants_amount = ?, fdp_attended = ?, events_organized = ?, self_appraisal_score = ?, goals_next_year = ?,
+            status = 'Submitted', submitted_at = CURRENT_TIMESTAMP,
+            part_a_score = ?, part_b_score = ?, part_c_score = ?, part_d_score = ?, total_fpi_score = ?
+          WHERE id = ?
+        `, [
+          courses_taught, pass_percentage, student_feedback,
+          innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+          a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+          a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+          publications_count || 0, books_count || 0, patents_count || 0,
+          grants_amount, fdp_attended, events_organized, self_appraisal_score || total_fpi_score, goals_next_year,
+          part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0,
+          existingRow.id
+        ], function(uErr) {
+          if (uErr) return res.status(500).json({ error: 'Database update error: ' + uErr.message });
+          
+          if (existingRow.status === 'Returned for Correction') {
+            db.get('SELECT COUNT(*) as revCount FROM appraisal_revision_history WHERE appraisal_id = ?', [existingRow.id], (rErr, rRow) => {
+              const nextRev = (rRow?.revCount || 0) + 1;
+              db.run(`
+                INSERT INTO appraisal_revision_history (
+                  appraisal_id, revision_number, status, remarks, actor_id, actor_name, actor_role
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+              `, [
+                existingRow.id,
+                nextRev,
+                'Resubmitted',
+                'Faculty resubmitted revised appraisal form after correction.',
+                staffId,
+                req.user.name || 'Faculty Member',
+                'Faculty'
+              ]);
+            });
+          }
+
+          sendAppraisalConfirmationEmail(staffId, req.body);
+          res.json({ success: true, id: existingRow.id, message: 'Annual Appraisal Form submitted successfully!' });
+        });
+        return;
+      }
+
+      // No existing record, perform fresh INSERT
+      db.run(`
+        INSERT INTO staff_appraisal (
+          staff_id, academic_year, courses_taught, pass_percentage, student_feedback,
+          innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+          a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+          a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+          publications_count, books_count, patents_count,
+          grants_amount, fdp_attended, events_organized, self_appraisal_score, goals_next_year, status,
+          part_a_score, part_b_score, part_c_score, part_d_score, total_fpi_score
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        staffId, academic_year.trim(), courses_taught, pass_percentage, student_feedback,
+        innovative_methods, a1_ict_tools, a2_econtent, a3_lab_experiments,
+        a4_feedback_scores, a5_pass_percentage, a6_industry_partnerships,
+        a7_hackathons, b4_curriculum_dev, b7_industry_training, c3_community_service,
+        publications_count || 0, books_count || 0, patents_count || 0,
+        grants_amount, fdp_attended, events_organized, self_appraisal_score || total_fpi_score, goals_next_year, 'Submitted',
+        part_a_score || 0, part_b_score || 0, part_c_score || 0, part_d_score || 0, total_fpi_score || 0
+      ], function(err) {
+        if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
+        const insertId = this?.lastID;
+        if (insertId) {
+          sendAppraisalConfirmationEmail(staffId, req.body);
+          return res.json({ success: true, id: insertId, message: 'Annual Appraisal Form submitted successfully!' });
+        }
+        db.get('SELECT id FROM staff_appraisal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) AND academic_year = ? ORDER BY id DESC LIMIT 1', [staffId, academic_year.trim()], (fErr, row) => {
+          sendAppraisalConfirmationEmail(staffId, req.body);
+          res.json({ success: true, id: row?.id || 1, message: 'Annual Appraisal Form submitted successfully!' });
+        });
+      });
+    }
+  );
 });
 
 // 12a. PUT Update Existing Appraisal Form (Faculty Edit Before Final Submit)
@@ -2420,9 +2581,19 @@ router.put('/appraisal/:id', authenticateToken, (req, res) => {
     if (!row) return res.status(404).json({ error: 'Appraisal record not found.' });
 
     const isAdmin = req.user.role === 'admin' || req.user.role === 'principal' || req.user.role === 'hr';
-    if (!isAdmin && row.staff_id !== staffId) {
+    if (!isAdmin && row.staff_id.toLowerCase().trim() !== staffId.toLowerCase().trim()) {
       return res.status(403).json({ error: 'Unauthorized: You can only edit your own appraisal form.' });
     }
+
+    const lockedStatuses = ['Approved', 'Final Approved'];
+    if (lockedStatuses.includes(row.status)) {
+      return res.status(403).json({ error: 'Appraisal for this academic year has already been approved and finalized.' });
+    }
+    if (row.status === 'HOD Approved') {
+      return res.status(403).json({ error: 'Appraisal for this academic year has already been approved by HOD and is locked for final executive review.' });
+    }
+
+    const prevStatus = row.status;
 
     db.run(`
       UPDATE staff_appraisal SET
@@ -2468,11 +2639,30 @@ router.put('/appraisal/:id', authenticateToken, (req, res) => {
       appId
     ], function(uErr) {
       if (uErr) return res.status(500).json({ error: 'Database update error: ' + uErr.message });
-      
+
+      if (prevStatus === 'Returned for Correction') {
+        db.get('SELECT COUNT(*) as revCount FROM appraisal_revision_history WHERE appraisal_id = ?', [appId], (rErr, rRow) => {
+          const nextRev = (rRow?.revCount || 0) + 1;
+          db.run(`
+            INSERT INTO appraisal_revision_history (
+              appraisal_id, revision_number, status, remarks, actor_id, actor_name, actor_role
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `, [
+            appId,
+            nextRev,
+            'Resubmitted',
+            'Faculty resubmitted revised appraisal form after correction.',
+            staffId,
+            req.user.name || 'Faculty Member',
+            'Faculty'
+          ]);
+        });
+      }
+
       // Trigger appraisal confirmation email to faculty
       sendAppraisalConfirmationEmail(staffId, req.body);
 
-      res.json({ success: true, id: appId, message: 'Annual Appraisal Form updated and submitted successfully!' });
+      res.json({ success: true, message: 'Appraisal form updated and submitted successfully!' });
     });
   });
 });

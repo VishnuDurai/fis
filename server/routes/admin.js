@@ -7,7 +7,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import db from '../db.js';
 import { authenticateToken } from './auth.js';
-import { moveFacultyDirectory, zipDirectory, SREC_ROOT, getFacultyStorageDir, sanitizeName, getFacultyDepartment } from '../utils/fileStorage.js';
+import { moveFacultyDirectory, zipDirectory, SREC_ROOT, getFacultyStorageDir, sanitizeName, getFacultyDepartment, getCanonicalDepartmentFolder } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
 import { processDoctoratePromotion } from '../doctorateHelper.js';
 import { generateDossierPackageZip } from '../utils/dossierZipExporter.js';
@@ -934,8 +934,16 @@ router.get('/download/faculty/:staffId', authenticateToken, (req, res) => {
 // 2. Download Department-wise Documents (ZIP)
 router.get('/download/department/:deptName', authenticateToken, requireAdminOrDeptAdmin, (req, res) => {
   const deptName = decodeURIComponent(req.params.deptName || '').trim();
+  const canonicalDept = getCanonicalDepartmentFolder(deptName);
   const cleanDept = sanitizeName(deptName);
-  const deptDir = path.join(SREC_ROOT, cleanDept);
+  
+  let deptDir = path.join(SREC_ROOT, canonicalDept);
+  if (!fs.existsSync(deptDir) || fs.readdirSync(deptDir).length === 0) {
+    const fallbackDir = path.join(SREC_ROOT, cleanDept);
+    if (fs.existsSync(fallbackDir) && fs.readdirSync(fallbackDir).length > 0) {
+      deptDir = fallbackDir;
+    }
+  }
 
   if (!fs.existsSync(deptDir) || fs.readdirSync(deptDir).length === 0) {
     return res.status(404).json({ error: `No uploaded documents found for department "${deptName}"` });
@@ -945,10 +953,10 @@ router.get('/download/department/:deptName', authenticateToken, requireAdminOrDe
     const tempZipDir = path.join(__dirname, '../temp_downloads');
     if (!fs.existsSync(tempZipDir)) fs.mkdirSync(tempZipDir, { recursive: true });
 
-    const zipPath = path.join(tempZipDir, `${cleanDept}_documents.zip`);
+    const zipPath = path.join(tempZipDir, `${sanitizeName(canonicalDept)}_documents.zip`);
     zipDirectory(deptDir, zipPath);
 
-    res.download(zipPath, `${cleanDept}_documents.zip`, (dErr) => {
+    res.download(zipPath, `${sanitizeName(canonicalDept)}_documents.zip`, (dErr) => {
       if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
     });
   } catch (e) {

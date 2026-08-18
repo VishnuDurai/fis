@@ -1,0 +1,282 @@
+{
+  "metadata": {
+    "release_identifier": "SREC FIS V3.0 — Release Candidate 1 (RC1)",
+    "system": "SREC Faculty Information System (SREC FIS V3.0)",
+    "execution_time": "2026-08-18T18:08:31.716Z",
+    "git_commit": "15a1c6c2f0c38ac356cd7dc22a261555b2ef9e77",
+    "node_version": "v24.18.0",
+    "frontend_framework": "React 19.2.7 + Vite 8.1.1",
+    "backend_framework": "Express 4.19.2 + MySQL2 3.23.2",
+    "database_engine": "MySQL 8.0 (srec_fis, InnoDB, utf8mb4)"
+  },
+  "scores": {},
+  "results": [
+    {
+      "phase": "PHASE 1",
+      "domain": "BUILD_FREEZE",
+      "testId": "UAT-BLD-001",
+      "title": "Build Freeze Metadata & Environment Integrity",
+      "status": "PASS",
+      "passed": true,
+      "details": "Commit: 15a1c6c2f0c38ac356cd7dc22a261555b2ef9e77, Node: v24.18.0",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.319Z"
+    },
+    {
+      "phase": "PHASE 2",
+      "domain": "DATASET",
+      "testId": "UAT-DAT-001",
+      "title": "Realistic 11-User Dataset & 20+ Module Records Provisioned",
+      "status": "PASS",
+      "passed": true,
+      "details": "11 Users initialized with complete academic profiles",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.358Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-01-06",
+      "title": "Faculty Profile, Workload & Manual Activity Ingestion",
+      "status": "PASS",
+      "passed": true,
+      "details": "",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.367Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-07-08",
+      "title": "AI Document Smart Classification & Controlled Extraction",
+      "status": "PASS",
+      "passed": true,
+      "details": "Category: certifications, Conf: 94%",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.368Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-09-13",
+      "title": "Publication DOI Deduplication & Single Master Record Linking",
+      "status": "PASS",
+      "passed": true,
+      "details": "Master DB rows: 1, Linked Faculty: 2",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.373Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-14-16",
+      "title": "Independent FPI Mathematical Calculation & Rubric Caps",
+      "status": "PASS",
+      "passed": true,
+      "details": "Part C: 33, Pubs: 1",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.377Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-17-26",
+      "title": "Appraisal Lifecycle: Return, Correction, HOD & Executive Final Approval",
+      "status": "PASS",
+      "passed": true,
+      "details": "Final Status: Approved",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.382Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-27-28",
+      "title": "Post-Approval Lockdown Constraint (POST & PUT Blocked)",
+      "status": "PASS",
+      "passed": true,
+      "details": "POST: 403, PUT: 400",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.383Z"
+    },
+    {
+      "phase": "PHASE 3",
+      "domain": "GOLDEN_E2E",
+      "testId": "STEP-29-33",
+      "title": "AI Academic CV Multi-Module Aggregation & Report Generation",
+      "status": "PASS",
+      "passed": true,
+      "details": "Pubs: 1",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.386Z"
+    },
+    {
+      "phase": "PHASE 4",
+      "domain": "PROPAGATION",
+      "testId": "UAT-PROP-001",
+      "title": "Multi-Consumer Dynamic Synchronization (Insert -> Modify -> Delete)",
+      "status": "PASS",
+      "passed": true,
+      "details": "Downstream CV and reports immediately reflect mutations with zero stale cache",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.397Z"
+    },
+    {
+      "phase": "PHASE 5",
+      "domain": "SECURITY_LOCKDOWN",
+      "testId": "UAT-SEC-LOCK-001",
+      "title": "Multi-Vector Appraisal Tamper Rejection & Database Integrity Assertion",
+      "status": "PASS",
+      "passed": true,
+      "details": "DB Status: Final Approved, Score: 150",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.400Z"
+    },
+    {
+      "phase": "PHASE 6",
+      "domain": "REVISION_HISTORY",
+      "testId": "UAT-REV-001",
+      "title": "Multi-Round Revision Audit Trail Completeness",
+      "status": "PASS",
+      "passed": true,
+      "details": "Total Revisions: 2",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.401Z"
+    },
+    {
+      "phase": "PHASE 7",
+      "domain": "TRANSFER",
+      "testId": "UAT-TRANS-001",
+      "title": "Atomic Transfer Execution, Canonical Mapping & 18-Table Remap",
+      "status": "PASS",
+      "passed": true,
+      "details": "Target Dir: true, Remapped Path: SREC/AI & DS/FAC-UAT-005/FAC-UAT-005_cert.pdf",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.408Z"
+    },
+    {
+      "phase": "PHASE 8_9",
+      "domain": "ISOLATION",
+      "testId": "UAT-ISO-001",
+      "title": "Cross-Faculty & Cross-Department IDOR Rejection Guards",
+      "status": "PASS",
+      "passed": true,
+      "details": "Cross-HOD: 403",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.409Z"
+    },
+    {
+      "phase": "PHASE 10_11",
+      "domain": "AI_CV",
+      "testId": "UAT-CV-001",
+      "title": "AI CV Absolute Truthfulness & Zero-Fabrication Fact-Check",
+      "status": "PASS",
+      "passed": true,
+      "details": "Verified 1 publications against MySQL records",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.411Z"
+    },
+    {
+      "phase": "PHASE 12",
+      "domain": "AI_DOCS",
+      "testId": "UAT-DOC-001",
+      "title": "Smart Classification & Confidence across 10 Academic Document Types",
+      "status": "PASS",
+      "passed": true,
+      "details": "10/10 Representative Academic Documents Correctly Classified",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.411Z"
+    },
+    {
+      "phase": "PHASE 14_15",
+      "domain": "REPORTS_ZIP",
+      "testId": "UAT-REP-001",
+      "title": "Department & Institutional Evidence ZIP Archive Generation",
+      "status": "PASS",
+      "passed": true,
+      "details": "Dept ZIP: 200, Inst ZIP: 200",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.888Z"
+    },
+    {
+      "phase": "PHASE 16",
+      "domain": "NOTIFICATIONS",
+      "testId": "UAT-NOTIF-001",
+      "title": "In-App Notification Dispatch & Web Push Key Readiness",
+      "status": "PASS",
+      "passed": true,
+      "details": "VAPID Key Length: 87",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.890Z"
+    },
+    {
+      "phase": "PHASE 17_18",
+      "domain": "BACKUP_RESTORE",
+      "testId": "UAT-BKP-001",
+      "title": "Database & Storage Snapshot Generation & Verification",
+      "status": "PASS",
+      "passed": true,
+      "details": "Staff: 287, Pubs: 29, Appraisals: 5",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.891Z"
+    },
+    {
+      "phase": "PHASE 19",
+      "domain": "DISASTER_RECOVERY",
+      "testId": "UAT-DR-001",
+      "title": "Graceful Degradation: Email/External Outage Transactional Immunity",
+      "status": "PASS",
+      "passed": true,
+      "details": "Core MySQL transactions and status updates succeed cleanly when SMTP/External APIs are offline",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.891Z"
+    },
+    {
+      "phase": "PHASE 20",
+      "domain": "ENV_CONFIG",
+      "testId": "UAT-ENV-001",
+      "title": "Production Environment Variables & Secret Isolation",
+      "status": "PASS",
+      "passed": true,
+      "details": "All credentials decoupled via environment variables",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.891Z"
+    },
+    {
+      "phase": "PHASE 24",
+      "domain": "AUDIT_LOGS",
+      "testId": "UAT-AUD-001",
+      "title": "Administrative & Lifecycle Audit Trail Recording",
+      "status": "PASS",
+      "passed": true,
+      "details": "Appraisal Revisions: 10, Dept Transfers: 16",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.892Z"
+    },
+    {
+      "phase": "PHASE 25",
+      "domain": "PERFORMANCE",
+      "testId": "UAT-PERF-001",
+      "title": "Core API Response Latencies (< 1000ms Threshold)",
+      "status": "PASS",
+      "passed": true,
+      "details": "Login: 1.94ms, Profile: 3.32ms, Pubs: 4.09ms, FPI: 7.23ms, CV: 2.05ms, Master Staff: 3.89ms",
+      "evidence": null,
+      "timestamp": "2026-08-18T18:08:32.915Z"
+    }
+  ],
+  "benchmarks": {
+    "Login API (JWT Grant)": "1.94 ms",
+    "Faculty Personal Profile GET": "3.32 ms",
+    "Publication Activity Listing GET": "4.09 ms",
+    "FPI Summary Calculation": "7.23 ms",
+    "AI Academic CV Multi-Module Aggregation": "2.05 ms",
+    "Master Staff Directory (275+ records)": "3.89 ms"
+  },
+  "summary": {
+    "total": 23,
+    "passed": 23,
+    "failed": 0,
+    "passRate": "100.0%"
+  }
+}
