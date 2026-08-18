@@ -1445,11 +1445,12 @@ const sanitizeAppraisalRow = (r) => {
 
 // 11. GET Appraisals
 router.get('/appraisals', authenticateToken, (req, res) => {
-  const reqStaffId = req.query.staffId;
+  const rawStaffId = req.query.staffId;
+  const reqStaffId = rawStaffId && rawStaffId !== 'undefined' && rawStaffId !== 'null' ? rawStaffId.trim() : null;
   const isDeptAdmin = req.user.role === 'dept_admin' || req.user.isHod || req.user.isHod === 'true';
   const isAdmin = ['admin', 'principal', 'hr'].includes(req.user.role) || req.user.isInstitutionalAdmin;
 
-  if (reqStaffId && reqStaffId !== req.user.staffId) {
+  if (reqStaffId && reqStaffId.toLowerCase() !== req.user.staffId?.toLowerCase() && (isAdmin || isDeptAdmin)) {
     // Admin/HOD looking at a specific staff — show all including drafts for own staff only
     db.all(`
       SELECT sa.*, COALESCE(NULLIF(p.staff_name, ''), a.staff_name) as staff_name, a.Department, a.Designation
@@ -1462,7 +1463,7 @@ router.get('/appraisals', authenticateToken, (req, res) => {
       if (err) return res.status(500).json({ error: 'Database error' });
       res.json((rows || []).map(sanitizeAppraisalRow));
     });
-  } else if (isDeptAdmin) {
+  } else if (isDeptAdmin && !reqStaffId) {
     const targetDepts = getHodDepartments(req.user);
     const lowerDepts = targetDepts.map(d => d.toLowerCase());
     const placeholders = lowerDepts.map(() => '?').join(',');

@@ -456,7 +456,7 @@ export default function Appraisal({ auth }) {
   };
 
   const handleStartEdit = (appRecord) => {
-    const myApp = appraisals.find(a => a.staff_id === auth.staffId);
+    const myApp = appraisals.find(a => (a.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase());
     const app = appRecord || lastSubmittedAppraisal || myApp;
     if (!app) return;
 
@@ -960,12 +960,10 @@ export default function Appraisal({ auth }) {
   };
 
   const fetchAppraisals = async () => {
+    if (!auth?.token) return;
     setLoading(true);
     try {
       let url = `${API_BASE_URL}/api/faculty/appraisals`;
-      if (!isAdminOrHR && !isDeptAdmin) {
-        url += `?staffId=${auth.staffId}`;
-      }
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
       });
@@ -2609,7 +2607,7 @@ export default function Appraisal({ auth }) {
               />
 
               {!isAdminOrHR && (() => {
-                const myAppraisal = appraisals.find(a => a.staff_id === auth.staffId) || lastSubmittedAppraisal;
+                const myAppraisal = appraisals.find(a => (a.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase()) || lastSubmittedAppraisal || appraisals[0] || null;
                 return (
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
@@ -4297,7 +4295,7 @@ export default function Appraisal({ auth }) {
 
       {/* FPI APPRAISAL STATUS INFOGRAPHIC — Faculty Journey Pipeline */}
       {!isAdminOrHR && (!isDeptAdmin || hodTab === 'my_appraisal') && !showAddForm && (() => {
-        const myAppraisal = appraisals.find(a => a.staff_id === auth.staffId) || appraisals[0] || null;
+        const myAppraisal = appraisals.find(a => (a.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase()) || appraisals[0] || null;
         const currentStatus = myAppraisal?.status || null;
 
         // Stage definitions for the FPI journey
@@ -5935,7 +5933,7 @@ export default function Appraisal({ auth }) {
         const score_d1 = viewingAppraisal.part_d_score || Math.min(c_d1.maxMarks, fpiDetails?.breakdown?.d_responsibilities ?? ((fpiDetails?.responsibilities?.length || 0) * c_d1.unitMark));
         const subtotal_D = score_d1;
 
-        const canEdit = !isAdminOrHR || viewingAppraisal.staff_id === auth.staffId;
+        const canEdit = !isAdminOrHR || (viewingAppraisal.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase();
         const deptAcronym = (viewingAppraisal.Department || auth.department || auth.dept || '').toUpperCase();
         const deptFullNameMap = {
           'AI & DS': 'ARTIFICIAL INTELLIGENCE AND DATA SCIENCE',
