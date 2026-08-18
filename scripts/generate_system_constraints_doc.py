@@ -329,7 +329,8 @@ def create_system_constraints_document():
 
     push_and_cv_rules = [
         ("1-Click AI CV & Statutory Bio-Data Generation: ", "Provides automated profile aggregation across 14 database tables. Supports 3 statutory formats: (1) SREC Official Letterhead Format with college crest and QR verification, (2) AICTE / Anna University Inspection Format with teaching/research splits, and (3) Modern Technical Europass Format. Features an intelligent AI Academic Statement Generator with dynamic tone selection (Executive, Research, Teaching) and section visibility toggles."),
-        ("PWA Web Push Notification Infrastructure (VAPID): ", "Implements zero-cost, real-time push alerts via Service Worker (sw-push.js) and VAPID cryptography. Delivers instant alerts directly to faculty mobile devices and desktop browsers for appraisal review approvals, bulk digital signing, revision requests, and administrative circulars even when the browser tab is closed.")
+        ("PWA Web Push Notification Infrastructure (VAPID): ", "Implements zero-cost, real-time push alerts via Service Worker (sw-push.js) and VAPID cryptography. Delivers instant alerts directly to faculty mobile devices and desktop browsers for appraisal review approvals, bulk digital signing, revision requests, and administrative circulars even when the browser tab is closed."),
+        ("Profile Picture Background White Standardization Rule: ", "When a faculty member uploads a profile picture (JPG/PNG), the system automatically processes the image via AI portrait segmentation (rembg) to isolate the portrait and standardize the background to solid pure white (#FFFFFF) by default. This ensures uniform, professional presentation across all portals, ID cards, and official CV templates.")
     ]
 
     for title_text, body_text in push_and_cv_rules:

@@ -32,7 +32,7 @@ export default function Settings({ auth, updateProfilePic }) {
       if (typeof updateProfilePic === 'function') {
         updateProfilePic(data.file);
       }
-      showSuccess('Profile picture updated successfully!');
+      showSuccess(data.message || 'Profile picture updated with standardized white background successfully!');
     } catch (err) {
       showError(err.message);
     } finally {
@@ -112,10 +112,16 @@ export default function Settings({ auth, updateProfilePic }) {
               onFileSelect={handleProfilePicUpload} 
               accept=".jpg,.jpeg,.png"
             />
-            {uploadingPic && (
-              <p style={{ fontSize: '0.85rem', color: 'hsl(var(--primary))', fontWeight: 600, marginTop: '8px', textAlign: 'center' }}>
-                Uploading profile picture...
-              </p>
+            {uploadingPic ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '10px', color: 'hsl(var(--primary))', fontWeight: 600, fontSize: '0.88rem' }}>
+                <span className="spinner" style={{ width: '16px', height: '16px', border: '2px solid hsl(var(--primary))', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+                <span>Standardizing background to white & saving...</span>
+              </div>
+            ) : (
+              <div style={{ marginTop: '10px', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#64748b' }}>
+                <CheckCircle2 size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
+                <span>Background is automatically standardized to solid white (#FFFFFF) for official institutional records.</span>
+              </div>
             )}
           </div>
         </div>

@@ -6,9 +6,10 @@ import db from '../db.js';
 import { authenticateToken } from './auth.js';
 import { matchesTargetAcademicYear } from './faculty.js';
 
-import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment } from '../utils/fileStorage.js';
+import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment, findFileInSrecOrUploads } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
 import { fetchPublicationByDoi } from '../utils/doiHelper.js';
+import { standardizeProfilePic } from '../utils/processProfilePic.js';
 
 const router = express.Router();
 
@@ -369,23 +370,36 @@ router.delete('/:type/:id', authenticateToken, validateType, (req, res) => {
 });
 
 // 4. SPECIAL ROUTE: Upload Profile Picture
-router.post('/upload/profile-pic', authenticateToken, upload.single('file'), (req, res) => {
+router.post('/upload/profile-pic', authenticateToken, upload.single('file'), async (req, res) => {
   const staffId = req.user.staffId;
 
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
+  try {
+    // Automatically change profile picture background to white by default (#ffffff)
+    await standardizeProfilePic(req.file.path, '#ffffff');
+  } catch (procErr) {
+    console.warn('[ProfilePicUpload] Warning during background standardization:', procErr);
+  }
+
   // Find and unlink old file if exists
   db.get('SELECT file FROM staff_user WHERE staff_id = ?', [staffId], (err, row) => {
-    if (row && row.file) {
-      const oldPath = path.resolve('uploads/upload', row.file);
-      fs.unlink(oldPath, () => {});
+    if (row && row.file && row.file !== req.file.filename) {
+      const oldPath = findFileInSrecOrUploads(row.file) || path.resolve('uploads/upload', row.file);
+      if (oldPath && fs.existsSync(oldPath)) {
+        fs.unlink(oldPath, () => {});
+      }
     }
 
     db.run('UPDATE staff_user SET file = ? WHERE staff_id = ?', [req.file.filename, staffId], (err) => {
       if (err) return res.status(500).json({ error: 'Failed to update profile pic' });
-      res.json({ success: true, file: req.file.filename });
+      res.json({ 
+        success: true, 
+        file: req.file.filename,
+        message: 'Profile picture uploaded with white background successfully!' 
+      });
     });
   });
 });

@@ -1200,6 +1200,7 @@ export default function AdminUsers({ auth, initialTab }) {
   };
 
   const handleOpenCertificateModal = (faculty, defaultType = 'experience') => {
+    if (auth?.role !== 'admin') return;
     setCertificateTarget(faculty);
     setCertificateType(defaultType);
     const resolved = resolveFacultyDetails(faculty);
@@ -2284,15 +2285,6 @@ export default function AdminUsers({ auth, initialTab }) {
                                     >
                                       <Eye size={14} />
                                       View Dossier
-                                    </button>
-                                    <button 
-                                      onClick={() => handleOpenCertificateModal(f)} 
-                                      title="Generate Experience & Salary Certificates"
-                                      className="btn btn-secondary"
-                                      style={{ padding: '4px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                                    >
-                                      <Award size={14} />
-                                      Certificates
                                     </button>
                                     <button 
                                       onClick={() => handleDownloadZip('faculty', f.staff_id)} 
@@ -3913,7 +3905,7 @@ export default function AdminUsers({ auth, initialTab }) {
       )}
 
       {/* OFFICIAL HR & SERVICE CERTIFICATES MODAL */}
-      {certificateTarget && (
+      {certificateTarget && auth?.role === 'admin' && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' }}>
           <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '26px', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
             
