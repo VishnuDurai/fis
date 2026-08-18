@@ -275,6 +275,24 @@ router.get('/personal', authenticateToken, (req, res) => {
       sendEnriched(rows);
     });
   }
+// GET /api/faculty/search-list - Directory of active faculty for selection & co-author mapping
+router.get('/search-list', authenticateToken, (req, res) => {
+  const query = `
+    SELECT 
+      p.staff_id,
+      COALESCE(NULLIF(TRIM(p.staff_name), ''), NULLIF(TRIM(a.staff_name), ''), p.staff_id) as staff_name,
+      a.Department,
+      a.Designation,
+      p.email
+    FROM staff_personal p
+    LEFT JOIN staff_academics a ON p.staff_id COLLATE utf8mb4_unicode_ci = a.staff_id COLLATE utf8mb4_unicode_ci
+    WHERE p.staff_id IS NOT NULL AND p.staff_id != ''
+    ORDER BY p.staff_name ASC
+  `;
+  db.all(query, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching faculty list' });
+    res.json(rows || []);
+  });
 });
 
 // In-Memory Stores for Email OTP Verification

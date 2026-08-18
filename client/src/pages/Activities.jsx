@@ -532,6 +532,7 @@ export default function Activities({ auth }) {
   const [allFacultySupervisors, setAllFacultySupervisors] = useState([]);
 
   const [deptFaculty, setDeptFaculty] = useState([]);
+  const [allFacultyList, setAllFacultyList] = useState([]);
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -830,6 +831,14 @@ export default function Activities({ auth }) {
   };
 
   useEffect(() => {
+    // Fetch system-wide faculty directory for co-author mapping & scholar selection
+    fetch(`${API_BASE_URL}/api/faculty/search-list`, {
+      headers: { 'Authorization': `Bearer ${auth.token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setAllFacultyList(Array.isArray(data) ? data : []))
+    .catch(err => console.error(err));
+
     if (auth.role === 'dept_admin' || auth.role === 'admin') {
       fetch(`${API_BASE_URL}/api/faculty/personal`, {
         headers: { 'Authorization': `Bearer ${auth.token}` }
@@ -1705,7 +1714,7 @@ export default function Activities({ auth }) {
                 onRemoveFaculty={(idOrName) => {
                   setInternalCoAuthors(prev => prev.filter(a => (a.staffId || a.originalAuthor) !== idOrName));
                 }}
-                allFaculty={deptFaculty}
+                allFaculty={allFacultyList && allFacultyList.length > 0 ? allFacultyList : deptFaculty}
                 auth={auth}
                 duplicatePub={duplicatePubInfo}
                 onLinkExisting={handleLinkExistingPublication}

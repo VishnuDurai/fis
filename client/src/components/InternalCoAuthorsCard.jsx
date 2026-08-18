@@ -270,31 +270,48 @@ export default function InternalCoAuthorsCard({
       </div>
 
       {/* Search and Add another SREC Faculty */}
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <select
-          className="form-control"
-          value={selectedStaffId}
-          onChange={(e) => setSelectedStaffId(e.target.value)}
-          style={{ flex: 1, fontSize: '0.84rem', background: '#ffffff' }}
-        >
-          <option value="">-- Add another SREC Faculty as Co-Author --</option>
-          {allFaculty
-            .filter(f => !coAuthors.some(ca => (ca.staffId || '').toLowerCase() === (f.staff_id || '').toLowerCase()))
-            .map(fac => (
-              <option key={fac.staff_id} value={fac.staff_id}>
-                {fac.staff_name || fac.name} [{fac.staff_id}] - {fac.Department || 'Dept'}
-              </option>
-            ))}
-        </select>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handleAddSelected}
-          disabled={!selectedStaffId}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}
-        >
-          <Plus size={14} /> Add Co-Author
-        </button>
+      <div>
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+          Select or Search Existing SREC Faculty to Add as Co-Author:
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+            <select
+              className="form-control"
+              value={selectedStaffId}
+              onChange={(e) => setSelectedStaffId(e.target.value)}
+              style={{ width: '100%', fontSize: '0.84rem', background: '#ffffff', borderColor: '#cbd5e1' }}
+            >
+              <option value="">-- Select SREC Faculty Member ({allFaculty.length} available) --</option>
+              {allFaculty
+                .filter(f => !coAuthors.some(ca => (ca.staffId || '').toLowerCase() === (f.staff_id || '').toLowerCase()))
+                .sort((a, b) => (a.staff_name || a.name || '').localeCompare(b.staff_name || b.name || ''))
+                .map(fac => (
+                  <option key={fac.staff_id} value={fac.staff_id}>
+                    {fac.staff_name || fac.name} [{fac.staff_id}] — {fac.Department || 'Dept'} ({fac.Designation || 'Faculty'})
+                  </option>
+                ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleAddSelected}
+            disabled={!selectedStaffId}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              background: '#0284c7',
+              borderColor: '#0284c7'
+            }}
+          >
+            <Plus size={15} /> Add Co-Author
+          </button>
+        </div>
       </div>
     </div>
   );
