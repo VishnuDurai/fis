@@ -275,6 +275,8 @@ router.get('/personal', authenticateToken, (req, res) => {
       sendEnriched(rows);
     });
   }
+});
+
 // GET /api/faculty/search-list - Directory of active faculty for selection & co-author mapping
 router.get('/search-list', authenticateToken, (req, res) => {
   const query = `
