@@ -647,6 +647,43 @@ const createTables = async () => {
       auth TEXT NOT NULL,
       user_agent TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // 42. document_ai_processing (Audit trail for AI/OCR extractions, confidences, duplicate checks, faculty verification)
+    `CREATE TABLE IF NOT EXISTS document_ai_processing (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      staff_id VARCHAR(100) NOT NULL,
+      original_filename TEXT NOT NULL,
+      saved_filename TEXT,
+      file_hash VARCHAR(64),
+      file_size INT,
+      mime_type VARCHAR(100),
+      classification_category VARCHAR(100),
+      classification_confidence DOUBLE,
+      extracted_fields LONGTEXT,
+      field_confidences LONGTEXT,
+      faculty_modified_fields LONGTEXT,
+      status VARCHAR(50) DEFAULT 'processed',
+      is_duplicate INT DEFAULT 0,
+      duplicate_details TEXT,
+      activity_type VARCHAR(100),
+      created_record_id INT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // 43. publication_authors (Normalized 1-publication-to-multiple-SREC-faculty co-author relationships)
+    `CREATE TABLE IF NOT EXISTS publication_authors (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      publication_id INT NOT NULL,
+      staff_id VARCHAR(100) NOT NULL,
+      staff_name VARCHAR(255),
+      author_position VARCHAR(100) DEFAULT 'Co-Author',
+      author_order INT DEFAULT 1,
+      is_confirmed INT DEFAULT 1,
+      match_type VARCHAR(100) DEFAULT 'primary_creator',
+      match_confidence DOUBLE DEFAULT 1.0,
+      orcid VARCHAR(100),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_pub_id (publication_id),
+      INDEX idx_pub_staff (staff_id)
     )`
   ];
 
@@ -694,10 +731,58 @@ const createTables = async () => {
     'ALTER TABLE staff_publication ADD COLUMN pub_status VARCHAR(100)',
     'ALTER TABLE staff_publication ADD COLUMN paper_url VARCHAR(500)',
     'ALTER TABLE staff_publication ADD COLUMN conf_venue VARCHAR(255)',
-    'ALTER TABLE staff_publication ADD COLUMN conf_dates VARCHAR(100)'
+    'ALTER TABLE staff_publication ADD COLUMN conf_dates VARCHAR(100)',
+    'ALTER TABLE staff_publication ADD COLUMN file_hash VARCHAR(64)'
   ];
   for (const alterQuery of pubCols) {
     try { await pool.query(alterQuery); } catch (e) {}
+  }
+
+  // Safe column migrations for file_hash on all activity tables for O(1) duplicate detection
+  const hashCols = [
+    'ALTER TABLE staff_interaction ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_award ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_funding ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_ipr ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_certificate ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_event_organized ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_member ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_seed_money ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_resource ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_book_published ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_scholars ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_club ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_development ADD COLUMN file_hash VARCHAR(64)',
+    'ALTER TABLE staff_competitive ADD COLUMN file_hash VARCHAR(64)'
+  ];
+  for (const alterQuery of hashCols) {
+    try { await pool.query(alterQuery); } catch (e) {}
+  }
+  try { await pool.query('ALTER TABLE staff_club ADD COLUMN role TEXT'); } catch (e) {}
+
+  // Align table collations for safe joins
+  try {
+    await pool.query("ALTER TABLE publication_authors CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+  } catch (e) {}
+
+  // Populate publication_authors for existing publications if missing
+  try {
+    const [existingPubs] = await pool.query(`
+      SELECT p.id, p.staff_id, p.staff_name, p.author_position 
+      FROM staff_publication p 
+      WHERE p.id NOT IN (SELECT publication_id FROM publication_authors) AND p.staff_id IS NOT NULL
+    `);
+    if (existingPubs && existingPubs.length > 0) {
+      for (const pub of existingPubs) {
+        await pool.query(
+          'INSERT INTO publication_authors (publication_id, staff_id, staff_name, author_position, author_order, is_confirmed, match_type) VALUES (?, ?, ?, ?, 1, 1, ?)',
+          [pub.id, pub.staff_id, pub.staff_name || '', pub.author_position || 'First Author', 'primary_creator']
+        );
+      }
+      console.log(`[Publication Migration] Linked ${existingPubs.length} existing publications into publication_authors.`);
+    }
+  } catch (pubMigErr) {
+    console.error('Publication authors migration error:', pubMigErr.message);
   }
 
   // Safe column migration for staff_academics (Bibliometrics, Identifiers & NBA B2 Compliance)
@@ -936,10 +1021,10 @@ const createTables = async () => {
     console.error('Seed pending appraisals error:', e.message);
   }
 
-  // Auto-generate/update Database_Schema.docx Word document
-  exec('python3 ../scripts/generate_schema_doc.py', (err) => {
+  // Auto-generate/update living Word documentation files
+  exec('python3 ../scripts/generate_portal_workflows_doc.py && python3 ../scripts/generate_schema_doc.py && python3 ../scripts/generate_system_constraints_doc.py && python3 ../scripts/generate_tech_file_guide_doc.py', (err) => {
     if (!err) {
-      console.log('Database_Schema.docx auto-updated successfully.');
+      console.log('Complete_3_Portals_Workflow_Guide.docx & system docs auto-updated successfully.');
     }
   });
 };

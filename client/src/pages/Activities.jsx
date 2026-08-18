@@ -1,10 +1,12 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Trash2, Download, FileSignature, Search, Edit, GraduationCap, CheckCircle2, UserCheck } from 'lucide-react';
+import { Plus, Trash2, Download, FileSignature, Search, Edit, GraduationCap, CheckCircle2, UserCheck, Sparkles, Users, Link2, AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
+import AiDocumentModal from '../components/AiDocumentModal.jsx';
+import InternalCoAuthorsCard from '../components/InternalCoAuthorsCard.jsx';
 import { showSuccess, showError } from '../context/AlertContext.jsx';
 
 function SearchableMultiSelect({ options, value, onChange, placeholder = "Search & select indexings..." }) {
@@ -162,6 +164,7 @@ const activityConfigs = {
       'Journal / Conference Name',
       'Co-Authors',
       'Author Position',
+      'Internal SREC Co-Authors',
       'ISSN / ISBN',
       'Vol / Issue / Venue',
       'Date & Month',
@@ -205,6 +208,7 @@ const activityConfigs = {
       row.journel || 'N/A',
       row.co_authors || 'N/A',
       row.author_position || 'N/A',
+      row.internal_coauthors && row.internal_coauthors.length > 0 ? `${row.internal_coauthors.length} SREC Faculty` : 'None',
       (row.issn_no ? `ISSN: ${row.issn_no}` : (row.isbn ? `ISBN: ${row.isbn}` : 'N/A')),
       ((row.type_pub || '').toLowerCase() === 'conference' ? (row.conf_venue || row.conf_dates ? `${row.conf_venue || ''} ${row.conf_dates ? `(${row.conf_dates})` : ''}`.trim() : 'N/A') : `Vol: ${row.volume_pub || '-'}, Issue: ${row.issue_no || '-'}`),
       `${row.date_con || ''} ${row.month_pub ? `(${row.month_pub})` : ''}`.trim() || 'N/A',
@@ -511,6 +515,16 @@ export default function Activities({ auth }) {
   const [file, setFile] = useState(null);
   const [doiInput, setDoiInput] = useState('');
   const [fetchingDoi, setFetchingDoi] = useState(false);
+
+  // AI Document Auto-Fill & Smart Classification States
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [fieldConfidences, setFieldConfidences] = useState({});
+  const [aiBannerNotice, setAiBannerNotice] = useState(false);
+
+  // Publication Co-Authors Mapping States
+  const [internalCoAuthors, setInternalCoAuthors] = useState([]);
+  const [duplicatePubInfo, setDuplicatePubInfo] = useState(null);
+  const [showLinkedAuthorsModal, setShowLinkedAuthorsModal] = useState(null);
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -915,11 +929,92 @@ export default function Activities({ auth }) {
         doi: data.doi || prev.doi,
         paper_url: data.doi_url || prev.paper_url
       }));
+
+      // Pre-check for duplicate DOI in SREC FIS
+      try {
+        const dupRes = await fetch(`${API_BASE_URL}/api/activities/check-duplicate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.token}` },
+          body: JSON.stringify({ category: 'publications', fields: { doi: data.doi || doiInput.trim() }, staffId: auth.staffId })
+        });
+        const dupData = await dupRes.json();
+        if (dupData && dupData.isDuplicate) {
+          setDuplicatePubInfo(dupData);
+        } else {
+          setDuplicatePubInfo(null);
+        }
+      } catch (e) {}
+
+      // Match internal SREC co-authors
+      try {
+        const coRes = await fetch(`${API_BASE_URL}/api/activities/publications/match-coauthors?authors=${encodeURIComponent(data.authors || '')}&doi=${encodeURIComponent(doiInput.trim())}`, {
+          headers: { 'Authorization': `Bearer ${auth.token}` }
+        });
+        const coData = await coRes.json();
+        if (Array.isArray(coData)) {
+          setInternalCoAuthors(coData);
+        }
+      } catch (e) {}
+
       showSuccess(`Auto-filled details for: "${(data.title || '').slice(0, 45)}..."`);
     } catch (err) {
       showError(err.message);
     } finally {
       setFetchingDoi(false);
+    }
+  };
+
+  const handleApplyAiExtraction = (result) => {
+    if (!result) return;
+
+    const initial = {};
+    config.fields.forEach(f => {
+      initial[f.name] = f.type === 'select' ? f.options[0] : '';
+    });
+
+    const merged = { ...initial, ...result.fields };
+    if (result.savedFilename) {
+      merged.file = result.savedFilename;
+    }
+
+    setFormData(merged);
+    setFieldConfidences(result.confidences || {});
+    setAiBannerNotice(true);
+
+    if (result.coAuthors && Array.isArray(result.coAuthors)) {
+      setInternalCoAuthors(result.coAuthors);
+    }
+
+    if (result.recordDuplicate?.isDuplicate) {
+      setDuplicatePubInfo(result.recordDuplicate);
+    } else {
+      setDuplicatePubInfo(null);
+    }
+
+    setShowAddForm(true);
+  };
+
+  const handleLinkExistingPublication = async (publicationId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/activities/publications/link-coauthor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth.token}` },
+        body: JSON.stringify({
+          publicationId,
+          staffId: auth.staffId,
+          staffName: auth.name,
+          authorPosition: 'Co-Author'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to link publication');
+
+      showSuccess('Publication successfully linked to your faculty profile!');
+      setShowAddForm(false);
+      setDuplicatePubInfo(null);
+      fetchActivities();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -1064,6 +1159,13 @@ export default function Activities({ auth }) {
     });
     if (file) {
       form.append('file', file);
+    }
+
+    if (type === 'publications' && internalCoAuthors.length > 0) {
+      const confirmedIds = internalCoAuthors
+        .filter(a => a.isSrecFaculty && a.isConfirmed && a.staffId)
+        .map(a => a.staffId);
+      form.append('confirmed_coauthor_ids', JSON.stringify(confirmedIds));
     }
 
     try {
@@ -1215,16 +1317,69 @@ export default function Activities({ auth }) {
             records={filteredActivities}
           />
           {(auth.role !== 'dept_admin' || type === 'supervisors') && (
-            <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
-              <Plus size={16} />
-              {showAddForm ? 'Close Form' : `Add ${itemLabel}`}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => setShowAiModal(true)}
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  background: '#f0fdf4', 
+                  color: '#166534', 
+                  borderColor: '#86efac', 
+                  fontWeight: 700 
+                }}
+              >
+                <Sparkles size={16} color="#16a34a" />
+                Auto-fill from Document
+              </button>
+              <button className="btn btn-primary" onClick={() => { setShowAddForm(!showAddForm); setAiBannerNotice(false); setFieldConfidences({}); }}>
+                <Plus size={16} />
+                {showAddForm ? 'Close Form' : `✍️ Enter Manually`}
+              </button>
+            </div>
           )}
         </div>
       </div>
 
       {showAddForm && (
         <div className="card" style={{ marginBottom: '32px' }}>
+          {aiBannerNotice && (
+            <div style={{
+              background: '#f0fdf4',
+              border: '1.5px solid #86efac',
+              borderRadius: '10px',
+              padding: '12px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Sparkles size={20} color="#16a34a" />
+                <div>
+                  <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.88rem' }}>
+                    Information Extracted from Uploaded Document
+                  </span>
+                  <span style={{ color: '#15803d', fontSize: '0.82rem', marginLeft: '6px' }}>
+                    — Please review and verify the pre-filled fields before saving.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiBannerNotice(false)}
+                style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', padding: '2px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           <h3 style={{ marginBottom: '20px', fontSize: '1.15rem' }}>{editItem ? 'Edit Entry' : 'Create Entry'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
@@ -1408,10 +1563,28 @@ export default function Activities({ auth }) {
                     }
                   }
 
+                  const conf = fieldConfidences[f.name];
+                  const isAutoFilled = conf !== undefined;
+                  const isLowConfidence = isAutoFilled && conf < 75;
+
                   return (
                   <div className="form-group" key={idx} style={{ gridColumn: f.type === 'textarea' ? 'span 2' : 'span 1' }}>
-                    <label className="form-label">
-                      {fieldLabel} {isRequired && !f.readOnly && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>
+                        {fieldLabel} {isRequired && !f.readOnly && <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span>}
+                      </span>
+                      {isAutoFilled && (
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '1px 8px',
+                          borderRadius: '10px',
+                          background: isLowConfidence ? '#fef3c7' : '#dcfce7',
+                          color: isLowConfidence ? '#b45309' : '#15803d'
+                        }}>
+                          {isLowConfidence ? '⚠️ Please Verify' : `✓ ${conf}% Auto-filled`}
+                        </span>
+                      )}
                     </label>
                     {f.name === 'club' && auth?.myClubs && auth.myClubs.length > 0 ? (
                       <select 
@@ -1519,6 +1692,25 @@ export default function Activities({ auth }) {
                 </div>
               );
             })()}
+
+            {type === 'publications' && (
+              <InternalCoAuthorsCard
+                coAuthors={internalCoAuthors}
+                onToggleConfirm={(staffId, isConfirmed) => {
+                  setInternalCoAuthors(prev => prev.map(a => a.staffId === staffId ? { ...a, isConfirmed, needsConfirmation: false } : a));
+                }}
+                onAddFaculty={(fac) => {
+                  setInternalCoAuthors(prev => [...prev, fac]);
+                }}
+                onRemoveFaculty={(idOrName) => {
+                  setInternalCoAuthors(prev => prev.filter(a => (a.staffId || a.originalAuthor) !== idOrName));
+                }}
+                allFaculty={deptFaculty}
+                auth={auth}
+                duplicatePub={duplicatePubInfo}
+                onLinkExisting={handleLinkExistingPublication}
+              />
+            )}
 
             <div style={{ display: 'flex', gap: '12px' }}>
               <button type="submit" className="btn btn-primary">Save Entry</button>
@@ -2421,6 +2613,103 @@ export default function Activities({ auth }) {
             </option>
           ))}
         </datalist>
+      )}
+
+      {/* AI Document Auto-Fill & Classification Modal */}
+      <AiDocumentModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        onApply={handleApplyAiExtraction}
+        currentCategory={type}
+        auth={auth}
+      />
+
+      {/* Linked Internal SREC Co-Authors View Modal */}
+      {showLinkedAuthorsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '14px',
+            maxWidth: '560px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={20} color="#0284c7" />
+                <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
+                  Linked SREC Co-Authors
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLinkedAuthorsModal(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <h5 style={{ margin: '0 0 4px 0', fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>
+                {showLinkedAuthorsModal.title}
+              </h5>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                {showLinkedAuthorsModal.journel} ({showLinkedAuthorsModal.date_con || showLinkedAuthorsModal.month_pub || 'N/A'})
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '260px', overflowY: 'auto', marginBottom: '20px' }}>
+              {showLinkedAuthorsModal.internal_coauthors && showLinkedAuthorsModal.internal_coauthors.length > 0 ? (
+                showLinkedAuthorsModal.internal_coauthors.map((ca, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
+                        {ca.staff_name || ca.staff_id}
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginLeft: '6px' }}>[{ca.staff_id}]</span>
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        {ca.Department || 'Engineering'}
+                      </div>
+                    </div>
+                    <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.74rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}>
+                      {ca.author_position || 'Co-Author'}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', fontSize: '0.85rem' }}>
+                  No linked SREC faculty for this record.
+                </div>
+              )}
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowLinkedAuthorsModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

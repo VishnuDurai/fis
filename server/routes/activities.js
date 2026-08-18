@@ -10,6 +10,9 @@ import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment, find
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
 import { fetchPublicationByDoi } from '../utils/doiHelper.js';
 import { standardizeProfilePic } from '../utils/processProfilePic.js';
+import { extractRawTextFromFile, classifyDocument, extractFieldsForCategory, attemptLlmExtraction, computeFileHash } from '../utils/aiDocumentExtractor.js';
+import { checkDocumentDuplicate, checkRecordDuplicate } from '../utils/duplicateDetector.js';
+import { matchInternalCoAuthors, linkFacultyToPublication, getLinkedPublicationAuthors } from '../utils/coAuthorMatcher.js';
 
 const router = express.Router();
 
@@ -44,39 +47,39 @@ const upload = multer({
 const tableMap = {
   interactions: {
     table: 'staff_interaction',
-    cols: ['staff_id', 'staff_name', 'type', 'title', 'from_date', 'to_date', 'organizer', 'file', 'type1', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'type', 'title', 'from_date', 'to_date', 'organizer', 'file', 'type1', 'size', 'date', 'file_hash']
   },
   publications: {
     table: 'staff_publication',
-    cols: ['staff_id', 'staff_name', 'type_pub', 'type', 'title', 'journel', 'date_con', 'organizer', 'doi', 'isbn', 'month_pub', 'volume_pub', 'pp', 'index_pub', 'web_of_science', 'citations', 'hindex', 'impact', 'issn_no', 'issue_no', 'co_authors', 'author_position', 'pub_status', 'paper_url', 'conf_venue', 'conf_dates', 'file', 'type1', 'size']
+    cols: ['staff_id', 'staff_name', 'type_pub', 'type', 'title', 'journel', 'date_con', 'organizer', 'doi', 'isbn', 'month_pub', 'volume_pub', 'pp', 'index_pub', 'web_of_science', 'citations', 'hindex', 'impact', 'issn_no', 'issue_no', 'co_authors', 'author_position', 'pub_status', 'paper_url', 'conf_venue', 'conf_dates', 'file', 'type1', 'size', 'file_hash']
   },
   books: {
     table: 'staff_book_published',
-    cols: ['staff_id', 'staff_name', 'title', 'coauthor', 'publisher', 'edition', 'isbn', 'file', 'type', 'size', 'date', 'dateofpublication']
+    cols: ['staff_id', 'staff_name', 'title', 'coauthor', 'publisher', 'edition', 'isbn', 'file', 'type', 'size', 'date', 'dateofpublication', 'file_hash']
   },
   resource: {
     table: 'staff_resource',
-    cols: ['staff_id', 'staff_name', 'type', 'title', 'actedas', 'from_date', 'to_date', 'organizer', 'ben', 'file', 'type1', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'type', 'title', 'actedas', 'from_date', 'to_date', 'organizer', 'ben', 'file', 'type1', 'size', 'date', 'file_hash']
   },
   awards: {
     table: 'staff_award',
-    cols: ['staff_id', 'staff_name', 'awardname', 'awardby', 'event', 'awa_date', 'file', 'type', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'awardname', 'awardby', 'event', 'awa_date', 'file', 'type', 'size', 'date', 'file_hash']
   },
   funding: {
     table: 'staff_funding',
-    cols: ['staff_id', 'staff_name', 'copiname', 'copiid', 'title', 'fa', 'status', 'date', 'amount', 'referenceno', 'faculty_role', 'grant_category', 'project_type', 'from_date', 'to_date', 'file']
+    cols: ['staff_id', 'staff_name', 'copiname', 'copiid', 'title', 'fa', 'status', 'date', 'amount', 'referenceno', 'faculty_role', 'grant_category', 'project_type', 'from_date', 'to_date', 'file', 'file_hash']
   },
   ipr: {
     table: 'staff_ipr',
-    cols: ['staff_id', 'staff_name', 'ip_type', 'patent', 'institution', 'generation', 'propose', 'patent_status', 'file', 'type', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'ip_type', 'patent', 'institution', 'generation', 'propose', 'patent_status', 'file', 'type', 'size', 'date', 'file_hash']
   },
   certifications: {
     table: 'staff_certificate',
-    cols: ['staff_id', 'staff_name', 'course_name', 'mark', 'organisation', 'data_of_exam', 'duration_weeks', 'file', 'type1', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'course_name', 'mark', 'organisation', 'data_of_exam', 'duration_weeks', 'file', 'type1', 'size', 'date', 'file_hash']
   },
   competitive: {
     table: 'staff_competitive',
-    cols: ['staff_id', 'staff_name', 'exam_name', 'level', 'score', 'date_of_certificate', 'date', 'file']
+    cols: ['staff_id', 'staff_name', 'exam_name', 'level', 'score', 'date_of_certificate', 'date', 'file', 'file_hash']
   },
   innovations: {
     table: 'staff_innovative',
@@ -84,15 +87,15 @@ const tableMap = {
   },
   events: {
     table: 'staff_event_organized',
-    cols: ['staff_id', 'type', 'title', 'from_date', 'to_date', 'organizer', 'res_person', 'ben_person', 'sponsership', 'granted', 'role', 'date', 'file']
+    cols: ['staff_id', 'type', 'title', 'from_date', 'to_date', 'organizer', 'res_person', 'ben_person', 'sponsership', 'granted', 'role', 'date', 'file', 'file_hash']
   },
   development: {
     table: 'staff_development',
-    cols: ['type', 'staff_name', 'coname', 'staff_id', 'coid', 'title', 'from_date', 'to_date', 'year_aca', 'status', 'institution', 'revenue', 'date']
+    cols: ['type', 'staff_name', 'coname', 'staff_id', 'coid', 'title', 'from_date', 'to_date', 'year_aca', 'status', 'institution', 'revenue', 'date', 'file_hash']
   },
   scholars: {
     table: 'staff_scholars',
-    cols: ['staff_id', 'res_id', 'staff_name', 'university', 'sup_name', 'desgination', 'organisation', 'status', 'date', 'file', 'supervisor_type', 'registration_year']
+    cols: ['staff_id', 'res_id', 'staff_name', 'university', 'sup_name', 'desgination', 'organisation', 'status', 'date', 'file', 'supervisor_type', 'registration_year', 'file_hash']
   },
   supervisors: {
     table: 'staff_supervisor',
@@ -100,15 +103,15 @@ const tableMap = {
   },
   clubs: {
     table: 'staff_club',
-    cols: ['staff_id', 'club', 'type', 'title', 'from_date', 'to_date', 'organizer', 'res_person', 'ben_person', 'sponsership', 'granted', 'date', 'file']
+    cols: ['staff_id', 'club', 'type', 'title', 'from_date', 'to_date', 'organizer', 'res_person', 'ben_person', 'sponsership', 'granted', 'date', 'file', 'role', 'file_hash']
   },
   memberships: {
     table: 'staff_member',
-    cols: ['staff_id', 'staff_name', 'membershipid', 'organization', 'membership_type', 'file', 'type', 'size', 'date']
+    cols: ['staff_id', 'staff_name', 'membershipid', 'organization', 'membership_type', 'file', 'type', 'size', 'date', 'file_hash']
   },
   seed_money: {
     table: 'staff_seed_money',
-    cols: ['staff_id', 'staff_name', 'title', 'faculty_role', 'sanctioned_date', 'duration', 'amount', 'entry_type', 'client_type', 'consultants', 'status', 'from_date', 'to_date', 'file']
+    cols: ['staff_id', 'staff_name', 'title', 'faculty_role', 'sanctioned_date', 'duration', 'amount', 'entry_type', 'client_type', 'consultants', 'status', 'from_date', 'to_date', 'file', 'file_hash']
   }
 };
 
@@ -141,6 +144,206 @@ router.get('/fetch-doi', authenticateToken, async (req, res) => {
   }
 });
 
+// AI DOCUMENT EXTRACTION & SMART CLASSIFICATION ENDPOINT
+router.post('/ai-extract-document', authenticateToken, upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No document file uploaded.' });
+  }
+
+  const staffId = req.user.staffId;
+  const filePath = req.file.path;
+  const mimeType = req.file.mimetype;
+  const originalFilename = req.file.originalname;
+
+  try {
+    // 1. Layer 1 & 2: Extract raw text via digital PDF or Tesseract OCR
+    const { rawText, fileHash, fileSize, extractionMethod } = await extractRawTextFromFile(filePath, mimeType);
+
+    // 2. Level 1: Document-Level Duplicate Check (own profile + cross-faculty)
+    const docDuplicate = await checkDocumentDuplicate(fileHash, originalFilename, fileSize, staffId);
+
+    // 3. Layer 3: Smart Document Classification
+    const classification = classifyDocument(rawText, originalFilename);
+
+    // 4. Layer 3: Deterministic Field Extraction + Confidence Scoring
+    let { fields, confidences } = extractFieldsForCategory(classification.category, rawText);
+
+    // 5. Layer 4: Optional LLM interpretation (if API key is configured)
+    try {
+      const llmFields = await attemptLlmExtraction(rawText, classification.category);
+      if (llmFields && typeof llmFields === 'object') {
+        Object.keys(llmFields).forEach(k => {
+          if (llmFields[k] && (!fields[k] || (confidences[k] || 0) < 70)) {
+            fields[k] = llmFields[k];
+            confidences[k] = 88;
+          }
+        });
+      }
+    } catch (llmErr) {}
+
+    // 6. Publication & Internal Co-Author Handling
+    let coAuthors = [];
+    let recordDuplicate = { isDuplicate: false };
+
+    if (classification.category === 'publications' || fields.doi) {
+      if (fields.doi) {
+        try {
+          const doiMeta = await fetchPublicationByDoi(fields.doi);
+          if (doiMeta) {
+            if (!fields.title || confidences.title < 80) { fields.title = doiMeta.title; confidences.title = 98; }
+            if (!fields.journel) { fields.journel = doiMeta.journal; confidences.journel = 95; }
+            if (!fields.co_authors && doiMeta.authors) { fields.co_authors = doiMeta.authors; confidences.co_authors = 95; }
+            if (doiMeta.year) { fields.date_con = `${doiMeta.year}-01-01`; confidences.date_con = 85; }
+            if (doiMeta.month) { fields.month_pub = doiMeta.month; }
+            if (doiMeta.issn) { fields.issn_no = doiMeta.issn; }
+            if (doiMeta.volume) { fields.volume_pub = doiMeta.volume; }
+            if (doiMeta.issue) { fields.issue_no = doiMeta.issue; }
+            if (doiMeta.publisher) { fields.organizer = doiMeta.publisher; confidences.organizer = 90; }
+          }
+        } catch (doiErr) {}
+      }
+
+      // Match internal co-authors (READ-ONLY)
+      coAuthors = await matchInternalCoAuthors(fields.co_authors || '', [], staffId);
+      recordDuplicate = await checkRecordDuplicate('publications', fields, staffId);
+    } else {
+      recordDuplicate = await checkRecordDuplicate(classification.category, fields, staffId);
+    }
+
+    // 7. Audit log in document_ai_processing
+    try {
+      db.run(
+        `INSERT INTO document_ai_processing 
+          (staff_id, original_filename, saved_filename, file_hash, file_size, mime_type, classification_category, classification_confidence, extracted_fields, field_confidences, is_duplicate, duplicate_details, activity_type, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          staffId,
+          originalFilename,
+          req.file.filename,
+          fileHash,
+          fileSize,
+          mimeType,
+          classification.category,
+          classification.confidence,
+          JSON.stringify(fields),
+          JSON.stringify(confidences),
+          docDuplicate.isDuplicate || recordDuplicate.isDuplicate ? 1 : 0,
+          JSON.stringify({ docDuplicate, recordDuplicate }),
+          classification.category,
+          'extracted'
+        ]
+      );
+    } catch (auditErr) {
+      console.warn('[Audit Log Warning]', auditErr.message);
+    }
+
+    res.json({
+      success: true,
+      savedFilename: req.file.filename,
+      fileHash,
+      fileSize,
+      extractionMethod,
+      classification,
+      fields,
+      confidences,
+      documentDuplicate: docDuplicate,
+      recordDuplicate,
+      coAuthors,
+      rawTextSnippet: (rawText || '').slice(0, 300)
+    });
+  } catch (err) {
+    console.error('AI Document Extraction error:', err);
+    res.status(500).json({ error: 'Failed to extract information from document. You can still enter details manually.' });
+  }
+});
+
+// RECORD-LEVEL PRE-SAVE DUPLICATE CHECK ENDPOINT
+router.post('/check-duplicate', authenticateToken, async (req, res) => {
+  const { category, fields, staffId } = req.body;
+  const targetStaffId = staffId || req.user.staffId;
+
+  try {
+    const result = await checkRecordDuplicate(category, fields, targetStaffId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// READ-ONLY: Match co-authors against SREC faculty
+router.get('/publications/match-coauthors', authenticateToken, async (req, res) => {
+  const { authors, doi } = req.query;
+  const staffId = req.user.staffId;
+
+  try {
+    let crossRefAuthors = [];
+    if (doi && doi.trim()) {
+      try {
+        const meta = await fetchPublicationByDoi(doi);
+        if (meta && meta.authors) {
+          // If DOI has authors
+        }
+      } catch (e) {}
+    }
+    const matched = await matchInternalCoAuthors(authors || '', crossRefAuthors, staffId);
+    res.json(matched);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// EXPLICIT ACTION: Link an SREC faculty member to an existing publication
+router.post('/publications/link-coauthor', authenticateToken, async (req, res) => {
+  const { publicationId, staffId, staffName, authorPosition } = req.body;
+  const targetStaffId = staffId || req.user.staffId;
+  const isPrivileged = req.user.role === 'admin' || req.user.role === 'dept_admin';
+
+  if (!isPrivileged && targetStaffId !== req.user.staffId) {
+    return res.status(403).json({ error: 'You can only link publications to your own faculty profile.' });
+  }
+
+  try {
+    const result = await linkFacultyToPublication(publicationId, targetStaffId, staffName || req.user.name, authorPosition || 'Co-Author', 'manual_link');
+    res.json({ success: true, message: 'Publication successfully linked to profile.', ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// EXPLICIT ACTION: Unlink an SREC faculty member from a publication
+router.delete('/publications/:pubId/unlink-coauthor/:staffId', authenticateToken, async (req, res) => {
+  const { pubId, staffId } = req.params;
+  const isPrivileged = req.user.role === 'admin' || req.user.role === 'dept_admin';
+
+  if (!isPrivileged && staffId !== req.user.staffId) {
+    return res.status(403).json({ error: 'You can only unlink publications from your own profile.' });
+  }
+
+  try {
+    db.run(
+      'DELETE FROM publication_authors WHERE publication_id = ? AND LOWER(TRIM(staff_id)) = LOWER(TRIM(?))',
+      [pubId, staffId],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, message: 'Co-author unlinked successfully.' });
+      }
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all linked co-authors for a publication
+router.get('/publications/:id/authors', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const authors = await getLinkedPublicationAuthors(id);
+    res.json(authors);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper middleware to validate type
 function validateType(req, res, next) {
   const { type } = req.params;
@@ -161,11 +364,44 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
   let query = '';
   let params = [];
 
-  // Special query for supervisors to include dynamic internal & external scholar counts
   const hasStaffNameCol = config.cols.includes('staff_name');
   const staffNameSelect = hasStaffNameCol ? "COALESCE(NULLIF(t.staff_name, ''), p.staff_name, a.staff_name)" : "COALESCE(p.staff_name, a.staff_name)";
 
-  if (type === 'supervisors') {
+  if (type === 'publications') {
+    // Special handling for publications: Include publications created by staff OR linked via publication_authors
+    if (reqStaffId && reqStaffId !== req.user.staffId) {
+      query = `
+        SELECT DISTINCT t.*, ${staffNameSelect} as staff_name, a.Department, a.Designation
+        FROM staff_publication t
+        LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
+        LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
+        LEFT JOIN publication_authors pa ON t.id = pa.publication_id
+        WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?)) OR (LOWER(TRIM(pa.staff_id)) = LOWER(TRIM(?)) AND pa.is_confirmed = 1)
+        ORDER BY t.id DESC
+      `;
+      params = [reqStaffId, reqStaffId];
+    } else if (isAdmin || isDeptAdmin) {
+      query = `
+        SELECT t.*, ${staffNameSelect} as staff_name, a.Department, a.Designation
+        FROM staff_publication t
+        LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
+        LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
+        ORDER BY t.id DESC
+      `;
+      params = [];
+    } else {
+      query = `
+        SELECT DISTINCT t.*, ${staffNameSelect} as staff_name, a.Department, a.Designation
+        FROM staff_publication t
+        LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
+        LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
+        LEFT JOIN publication_authors pa ON t.id = pa.publication_id
+        WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?)) OR (LOWER(TRIM(pa.staff_id)) = LOWER(TRIM(?)) AND pa.is_confirmed = 1)
+        ORDER BY t.id DESC
+      `;
+      params = [req.user.staffId, req.user.staffId];
+    }
+  } else if (type === 'supervisors') {
     const extraSelect = `,
       (SELECT COUNT(*) FROM staff_scholars s 
        WHERE (LOWER(REPLACE(REPLACE(s.sup_name, '.', ''), ' ', '')) LIKE CONCAT('%', LOWER(REPLACE(REPLACE(REPLACE(COALESCE(p.staff_name, t.staff_name), 'Dr.', ''), '.', ''), ' ', '')), '%'))
@@ -222,6 +458,7 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
       LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
       WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?))
+      ORDER BY t.id DESC
     `;
     params = [reqStaffId];
   } else if (isDeptAdmin) {
@@ -230,6 +467,7 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
       FROM ${config.table} t
       LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
+      ORDER BY t.id DESC
     `;
     params = [];
   } else if (isAdmin) {
@@ -238,6 +476,7 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
       FROM ${config.table} t
       LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
+      ORDER BY t.id DESC
     `;
     params = [];
   } else {
@@ -247,6 +486,7 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
       LEFT JOIN staff_academics a ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(a.staff_id))
       LEFT JOIN staff_personal p ON LOWER(TRIM(t.staff_id)) = LOWER(TRIM(p.staff_id))
       WHERE LOWER(TRIM(t.staff_id)) = LOWER(TRIM(?))
+      ORDER BY t.id DESC
     `;
     params = [req.user.staffId];
   }
@@ -258,7 +498,7 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
     }
 
     db.all('SELECT * FROM departments', [], (dErr, deptsList) => {
-      fetchAllDeptHistory((historyMap) => {
+      fetchAllDeptHistory(async (historyMap) => {
         let processedRows = (rows || []).map(row => {
           const rowDate = row.date_con || row.awa_date || row.from_date || row.data_of_exam || row.sanctioned_date || row.dateofpublication || row.generation || row.date || row.created_at;
           const resolvedDept = getStaffDeptAtDate(row.staff_id, rowDate, row.Department, historyMap);
@@ -268,6 +508,40 @@ router.get('/:type', authenticateToken, validateType, (req, res) => {
         const targetAy = req.query.academicYear || req.query.academic_year;
         if (targetAy) {
           processedRows = processedRows.filter(r => matchesTargetAcademicYear(r, targetAy));
+        }
+
+        // For publications, attach linked internal co-authors
+        if (type === 'publications' && processedRows.length > 0) {
+          const pubIds = processedRows.map(r => r.id);
+          const placeholders = pubIds.map(() => '?').join(',');
+          const authorsQuery = `
+            SELECT pa.publication_id, pa.staff_id, pa.staff_name, pa.author_position, a.Department 
+            FROM publication_authors pa
+            LEFT JOIN staff_academics a ON pa.staff_id COLLATE utf8mb4_unicode_ci = a.staff_id COLLATE utf8mb4_unicode_ci
+            WHERE pa.publication_id IN (${placeholders}) AND pa.is_confirmed = 1
+          `;
+          
+          const pubAuthorsMap = {};
+          await new Promise((resAuth) => {
+            db.all(authorsQuery, pubIds, (aErr, aRows) => {
+              if (aRows) {
+                aRows.forEach(ar => {
+                  if (!pubAuthorsMap[ar.publication_id]) pubAuthorsMap[ar.publication_id] = [];
+                  pubAuthorsMap[ar.publication_id].push(ar);
+                });
+              }
+              resAuth();
+            });
+          });
+
+          processedRows = processedRows.map(pr => {
+            const linked = pubAuthorsMap[pr.id] || [];
+            return {
+              ...pr,
+              internal_coauthors: linked,
+              internal_coauthors_count: linked.length
+            };
+          });
         }
 
         if (isDeptAdmin) {
@@ -304,6 +578,11 @@ router.post('/:type', authenticateToken, validateType, upload.single('file'), (r
 
     if (req.file) {
       data.file = req.file.filename;
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        data.file_hash = computeFileHash(fileBuffer);
+      } catch (hErr) {}
+
       if (!req.body.type && config.cols.includes('type') && !['events', 'interactions', 'resource', 'publications', 'clubs', 'development', 'ipr'].includes(type)) {
         data.type = req.file.mimetype;
       }
@@ -330,7 +609,33 @@ router.post('/:type', authenticateToken, validateType, upload.single('file'), (r
         console.error(err);
         return res.status(500).json({ error: 'Failed to insert activity record' });
       }
-      res.json({ success: true, id: this.lastID });
+      
+      const newId = this.lastID;
+
+      // Special handling for Publications: Link primary author and confirmed internal co-authors in publication_authors
+      if (type === 'publications') {
+        try {
+          // 1. Link primary creator
+          linkFacultyToPublication(newId, targetStaffId, staffName, data.author_position || 'First Author', 'primary_creator');
+
+          // 2. Link confirmed internal co-authors if provided
+          let coAuthorIds = req.body.confirmed_coauthor_ids || req.body.internal_coauthor_ids;
+          if (typeof coAuthorIds === 'string') {
+            try { coAuthorIds = JSON.parse(coAuthorIds); } catch (e) { coAuthorIds = coAuthorIds.split(',').map(s => s.trim()).filter(Boolean); }
+          }
+          if (Array.isArray(coAuthorIds) && coAuthorIds.length > 0) {
+            coAuthorIds.forEach(coStaffId => {
+              if (coStaffId && coStaffId !== targetStaffId) {
+                linkFacultyToPublication(newId, coStaffId, '', 'Co-Author', 'confirmed_srec_match');
+              }
+            });
+          }
+        } catch (linkErr) {
+          console.warn('[Publication Linking Warning]', linkErr.message);
+        }
+      }
+
+      res.json({ success: true, id: newId });
     });
   });
 });
@@ -346,6 +651,11 @@ router.delete('/:type/:id', authenticateToken, validateType, (req, res) => {
     if (row && row.file) {
       const filePath = path.resolve('uploads/document', row.file);
       fs.unlink(filePath, () => {});
+    }
+
+    // If publication, also delete from publication_authors
+    if (type === 'publications') {
+      db.run('DELETE FROM publication_authors WHERE publication_id = ?', [id], () => {});
     }
 
     // Admins can delete anything, faculty can only delete their own (or scholars under their supervisorship)
@@ -378,7 +688,6 @@ router.post('/upload/profile-pic', authenticateToken, upload.single('file'), asy
   }
 
   try {
-    // Automatically change profile picture background to white by default (#ffffff)
     await standardizeProfilePic(req.file.path, '#ffffff');
   } catch (procErr) {
     console.warn('[ProfilePicUpload] Warning during background standardization:', procErr);
@@ -436,6 +745,13 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
       updateCols.push('file = ?');
       params.push(req.file.filename);
     }
+    if (config.cols.includes('file_hash')) {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        updateCols.push('file_hash = ?');
+        params.push(computeFileHash(fileBuffer));
+      } catch (e) {}
+    }
     if (config.cols.includes('type1')) {
       updateCols.push('type1 = ?');
       params.push(req.file.mimetype);
@@ -468,6 +784,22 @@ router.put('/:type/:id', authenticateToken, upload.single('file'), (req, res) =>
       console.error(err);
       return res.status(500).json({ error: 'Database error updating activity record' });
     }
+
+    // If publication, sync confirmed co-authors if provided
+    if (type === 'publications' && req.body.confirmed_coauthor_ids) {
+      let coAuthorIds = req.body.confirmed_coauthor_ids;
+      if (typeof coAuthorIds === 'string') {
+        try { coAuthorIds = JSON.parse(coAuthorIds); } catch (e) { coAuthorIds = coAuthorIds.split(',').map(s => s.trim()).filter(Boolean); }
+      }
+      if (Array.isArray(coAuthorIds)) {
+        coAuthorIds.forEach(coStaffId => {
+          if (coStaffId && coStaffId !== staffId) {
+            linkFacultyToPublication(id, coStaffId, '', 'Co-Author', 'confirmed_srec_match');
+          }
+        });
+      }
+    }
+
     res.json({ success: true, message: 'Activity record updated successfully' });
   });
 });

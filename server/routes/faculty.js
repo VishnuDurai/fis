@@ -117,7 +117,7 @@ router.get('/cv-data', authenticateToken, (req, res) => {
   db.get('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (pErr, personal) => {
     db.get('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (aErr, academics) => {
       db.all('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY year DESC', [staffId], (eErr, education) => {
-        db.all('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [staffId], (pubErr, publications) => {
+        db.all('SELECT DISTINCT p.* FROM staff_publication p LEFT JOIN publication_authors pa ON p.id = pa.publication_id WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?)) OR (LOWER(TRIM(pa.staff_id)) = LOWER(TRIM(?)) AND pa.is_confirmed = 1) ORDER BY p.id DESC', [staffId, staffId], (pubErr, publications) => {
           db.all('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (bErr, books) => {
             db.all('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (fErr, funding) => {
               db.all('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [staffId], (iprErr, ipr) => {
@@ -2580,7 +2580,7 @@ router.get('/appraisal/fpi-summary/:staffId', authenticateToken, async (req, res
       });
     };
 
-    const publications = await getRows('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
+    const publications = await getRows('SELECT DISTINCT p.* FROM staff_publication p LEFT JOIN publication_authors pa ON p.id = pa.publication_id WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?)) OR (LOWER(TRIM(pa.staff_id)) = LOWER(TRIM(?)) AND pa.is_confirmed = 1)', [staffId, staffId]);
     const books = await getRows('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const resource = await getRows('SELECT * FROM staff_resource WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
     const awards = await getRows('SELECT * FROM staff_award WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))');
@@ -3529,7 +3529,7 @@ router.get('/cv-data/:staffId?', authenticateToken, async (req, res) => {
       runGet('SELECT * FROM staff_personal WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runGet('SELECT * FROM staff_academics WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_edu WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id ASC', [targetStaffId]),
-      runQuery('SELECT * FROM staff_publication WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?)) ORDER BY id DESC', [targetStaffId]),
+      runQuery('SELECT DISTINCT p.* FROM staff_publication p LEFT JOIN publication_authors pa ON p.id = pa.publication_id WHERE LOWER(TRIM(p.staff_id)) = LOWER(TRIM(?)) OR (LOWER(TRIM(pa.staff_id)) = LOWER(TRIM(?)) AND pa.is_confirmed = 1) ORDER BY p.id DESC', [targetStaffId, targetStaffId]),
       runQuery('SELECT * FROM staff_book_published WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_ipr WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),
       runQuery('SELECT * FROM staff_funding WHERE LOWER(TRIM(staff_id)) = LOWER(TRIM(?))', [targetStaffId]),

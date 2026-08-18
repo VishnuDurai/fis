@@ -161,12 +161,22 @@ async function runAllTests() {
 
     // Personal Profile Update (POST /api/faculty/personal/update)
     try {
-      const updateData = { mobile: '9876543210', email: 'faculty.te0005@srec.ac.in', address: 'SREC Campus, Coimbatore' };
+      const updateData = { mobile: '9876543210', address: 'SREC Campus, Coimbatore' };
       const res = await request('POST', '/api/faculty/personal/update', updateData, fHeaders);
       const passed = res.statusCode === 200 && (res.body.success || res.body.message);
       logCheck('faculty', 'POST Update Personal Profile details', passed, 'Successfully updated contact details', res.statusCode);
     } catch (e) {
       logCheck('faculty', 'POST Update Personal Profile details', false, e.message);
+    }
+
+    // Personal Profile Security Constraint: Email Change Requires OTP
+    try {
+      const emailUpdateData = { email: 'unverified.newemail@srec.ac.in' };
+      const resEmail = await request('POST', '/api/faculty/personal/update', emailUpdateData, fHeaders);
+      const passedEmail = resEmail.statusCode === 400;
+      logCheck('constraints', 'Auth Constraint: Email modification requires OTP verification (400)', passedEmail, 'Rejected with 400 Bad Request (OTP required)', resEmail.statusCode);
+    } catch (e) {
+      logCheck('constraints', 'Auth Constraint: Email modification requires OTP verification (400)', false, e.message);
     }
 
     // Academic Profile GET & Update (POST /api/faculty/academics/update)
