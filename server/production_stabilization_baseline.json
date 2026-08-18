@@ -1,0 +1,39 @@
+{
+  "baseline": {
+    "release_tag": "v3.0.0-rc1",
+    "git_commit": "15a1c6c2f0c38ac356cd7dc22a261555b2ef9e77",
+    "database_name": "srec_fis",
+    "database_engine": "MySQL 8.0 (InnoDB, utf8mb4_unicode_ci)",
+    "timestamp": "2026-08-18T18:16:16.707Z",
+    "counts": {
+      "faculty_accounts": 0,
+      "personal_profiles": 0,
+      "academic_profiles": 0,
+      "distinct_departments": 0,
+      "publications": 0,
+      "publication_author_links": 0,
+      "patents": 0,
+      "research_grants": 0,
+      "certifications": 0,
+      "interactions_fdp": 0,
+      "awards": 0,
+      "books": 0,
+      "scholars": 0,
+      "responsibilities": 0,
+      "seed_money": 0,
+      "appraisals": 0,
+      "appraisal_revisions": 0,
+      "push_subscriptions": 0,
+      "department_transfers": 0
+    }
+  },
+  "integrityReport": {
+    "duplicate_master_dois": 0,
+    "orphan_publication_authors": 0,
+    "orphan_appraisal_revisions": 0,
+    "invalid_appraisal_statuses": 0,
+    "fpi_cap_violations": 0,
+    "storage_root_accessible": true,
+    "data_integrity_status": "CLEAN_100_PERCENT"
+  }
+}
