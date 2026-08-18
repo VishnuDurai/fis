@@ -1,4 +1,5 @@
 import db from '../db.js';
+import { getCanonicalDepartmentFolder } from './fileStorage.js';
 
 /**
  * Standardize date string to YYYY-MM-DD for comparison
@@ -95,8 +96,12 @@ export function matchesDepartment(resolvedDept, targetDept, deptsLookup = []) {
   if (d1 === d2) return true;
   if (!d1 || !d2) return false;
 
+  const c1 = getCanonicalDepartmentFolder(d1);
+  const c2 = getCanonicalDepartmentFolder(d2);
+  if (c1 && c2 && c1.toLowerCase() === c2.toLowerCase()) return true;
+
   // Check lookup for acronym/name match
-  const match = deptsLookup.find(d => {
+  const match = (deptsLookup || []).find(d => {
     const name = (d.name || '').toLowerCase().trim();
     const acr = (d.acronym || '').toLowerCase().trim();
     return (name === d1 || acr === d1) && (name === d2 || acr === d2);

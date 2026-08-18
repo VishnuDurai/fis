@@ -1,11 +1,12 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Trash2, Download, FileSignature, Search, Edit, GraduationCap, CheckCircle2, UserCheck, Sparkles, Users, Link2, AlertTriangle, ShieldCheck, X } from 'lucide-react';
+import { Plus, Trash2, Download, FileSignature, Search, Edit, GraduationCap, CheckCircle2, UserCheck, Sparkles, Users, Link2, AlertTriangle, ShieldCheck, X, Layers } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import AiDocumentModal from '../components/AiDocumentModal.jsx';
+import BatchUploadModal from '../components/BatchUploadModal.jsx';
 import InternalCoAuthorsCard from '../components/InternalCoAuthorsCard.jsx';
 import { showSuccess, showError } from '../context/AlertContext.jsx';
 
@@ -518,6 +519,7 @@ export default function Activities({ auth }) {
 
   // AI Document Auto-Fill & Smart Classification States
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
   const [fieldConfidences, setFieldConfidences] = useState({});
   const [aiBannerNotice, setAiBannerNotice] = useState(false);
 
@@ -1327,6 +1329,23 @@ export default function Activities({ auth }) {
           />
           {(auth.role !== 'dept_admin' || type === 'supervisors') && (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => setShowBatchModal(true)}
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  background: '#f0f9ff', 
+                  color: '#0369a1', 
+                  borderColor: '#7dd3fc', 
+                  fontWeight: 700 
+                }}
+              >
+                <Layers size={16} color="#0284c7" />
+                Batch Upload
+              </button>
               <button 
                 type="button"
                 className="btn btn-secondary" 
@@ -2629,6 +2648,15 @@ export default function Activities({ auth }) {
         isOpen={showAiModal}
         onClose={() => setShowAiModal(false)}
         onApply={handleApplyAiExtraction}
+        currentCategory={type}
+        auth={auth}
+      />
+
+      {/* AI Batch Document Upload & Concurrent Pre-Fill Modal */}
+      <BatchUploadModal
+        isOpen={showBatchModal}
+        onClose={() => setShowBatchModal(false)}
+        onApplyItem={handleApplyAiExtraction}
         currentCategory={type}
         auth={auth}
       />

@@ -98,7 +98,7 @@ export async function checkDocumentDuplicate(fileHash, originalFilename, fileSiz
   for (const item of activityTables) {
     const rows = await new Promise((resolve) => {
       db.all(
-        `SELECT id, staff_id, file, date FROM ${item.table} WHERE file_hash = ? LIMIT 2`,
+        `SELECT id, staff_id, file FROM ${item.table} WHERE file_hash = ? LIMIT 2`,
         [fileHash],
         (err, r) => resolve(r || [])
       );

@@ -120,6 +120,7 @@ app.use('/api/dynamic-pages', dynamicPagesRouter);
 app.use('/api/system-page-configs', systemPageConfigsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/reports', adminRouter);
 
 import JSZip from 'jszip';
 

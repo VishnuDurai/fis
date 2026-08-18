@@ -2,7 +2,7 @@
   "metadata": {
     "system": "SREC Faculty Information System (SREC FIS V3.0)",
     "version": "V3.0 Production Validation & Lead QA Defect Audit",
-    "timestamp": "2026-08-18T18:08:38.476Z",
+    "timestamp": "2026-08-18T18:32:07.655Z",
     "environment": "macOS Local Test Environment & Node.js v24 / MySQL localhost:3306",
     "leadQA": "Antigravity Lead QA & Validation Engineer",
     "targetEBS": "Local + AWS EC2 16.170.226.56"
@@ -18,7 +18,7 @@
           "status": "PASS",
           "details": "Status 200, role: faculty",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:39.514Z"
+          "timestamp": "2026-08-18T18:32:08.699Z"
         },
         {
           "testId": "TC-AUTH-002",
@@ -27,7 +27,7 @@
           "status": "PASS",
           "details": "Status 401",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:39.515Z"
+          "timestamp": "2026-08-18T18:32:08.700Z"
         },
         {
           "testId": "TC-AUTH-003",
@@ -36,7 +36,7 @@
           "status": "PASS",
           "details": "Status 401",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:39.516Z"
+          "timestamp": "2026-08-18T18:32:08.700Z"
         },
         {
           "testId": "TC-AUTH-004",
@@ -45,7 +45,7 @@
           "status": "PASS",
           "details": "Status 400",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:39.516Z"
+          "timestamp": "2026-08-18T18:32:08.701Z"
         },
         {
           "testId": "TC-AUTH-005",
@@ -54,7 +54,7 @@
           "status": "PASS",
           "details": "Status 400",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:39.516Z"
+          "timestamp": "2026-08-18T18:32:08.701Z"
         },
         {
           "testId": "TC-AUTH-006",
@@ -63,7 +63,7 @@
           "status": "PASS",
           "details": "Status 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:39.517Z"
+          "timestamp": "2026-08-18T18:32:08.701Z"
         },
         {
           "testId": "TC-AUTH-007",
@@ -72,7 +72,7 @@
           "status": "PASS",
           "details": "Status 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.623Z"
+          "timestamp": "2026-08-18T18:32:09.809Z"
         },
         {
           "testId": "TC-AUTH-008",
@@ -81,7 +81,7 @@
           "status": "PASS",
           "details": "Status 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.628Z"
+          "timestamp": "2026-08-18T18:32:09.814Z"
         },
         {
           "testId": "TC-AUTH-009",
@@ -90,7 +90,7 @@
           "status": "PASS",
           "details": "Status 401",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.629Z"
+          "timestamp": "2026-08-18T18:32:09.815Z"
         },
         {
           "testId": "TC-AUTH-010",
@@ -99,7 +99,7 @@
           "status": "PASS",
           "details": "Status 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.630Z"
+          "timestamp": "2026-08-18T18:32:09.816Z"
         },
         {
           "testId": "TC-AUTH-011",
@@ -108,7 +108,7 @@
           "status": "PASS",
           "details": "Status 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.631Z"
+          "timestamp": "2026-08-18T18:32:09.817Z"
         },
         {
           "testId": "TC-AUTH-012",
@@ -117,7 +117,7 @@
           "status": "PASS",
           "details": "Status 403, Message: Login blocked: This faculty member has been marked as relieved. Please contact administration.",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.633Z"
+          "timestamp": "2026-08-18T18:32:09.819Z"
         }
       ],
       "passedCount": 12,
@@ -134,7 +134,7 @@
           "status": "PASS",
           "details": "Received HTTP 403, expected 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.650Z"
+          "timestamp": "2026-08-18T18:32:09.838Z"
         },
         {
           "testId": "TC-RBAC-2",
@@ -143,7 +143,7 @@
           "status": "PASS",
           "details": "Received HTTP 403, expected 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.651Z"
+          "timestamp": "2026-08-18T18:32:09.839Z"
         },
         {
           "testId": "TC-RBAC-3",
@@ -152,7 +152,7 @@
           "status": "PASS",
           "details": "Received HTTP 403, expected 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.652Z"
+          "timestamp": "2026-08-18T18:32:09.840Z"
         },
         {
           "testId": "TC-RBAC-4",
@@ -161,7 +161,7 @@
           "status": "PASS",
           "details": "Received HTTP 403, expected 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.652Z"
+          "timestamp": "2026-08-18T18:32:09.840Z"
         },
         {
           "testId": "TC-RBAC-5",
@@ -170,7 +170,7 @@
           "status": "PASS",
           "details": "Received HTTP 403, expected 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.653Z"
+          "timestamp": "2026-08-18T18:32:09.841Z"
         },
         {
           "testId": "TC-RBAC-6",
@@ -179,7 +179,7 @@
           "status": "PASS",
           "details": "Received HTTP 200, expected 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.673Z"
+          "timestamp": "2026-08-18T18:32:09.861Z"
         },
         {
           "testId": "TC-RBAC-7",
@@ -188,7 +188,7 @@
           "status": "PASS",
           "details": "Received HTTP 200, expected 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.675Z"
+          "timestamp": "2026-08-18T18:32:09.863Z"
         },
         {
           "testId": "TC-RBAC-8",
@@ -197,7 +197,7 @@
           "status": "PASS",
           "details": "Received HTTP 200, expected 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.680Z"
+          "timestamp": "2026-08-18T18:32:09.868Z"
         }
       ],
       "passedCount": 8,
@@ -214,7 +214,7 @@
           "status": "PASS",
           "details": "isSupervisorEligible: true",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.683Z"
+          "timestamp": "2026-08-18T18:32:09.870Z"
         },
         {
           "testId": "TC-ELEV-002",
@@ -223,7 +223,7 @@
           "status": "PASS",
           "details": "isClubCoordinator: true",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.684Z"
+          "timestamp": "2026-08-18T18:32:09.872Z"
         },
         {
           "testId": "TC-ELEV-003",
@@ -232,7 +232,7 @@
           "status": "PASS",
           "details": "isInstitutionalAdmin: true",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.686Z"
+          "timestamp": "2026-08-18T18:32:09.873Z"
         },
         {
           "testId": "TC-ELEV-004",
@@ -241,7 +241,7 @@
           "status": "PASS",
           "details": "isSupervisorEligible after demotion: false",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.689Z"
+          "timestamp": "2026-08-18T18:32:09.877Z"
         }
       ],
       "passedCount": 4,
@@ -258,7 +258,7 @@
           "status": "PASS",
           "details": "Count: 1",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.693Z"
+          "timestamp": "2026-08-18T18:32:09.880Z"
         },
         {
           "testId": "TC-MOD-002",
@@ -267,7 +267,7 @@
           "status": "PASS",
           "details": "Status: 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.695Z"
+          "timestamp": "2026-08-18T18:32:09.883Z"
         },
         {
           "testId": "TC-MOD-003",
@@ -276,16 +276,16 @@
           "status": "PASS",
           "details": "Dept: Computer Science and Engineering",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.697Z"
+          "timestamp": "2026-08-18T18:32:09.885Z"
         },
         {
           "testId": "TC-MOD-004",
           "title": "Education Qualification Ingestion",
           "reqSpec": "Sec 7.4",
           "status": "PASS",
-          "details": "Edu ID: 44",
+          "details": "Edu ID: 45",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.698Z"
+          "timestamp": "2026-08-18T18:32:09.886Z"
         },
         {
           "testId": "TC-MOD-005",
@@ -294,115 +294,115 @@
           "status": "PASS",
           "details": "Delete status: 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.699Z"
+          "timestamp": "2026-08-18T18:32:09.887Z"
         },
         {
           "testId": "TC-MOD-006",
           "title": "Professional Membership Ingestion",
           "reqSpec": "Sec 7.6",
           "status": "PASS",
-          "details": "Membership ID: 38",
+          "details": "Membership ID: 39",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.701Z"
+          "timestamp": "2026-08-18T18:32:09.889Z"
         },
         {
           "testId": "TC-ACT-INTERACTIONS",
           "title": "FDP / STTP Attended Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 34",
+          "details": "ID: 36",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.702Z"
+          "timestamp": "2026-08-18T18:32:09.890Z"
         },
         {
           "testId": "TC-ACT-CERTIFICATIONS",
           "title": "NPTEL / Online Certification Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 36",
+          "details": "ID: 37",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.703Z"
+          "timestamp": "2026-08-18T18:32:09.892Z"
         },
         {
           "testId": "TC-ACT-PUBLICATIONS",
           "title": "Journal Publication Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 74",
+          "details": "ID: 77",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.704Z"
+          "timestamp": "2026-08-18T18:32:09.893Z"
         },
         {
           "testId": "TC-ACT-BOOKS",
           "title": "Book / Book Chapter Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 36",
+          "details": "ID: 37",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.706Z"
+          "timestamp": "2026-08-18T18:32:09.895Z"
         },
         {
           "testId": "TC-ACT-AWARDS",
           "title": "Awards & Honors Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 38",
+          "details": "ID: 39",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.707Z"
+          "timestamp": "2026-08-18T18:32:09.897Z"
         },
         {
           "testId": "TC-ACT-FUNDING",
           "title": "Sponsored Research Grant Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 39",
+          "details": "ID: 40",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.708Z"
+          "timestamp": "2026-08-18T18:32:09.898Z"
         },
         {
           "testId": "TC-ACT-IPR",
           "title": "Patents / IPR Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 48",
+          "details": "ID: 50",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.710Z"
+          "timestamp": "2026-08-18T18:32:09.899Z"
         },
         {
           "testId": "TC-ACT-RESOURCE",
           "title": "Resource Person / Keynote Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 38",
+          "details": "ID: 39",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.711Z"
+          "timestamp": "2026-08-18T18:32:09.900Z"
         },
         {
           "testId": "TC-ACT-EVENTS",
           "title": "Events Organized Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 36",
+          "details": "ID: 37",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.712Z"
+          "timestamp": "2026-08-18T18:32:09.902Z"
         },
         {
           "testId": "TC-ACT-SEED_MONEY",
           "title": "Seed Money / Consultancy Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 11",
+          "details": "ID: 12",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.714Z"
+          "timestamp": "2026-08-18T18:32:09.903Z"
         },
         {
           "testId": "TC-ACT-SCHOLARS",
           "title": "Research Scholars Ingestion & Retrieval",
           "reqSpec": "Sec 7.5",
           "status": "PASS",
-          "details": "ID: 889",
+          "details": "ID: 890",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.715Z"
+          "timestamp": "2026-08-18T18:32:09.904Z"
         }
       ],
       "passedCount": 17,
@@ -419,7 +419,7 @@
           "status": "PASS",
           "details": "Handled safely with parameterized query",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.717Z"
+          "timestamp": "2026-08-18T18:32:09.907Z"
         },
         {
           "testId": "TC-SEC-XSS-001",
@@ -428,7 +428,7 @@
           "status": "PASS",
           "details": "Stored without active HTML execution",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.719Z"
+          "timestamp": "2026-08-18T18:32:09.909Z"
         },
         {
           "testId": "TC-SEC-PATH-001",
@@ -437,7 +437,7 @@
           "status": "PASS",
           "details": "Status 302 (Redirected to login/blocked)",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.720Z"
+          "timestamp": "2026-08-18T18:32:09.910Z"
         }
       ],
       "passedCount": 3,
@@ -454,7 +454,7 @@
           "status": "PASS",
           "details": "Category: certifications, Confidence: 98%",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.720Z"
+          "timestamp": "2026-08-18T18:32:09.910Z"
         },
         {
           "testId": "TC-AI-002",
@@ -463,7 +463,7 @@
           "status": "PASS",
           "details": "Category: funding, Confidence: 92%",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.720Z"
+          "timestamp": "2026-08-18T18:32:09.910Z"
         },
         {
           "testId": "TC-AI-003",
@@ -472,7 +472,7 @@
           "status": "PASS",
           "details": "From: \"\", Org: \"\" (Properly empty)",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.721Z"
+          "timestamp": "2026-08-18T18:32:09.910Z"
         }
       ],
       "passedCount": 3,
@@ -489,7 +489,7 @@
           "status": "PASS",
           "details": "Matched 2 internal SREC faculty members",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.724Z"
+          "timestamp": "2026-08-18T18:32:09.914Z"
         },
         {
           "testId": "TC-COAUTH-002",
@@ -498,7 +498,7 @@
           "status": "PASS",
           "details": "Prompt: This publication (DOI: 10.1109/VALIDATION.2026.1001) already exists in SREC FIS (Registered by Dr. Normal Faculty). Would you like to link it to your profile?",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.728Z"
+          "timestamp": "2026-08-18T18:32:09.917Z"
         },
         {
           "testId": "TC-COAUTH-003",
@@ -507,7 +507,7 @@
           "status": "PASS",
           "details": "Link Status: true",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.729Z"
+          "timestamp": "2026-08-18T18:32:09.919Z"
         },
         {
           "testId": "TC-COAUTH-004",
@@ -516,7 +516,7 @@
           "status": "PASS",
           "details": "Records in staff_publication: 1 (Expected 1)",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.729Z"
+          "timestamp": "2026-08-18T18:32:09.919Z"
         },
         {
           "testId": "TC-COAUTH-005",
@@ -525,7 +525,7 @@
           "status": "PASS",
           "details": "Visible in Faculty B list: true",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.732Z"
+          "timestamp": "2026-08-18T18:32:09.922Z"
         }
       ],
       "passedCount": 5,
@@ -542,7 +542,7 @@
           "status": "PASS",
           "details": "Part A Score: undefined/60",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.737Z"
+          "timestamp": "2026-08-18T18:32:09.930Z"
         },
         {
           "testId": "TC-FPI-CAP-002",
@@ -551,7 +551,7 @@
           "status": "PASS",
           "details": "Part B Score: undefined/40",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.737Z"
+          "timestamp": "2026-08-18T18:32:09.930Z"
         },
         {
           "testId": "TC-FPI-CAP-003",
@@ -560,7 +560,7 @@
           "status": "PASS",
           "details": "Part C Score: undefined/80",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.737Z"
+          "timestamp": "2026-08-18T18:32:09.930Z"
         },
         {
           "testId": "TC-FPI-CAP-004",
@@ -569,7 +569,7 @@
           "status": "PASS",
           "details": "Part D Score: undefined/20",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.737Z"
+          "timestamp": "2026-08-18T18:32:09.930Z"
         },
         {
           "testId": "TC-FPI-CAP-005",
@@ -578,7 +578,7 @@
           "status": "PASS",
           "details": "Total FPI: undefined/200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.737Z"
+          "timestamp": "2026-08-18T18:32:09.930Z"
         }
       ],
       "passedCount": 5,
@@ -593,9 +593,9 @@
           "title": "Faculty Self-Appraisal Submission (Pending HOD Review)",
           "reqSpec": "Sec 19",
           "status": "PASS",
-          "details": "Appraisal ID: 24, Status: Submitted",
+          "details": "Appraisal ID: 27, Status: Submitted",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.739Z"
+          "timestamp": "2026-08-18T18:32:09.932Z"
         },
         {
           "testId": "TC-APP-002",
@@ -604,7 +604,7 @@
           "status": "PASS",
           "details": "Return status: 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.740Z"
+          "timestamp": "2026-08-18T18:32:09.934Z"
         },
         {
           "testId": "TC-APP-UNAUTH-001",
@@ -613,7 +613,7 @@
           "status": "PASS",
           "details": "Status: 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.741Z"
+          "timestamp": "2026-08-18T18:32:09.936Z"
         },
         {
           "testId": "TC-APP-003",
@@ -622,7 +622,7 @@
           "status": "PASS",
           "details": "Resubmit status: 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.742Z"
+          "timestamp": "2026-08-18T18:32:09.937Z"
         },
         {
           "testId": "TC-APP-REV-001",
@@ -631,7 +631,7 @@
           "status": "PASS",
           "details": "",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.743Z"
+          "timestamp": "2026-08-18T18:32:09.938Z"
         },
         {
           "testId": "TC-APP-REV-002",
@@ -640,7 +640,7 @@
           "status": "PASS",
           "details": "",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.745Z"
+          "timestamp": "2026-08-18T18:32:09.939Z"
         },
         {
           "testId": "TC-APP-REV-003",
@@ -649,7 +649,7 @@
           "status": "PASS",
           "details": "Total Revisions: 4",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.745Z"
+          "timestamp": "2026-08-18T18:32:09.940Z"
         },
         {
           "testId": "TC-APP-004",
@@ -658,7 +658,7 @@
           "status": "PASS",
           "details": "HOD Approve status: 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.746Z"
+          "timestamp": "2026-08-18T18:32:09.941Z"
         },
         {
           "testId": "TC-APP-005",
@@ -667,7 +667,7 @@
           "status": "PASS",
           "details": "Executive Approve status: 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.747Z"
+          "timestamp": "2026-08-18T18:32:09.942Z"
         },
         {
           "testId": "TC-APP-006",
@@ -676,7 +676,7 @@
           "status": "PASS",
           "details": "Attempt edit status: 403 (Properly blocked)",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.748Z"
+          "timestamp": "2026-08-18T18:32:09.943Z"
         },
         {
           "testId": "TC-APP-LOCK-001",
@@ -685,7 +685,7 @@
           "status": "PASS",
           "details": "PUT status: 403",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.749Z"
+          "timestamp": "2026-08-18T18:32:09.944Z"
         },
         {
           "testId": "TC-APP-LOCK-002",
@@ -694,7 +694,7 @@
           "status": "PASS",
           "details": "DB Status: Final Approved, Score: 130",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.749Z"
+          "timestamp": "2026-08-18T18:32:09.945Z"
         }
       ],
       "passedCount": 12,
@@ -711,7 +711,7 @@
           "status": "PASS",
           "details": "",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.749Z"
+          "timestamp": "2026-08-18T18:32:09.945Z"
         },
         {
           "testId": "TC-TRANS-001",
@@ -720,7 +720,7 @@
           "status": "PASS",
           "details": "New Dept: Artificial Intelligence and Data Science",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.760Z"
+          "timestamp": "2026-08-18T18:32:09.958Z"
         },
         {
           "testId": "TC-TRANS-002",
@@ -729,7 +729,7 @@
           "status": "PASS",
           "details": "Target Dir Exists: true",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.760Z"
+          "timestamp": "2026-08-18T18:32:09.958Z"
         },
         {
           "testId": "TC-TRANS-003",
@@ -738,7 +738,7 @@
           "status": "PASS",
           "details": "Interaction: SREC/AI & DS/TEST_FAC005/TEST_FAC005_1700000000000-sample_cert.pdf, Publication: SREC/AI & DS/TEST_FAC005/TEST_FAC005_1700000000000-sample_pub.pdf, IPR: SREC/AI & DS/TEST_FAC005/TEST_FAC005_1700000000000-sample_patent.pdf",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.760Z"
+          "timestamp": "2026-08-18T18:32:09.958Z"
         },
         {
           "testId": "TC-TRANS-004",
@@ -747,7 +747,7 @@
           "status": "PASS",
           "details": "",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.760Z"
+          "timestamp": "2026-08-18T18:32:09.958Z"
         }
       ],
       "passedCount": 5,
@@ -764,7 +764,7 @@
           "status": "PASS",
           "details": "Name: Dr. Normal Faculty, Pubs: 2, FDPs: undefined",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.763Z"
+          "timestamp": "2026-08-18T18:32:09.963Z"
         }
       ],
       "passedCount": 1,
@@ -781,7 +781,7 @@
           "status": "PASS",
           "details": "HTTP 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:40.771Z"
+          "timestamp": "2026-08-18T18:32:10.034Z"
         },
         {
           "testId": "TC-REP-002",
@@ -790,7 +790,7 @@
           "status": "PASS",
           "details": "HTTP 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.213Z"
+          "timestamp": "2026-08-18T18:32:10.608Z"
         },
         {
           "testId": "TC-REP-003",
@@ -799,7 +799,7 @@
           "status": "PASS",
           "details": "HTTP 200",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.221Z"
+          "timestamp": "2026-08-18T18:32:10.613Z"
         }
       ],
       "passedCount": 3,
@@ -816,7 +816,7 @@
           "status": "PASS",
           "details": "DB: 2, CV: 2, FPI Metric Count: 0",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.222Z"
+          "timestamp": "2026-08-18T18:32:10.614Z"
         }
       ],
       "passedCount": 1,
@@ -833,7 +833,7 @@
           "status": "PASS",
           "details": "Duration: 2ms",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.224Z"
+          "timestamp": "2026-08-18T18:32:10.616Z"
         },
         {
           "testId": "TC-PERF-2",
@@ -842,7 +842,7 @@
           "status": "PASS",
           "details": "Duration: 2ms",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.226Z"
+          "timestamp": "2026-08-18T18:32:10.618Z"
         },
         {
           "testId": "TC-PERF-3",
@@ -851,16 +851,16 @@
           "status": "PASS",
           "details": "Duration: 3ms",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.229Z"
+          "timestamp": "2026-08-18T18:32:10.621Z"
         },
         {
           "testId": "TC-PERF-4",
           "title": "FPI Summary Calculation Latency (< 1000ms)",
           "reqSpec": "Sec 38",
           "status": "PASS",
-          "details": "Duration: 4ms",
+          "details": "Duration: 5ms",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.233Z"
+          "timestamp": "2026-08-18T18:32:10.626Z"
         },
         {
           "testId": "TC-PERF-5",
@@ -869,7 +869,7 @@
           "status": "PASS",
           "details": "Duration: 2ms",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.235Z"
+          "timestamp": "2026-08-18T18:32:10.628Z"
         },
         {
           "testId": "TC-PERF-6",
@@ -878,7 +878,7 @@
           "status": "PASS",
           "details": "Duration: 4ms",
           "evidence": {},
-          "timestamp": "2026-08-18T18:08:41.239Z"
+          "timestamp": "2026-08-18T18:32:10.632Z"
         }
       ],
       "passedCount": 6,

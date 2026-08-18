@@ -6,7 +6,7 @@ import db from '../db.js';
 import { authenticateToken } from './auth.js';
 import { matchesTargetAcademicYear } from './faculty.js';
 
-import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment, findFileInSrecOrUploads } from '../utils/fileStorage.js';
+import { getFacultyStorageDir, formatFacultyFileName, getFacultyDepartment, findFileInSrecOrUploads, sanitizeName } from '../utils/fileStorage.js';
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
 import { fetchPublicationByDoi } from '../utils/doiHelper.js';
 import { standardizeProfilePic } from '../utils/processProfilePic.js';
@@ -22,6 +22,12 @@ const storage = multer.diskStorage({
     const staffId = (req.user && req.user.role === 'admin' && req.body && req.body.staffId)
       ? req.body.staffId
       : (req.user ? req.user.staffId : (req.body ? req.body.staffId : 'faculty123'));
+
+    const userDept = (req.user && req.user.department) ? req.user.department : null;
+    if (userDept) {
+      const dir = getFacultyStorageDir(staffId, userDept);
+      return cb(null, dir);
+    }
 
     getFacultyDepartment(staffId, (err, dept) => {
       const dir = getFacultyStorageDir(staffId, dept);
@@ -255,6 +261,185 @@ router.post('/ai-extract-document', authenticateToken, upload.single('file'), as
     console.error('AI Document Extraction error:', err);
     res.status(500).json({ error: 'Failed to extract information from document. You can still enter details manually.' });
   }
+});
+
+// BATCH AI DOCUMENT UPLOAD & EXTRACTION PIPELINE (V3.1)
+router.post('/documents/batch', authenticateToken, (req, res, next) => {
+  upload.array('files', 10)(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ error: 'Maximum 10 files allowed per batch.' });
+      }
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File size exceeds maximum 5 MB limit.' });
+      }
+      return res.status(400).json({ error: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  const staffId = req.user.staffId || req.user.username;
+  const files = req.files || [];
+
+  if (files.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded. Please select 1 to 10 files.' });
+  }
+
+  if (files.length > 10) {
+    return res.status(400).json({ error: 'Maximum 10 files allowed per batch.' });
+  }
+
+  // Validate supported MIME types & size limits
+  const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  for (const f of files) {
+    if (!allowedMimeTypes.includes(f.mimetype)) {
+      return res.status(400).json({ error: `Unsupported file type "${f.mimetype}" for file "${f.originalname}". Supported formats: PDF, JPEG, PNG, WEBP.` });
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: `File "${f.originalname}" exceeds maximum 5 MB limit.` });
+    }
+  }
+
+  // Aggregate size check (max 20MB)
+  const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+  if (totalSize > 20 * 1024 * 1024) {
+    return res.status(400).json({ error: 'Aggregate batch size exceeds 20 MB limit.' });
+  }
+
+  // Concurrency-limited processing (Max 2 concurrent workers)
+  const results = [];
+  const concurrency = 2;
+  
+  const processFile = async (file) => {
+    try {
+      const originalFilename = sanitizeName(file.originalname);
+      const mimeType = file.mimetype;
+      const filePath = file.path;
+
+      // 1. Text Extraction
+      const { rawText, fileHash, fileSize, extractionMethod } = await extractRawTextFromFile(filePath, mimeType);
+
+      // 2. Duplicate Detection (Level 1: SHA-256 Hash)
+      const docDuplicate = await checkDocumentDuplicate(fileHash, originalFilename, fileSize, staffId);
+
+      // 3. Smart Document Classification (Level 3)
+      const classification = classifyDocument(rawText, originalFilename);
+
+      // 4. Deterministic Field Extraction
+      let { fields, confidences } = extractFieldsForCategory(classification.category, rawText);
+
+      // 5. Optional LLM interpretation
+      try {
+        const llmFields = await attemptLlmExtraction(rawText, classification.category);
+        if (llmFields && typeof llmFields === 'object') {
+          Object.keys(llmFields).forEach(k => {
+            if (llmFields[k] && (!fields[k] || (confidences[k] || 0) < 70)) {
+              fields[k] = llmFields[k];
+              confidences[k] = 88;
+            }
+          });
+        }
+      } catch (llmErr) {}
+
+      // 6. Publication / Record Duplicate Check
+      let coAuthors = [];
+      let recordDuplicate = { isDuplicate: false };
+
+      if (classification.category === 'publications' || fields.doi) {
+        if (fields.doi) {
+          try {
+            const doiMeta = await fetchPublicationByDoi(fields.doi);
+            if (doiMeta) {
+              if (!fields.title || confidences.title < 80) { fields.title = doiMeta.title; confidences.title = 98; }
+              if (!fields.journel) { fields.journel = doiMeta.journal; confidences.journel = 95; }
+              if (!fields.co_authors && doiMeta.authors) { fields.co_authors = doiMeta.authors; confidences.co_authors = 95; }
+              if (doiMeta.year) { fields.date_con = `${doiMeta.year}-01-01`; confidences.date_con = 85; }
+              if (doiMeta.month) { fields.month_pub = doiMeta.month; }
+              if (doiMeta.issn) { fields.issn_no = doiMeta.issn; }
+              if (doiMeta.volume) { fields.volume_pub = doiMeta.volume; }
+              if (doiMeta.issue) { fields.issue_no = doiMeta.issue; }
+              if (doiMeta.publisher) { fields.organizer = doiMeta.publisher; confidences.organizer = 90; }
+            }
+          } catch (doiErr) {}
+        }
+        coAuthors = await matchInternalCoAuthors(fields.co_authors || '', [], staffId);
+        recordDuplicate = await checkRecordDuplicate('publications', fields, staffId);
+      } else {
+        recordDuplicate = await checkRecordDuplicate(classification.category, fields, staffId);
+      }
+
+      // Audit Log
+      try {
+        db.run(
+          `INSERT INTO document_ai_processing 
+            (staff_id, original_filename, saved_filename, file_hash, file_size, mime_type, classification_category, classification_confidence, extracted_fields, field_confidences, is_duplicate, duplicate_details, activity_type, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            staffId,
+            originalFilename,
+            file.filename,
+            fileHash,
+            fileSize,
+            mimeType,
+            classification.category,
+            classification.confidence,
+            JSON.stringify(fields),
+            JSON.stringify(confidences),
+            docDuplicate.isDuplicate || recordDuplicate.isDuplicate ? 1 : 0,
+            JSON.stringify({ docDuplicate, recordDuplicate }),
+            classification.category,
+            'batch_extracted'
+          ]
+        );
+      } catch (auditErr) {}
+
+      return {
+        success: true,
+        originalFilename,
+        savedFilename: file.filename,
+        fileHash,
+        fileSize,
+        extractionMethod,
+        classification,
+        fields,
+        confidences,
+        documentDuplicate: docDuplicate,
+        recordDuplicate,
+        coAuthors,
+        status: docDuplicate.isDuplicate || recordDuplicate.isDuplicate ? 'Duplicate' : (classification.confidence >= 70 ? 'Ready for Review' : 'Needs Verification'),
+        rawTextSnippet: (rawText || '').slice(0, 300)
+      };
+    } catch (err) {
+      console.warn(`[Batch Worker Error for ${file.originalname}]:`, err.message);
+      return {
+        success: false,
+        originalFilename: file.originalname,
+        savedFilename: file.filename,
+        error: err.message || 'Extraction failed',
+        status: 'Failed'
+      };
+    }
+  };
+
+  // Queue runner
+  for (let i = 0; i < files.length; i += concurrency) {
+    const chunk = files.slice(i, i + concurrency);
+    const chunkResults = await Promise.all(chunk.map(processFile));
+    results.push(...chunkResults);
+  }
+
+  const successful = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
+
+  res.json({
+    success: true,
+    total: files.length,
+    processed: successful,
+    failed,
+    items: results
+  });
 });
 
 // RECORD-LEVEL PRE-SAVE DUPLICATE CHECK ENDPOINT

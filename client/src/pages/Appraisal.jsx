@@ -5915,6 +5915,8 @@ export default function Appraisal({ auth }) {
         const journalPubsList = (fpiDetails?.publications || []).filter(p => !((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
         const confPubsList = (fpiDetails?.publications || []).filter(p => ((p.type_pub || p.type1 || '').toLowerCase().includes('conf')));
         const bookPubsList = fpiDetails?.books || [];
+        const score_c1 = Math.min(c_c1.maxMarks, fpiDetails?.breakdown?.c1_journals ?? (journalPubsList.length * c_c1.unitMark));
+        const score_c2 = Math.min(c_c2.maxMarks, fpiDetails?.breakdown?.c2_conf_books ?? ((confPubsList.length + bookPubsList.length) * c_c2.unitMark));
 
         const itemC3 = (templateItems || []).find(i => (i.criteria_code || '').toUpperCase() === 'C3');
         const isAutoC3 = itemC3?.mapping_type === 'auto';

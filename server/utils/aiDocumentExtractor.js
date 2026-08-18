@@ -33,8 +33,14 @@ export async function extractRawTextFromFile(filePath, mimeType) {
 
   if (ext === '.pdf' || mimeType === 'application/pdf') {
     try {
-      const pdfData = await pdfParse(buffer);
-      text = (pdfData.text || '').trim();
+      if (typeof pdfParse === 'function') {
+        const pdfData = await pdfParse(buffer);
+        text = (pdfData.text || '').trim();
+      } else if (pdfParse && pdfParse.PDFParse) {
+        const parser = new pdfParse.PDFParse({ data: buffer });
+        const pdfData = await parser.getText();
+        text = (pdfData.text || '').trim();
+      }
       // If digital PDF text is too short (< 40 characters), it's likely a scanned image PDF
       if (text.length < 40) {
         extractionMethod = 'ocr_scanned_pdf';

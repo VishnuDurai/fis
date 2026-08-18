@@ -303,6 +303,7 @@ def create_system_constraints_document():
     fpi_rules = [
         ("Completed Academic Year Rule: ", "Performance appraisals evaluate the completed academic year (e.g. 2025-2026). The appraisal form defaults to getAppraisalAcademicYear() (2025-2026)."),
         ("Score Evaluation Caps (200 Total): ", "PART A (Teaching: Max 60 Pts), PART B (Prof Dev: Max 40 Pts), PART C (R&D: Max 80 Pts), PART D (Institutional: Max 20 Pts). Total FPI score capped at 200 Pts."),
+        ("FPI Part D Scoring Formula & Worked Examples: ", "Part D evaluates Institutional and Departmental contributions: Institutional Roles award 10.0 Pts per duty (Max 20.0 Pts); Departmental Roles award 10.0 Pts per duty (Max 10.0 Pts). Total Part D score is computed as: min(20.0, Institutional_Marks + Departmental_Marks). Worked Example A: Faculty serving as Club Coordinator (10 inst) + Dept Exam Cell Coordinator (10 dept) -> 10 + 10 = 20.0 / 20.0 (Max Cap Reached). Worked Example B: Faculty holding 2 Institutional Roles (NSS Coordinator + Sports Advisory, 2 x 10 = 20 inst, 0 dept) -> 20.0 / 20.0 (Max Cap Reached)."),
         ("Club Coordinator & Co-Coordinator Rule: ", "Being assigned as a Club Coordinator or Club Co-Coordinator is categorized as an Institutional Level Additional Responsibility under Criteria D1 in PART D (Institutional Development & Contribution), scoring 10 Pts per duty up to the 20 Pts Part D cap. Furthermore, student club activities organized log extension points under PART B."),
         ("Designation-Based Customization: ", "System Admins / HR can define custom unit marks, max caps, calculation rules, and bracket configs per designation (Assistant Professor, Associate Professor, Professor, Professor & Head). System falls back to ALL common default mappings if no override exists."),
         ("Threshold Bracket Configurator (⚙️ Config Bracket): ", "Admins can configure cutoff thresholds (e.g. feedback 4.0 cutoff, pass % 80% cutoff, journal vs conference split, patent status splits)."),
@@ -341,6 +342,26 @@ def create_system_constraints_document():
         r1.font.name = 'Times New Roman'
         r1.font.size = Pt(14)
         r1.font.color.rgb = RGBColor(3, 105, 161)
+        r2 = bp.add_run(body_text)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
+    # Section 6: SREC FIS V3.1 Features
+    add_heading_styled(doc, "6. SREC FIS V3.1 Workflow Enhancements Governance & Security", level=1)
+
+    v31_rules = [
+        ("AI Batch Document Upload & Concurrent Pre-Fill Pipeline (V3.1-01): ", "Faculty can upload up to 10 academic documents (Max 5 MB each, Max 20 MB total) across supported MIME types (PDF, JPG, PNG, WEBP). Employs a 2-worker queue concurrency to balance OCR and API rate limits. Partial failure resiliency ensures successful extractions are immediately reviewable while failed items offer retry/manual entry. In strict accordance with AI Non-Autonomy rules, zero unconfirmed records are auto-saved to database."),
+        ("One-Click Consolidated Department Academic & Accreditation PDF Compilation (V3.1-02): ", "Authorized HODs and Administrators can generate a consolidated 9-section official Department Performance & Accreditation PDF in under 3.5 seconds. Strictly enforces department data isolation: HODs can only access their assigned department; cross-department attempts trigger HTTP 403 Forbidden. System Admin & Principal retain institutional scope.")
+    ]
+
+    for title_text, body_text in v31_rules:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(title_text)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(15, 51, 31)
         r2 = bp.add_run(body_text)
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)

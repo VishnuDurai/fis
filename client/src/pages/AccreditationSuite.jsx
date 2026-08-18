@@ -616,6 +616,42 @@ export default function AccreditationSuite({ auth }) {
     }
   };
 
+  const handleDownloadDepartmentDossierPdf = async () => {
+    const targetDept = accreditationDept || nbaTier1Data?.department || initialDept || auth.department;
+    if (!targetDept) {
+      showError('Please select a department to compile the PDF dossier.');
+      return;
+    }
+    
+    try {
+      showSuccess(`Compiling official Department PDF Dossier for ${targetDept}...`);
+      const res = await fetch(`${API_BASE_URL}/api/reports/department/${encodeURIComponent(targetDept)}/pdf?academicYear=${encodeURIComponent(nbaAssessmentYear)}`, {
+        headers: {
+          'Authorization': `Bearer ${auth.token}`
+        }
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}: Failed to generate department PDF`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${targetDept.replace(/[^a-zA-Z0-9]/g, '_')}_Department_Dossier_${nbaAssessmentYear}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess(`Department PDF Dossier downloaded successfully!`);
+    } catch (err) {
+      console.error('PDF download error:', err);
+      showError(err.message || 'Failed to download department PDF dossier');
+    }
+  };
+
   return (
     <div className="container-fluid" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       
@@ -687,6 +723,27 @@ export default function AccreditationSuite({ auth }) {
                 <option value={20}>1 : 20 (AICTE Standard)</option>
               </select>
             </div>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleDownloadDepartmentDossierPdf}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                borderColor: '#38bdf8',
+                color: '#ffffff',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                padding: '6px 14px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)'
+              }}
+            >
+              <FileText size={16} /> One-Click Department PDF
+            </button>
           </div>
         </div>
       </div>

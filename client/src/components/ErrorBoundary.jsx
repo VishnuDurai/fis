@@ -14,6 +14,25 @@ export default class ErrorBoundary extends React.Component {
     console.error('Uncaught rendering error:', error, errorInfo);
   }
 
+  handleReload = async () => {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      }
+    } catch (e) {
+      console.warn('Cache purge on reload error:', e);
+    }
+    this.setState({ hasError: false, error: null });
+    window.location.reload();
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -24,7 +43,7 @@ export default class ErrorBoundary extends React.Component {
           </p>
           <button 
             className="btn btn-primary" 
-            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+            onClick={this.handleReload}
             style={{ padding: '8px 20px', fontWeight: 600 }}
           >
             Reload Application Page

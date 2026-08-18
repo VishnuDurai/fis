@@ -11,6 +11,7 @@ import { moveFacultyDirectory, zipDirectory, SREC_ROOT, getFacultyStorageDir, sa
 import { fetchAllDeptHistory, getStaffDeptAtDate, matchesDepartment } from '../utils/deptHistory.js';
 import { processDoctoratePromotion } from '../doctorateHelper.js';
 import { generateDossierPackageZip } from '../utils/dossierZipExporter.js';
+import { compileDepartmentPdf } from '../utils/departmentPdfCompiler.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -986,6 +987,41 @@ router.get('/download/institution', authenticateToken, requireSystemAdmin, (req,
     res.status(500).json({ error: 'Failed to compress institutional documents' });
   }
 });
+
+// 4. ONE-CLICK CONSOLIDATED DEPARTMENT ACADEMIC & ACCREDITATION PDF COMPILATION (V3.1)
+const handleDepartmentPdf = async (req, res) => {
+  const deptName = decodeURIComponent(req.params.deptName || '').trim();
+  const academicYear = (req.query.academicYear || req.query.academic_year || '').trim();
+
+  // Strict Server-Side Department Authorization:
+  // HODs are strictly restricted to their assigned department. System Admin & Principal retain institutional scope.
+  const isSysAdmin = req.user.role === 'admin' || (req.user.designation || '').toLowerCase().includes('principal');
+  if (!isSysAdmin) {
+    const userDept = req.user.department || '';
+    if (!matchesDepartment(userDept, deptName)) {
+      return res.status(403).json({ error: `Access denied: You are only authorized to generate reports for your assigned department ("${userDept}").` });
+    }
+  }
+
+  try {
+    const { buffer, filename } = await compileDepartmentPdf({
+      department: deptName,
+      academicYear,
+      requestingUser: req.user
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    return res.send(buffer);
+  } catch (err) {
+    console.error('Department PDF Compilation Error:', err);
+    res.status(500).json({ error: `Failed to compile department PDF: ${err.message}` });
+  }
+};
+
+router.get('/reports/department/:deptName/pdf', authenticateToken, requireAdminOrDeptAdmin, handleDepartmentPdf);
+router.get('/department/:deptName/pdf', authenticateToken, requireAdminOrDeptAdmin, handleDepartmentPdf);
 
 // UPDATE department lookup
 router.put('/departments/:id', authenticateToken, requireSystemAdmin, (req, res) => {
