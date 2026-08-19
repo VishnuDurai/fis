@@ -5,7 +5,7 @@ import { FileCheck, Plus, Trash2, Printer, BookOpen, Award, Layers, ShieldCheck,
 import Navbar from '../components/Navbar.jsx';
 import ReportButtons from '../components/ReportButtons.jsx';
 import { showSuccess, showError } from '../context/AlertContext.jsx';
-import { getCurrentAcademicYear, getAppraisalAcademicYear, getAcademicYearOptions } from '../utils/academicYear.js';
+import { getCurrentAcademicYear, getAppraisalAcademicYear, getAcademicYearOptions, getAcademicYearFromDateStr, matchesTargetAcademicYear } from '../utils/academicYear.js';
 
 export default function Appraisal({ auth }) {
   const location = useLocation();
