@@ -460,6 +460,11 @@ export default function Appraisal({ auth }) {
     const app = appRecord || lastSubmittedAppraisal || myApp;
     if (!app) return;
 
+    if (['Final Approved', 'HOD Approved', 'Submitted'].includes(app.status)) {
+      showError(`This appraisal form has status "${app.status}" and is locked from further edits.`);
+      return;
+    }
+
     setEditingAppraisalId(app.id);
     setAcademicYear(app.academic_year || getCurrentAcademicYear());
 
@@ -2608,25 +2613,29 @@ export default function Appraisal({ auth }) {
 
               {!isAdminOrHR && (() => {
                 const myAppraisal = appraisals.find(a => (a.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase()) || lastSubmittedAppraisal || appraisals[0] || null;
+                const isStatusEditable = myAppraisal && ['Draft', 'Revision Requested', 'HOD Revision Requested'].includes(myAppraisal.status);
+
                 return (
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => {
-                        if (showAddForm && !editingAppraisalId) {
-                          setShowAddForm(false);
-                        } else {
-                          handleStartNewForm();
-                        }
-                      }}
-                      style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      {showAddForm && !editingAppraisalId ? <X size={16} /> : <Plus size={16} />}
-                      {showAddForm && !editingAppraisalId ? 'Close Form' : 'Fill New FPI Form'}
-                    </button>
+                    {!myAppraisal && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                          if (showAddForm && !editingAppraisalId) {
+                            setShowAddForm(false);
+                          } else {
+                            handleStartNewForm();
+                          }
+                        }}
+                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        {showAddForm && !editingAppraisalId ? <X size={16} /> : <Plus size={16} />}
+                        {showAddForm && !editingAppraisalId ? 'Close Form' : 'Fill New FPI Form'}
+                      </button>
+                    )}
 
-                    {myAppraisal && (
+                    {isStatusEditable && (
                       <button
                         type="button"
                         className="btn btn-secondary"
@@ -2638,18 +2647,18 @@ export default function Appraisal({ auth }) {
                             handleStartEdit(myAppraisal);
                           }
                         }}
-                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#f0fdf4', color: '#166534', border: '1.5px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#fef2f2', color: '#991b1b', border: '1.5px solid #fecaca', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
-                        <Edit size={16} /> {showAddForm && editingAppraisalId ? 'Close Edit' : 'Edit FPI Form'}
+                        <Edit size={16} /> {showAddForm && editingAppraisalId ? 'Close Edit' : 'Edit & Resubmit Form'}
                       </button>
                     )}
 
                     {myAppraisal && (
                       <button
                         type="button"
-                        className="btn btn-secondary"
+                        className="btn btn-primary"
                         onClick={() => handleOpenViewModal(myAppraisal)}
-                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', background: '#e0f2fe', color: '#0369a1', border: '1.5px solid #7dd3fc', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        style={{ fontWeight: 800, fontSize: '0.85rem', padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
                         <Eye size={16} /> View Filled Appraisal Form
                       </button>
@@ -5933,7 +5942,8 @@ export default function Appraisal({ auth }) {
         const score_d1 = viewingAppraisal.part_d_score || Math.min(c_d1.maxMarks, fpiDetails?.breakdown?.d_responsibilities ?? ((fpiDetails?.responsibilities?.length || 0) * c_d1.unitMark));
         const subtotal_D = score_d1;
 
-        const canEdit = !isAdminOrHR || (viewingAppraisal.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase();
+        const isStatusEditable = ['Draft', 'Revision Requested', 'HOD Revision Requested'].includes(viewingAppraisal?.status);
+        const canEdit = isStatusEditable && (!isAdminOrHR || (viewingAppraisal.staff_id || '').trim().toLowerCase() === (auth?.staffId || '').trim().toLowerCase());
         const deptAcronym = (viewingAppraisal.Department || auth.department || auth.dept || '').toUpperCase();
         const deptFullNameMap = {
           'AI & DS': 'ARTIFICIAL INTELLIGENCE AND DATA SCIENCE',
