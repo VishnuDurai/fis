@@ -366,6 +366,30 @@ def create_system_constraints_document():
         r2.font.name = 'Times New Roman'
         r2.font.size = Pt(14)
 
+    # Section 7: SREC FIS V3.2 Event Design & Certificate Generation Suite
+    add_heading_styled(doc, "7. SREC FIS V3.2 Event Design & Certificate Generation Suite Governance", level=1)
+
+    v32_rules = [
+        ("Single-Entry Event Data Reuse (V3.2-01): ", "Faculty can create Event Posters, Formal Invitations, and Participation Certificates by selecting an existing event from the 'staff_event_organized' module or creating a new event record. All metadata (title, dates, resource person, theme, venue) is reused instantly without redundant manual entry."),
+        ("Server-Enforced Department Identity & Anti-Spoofing (V3.2-02): ", "The organizing department rendered on all posters, invitations, and certificates is derived strictly from the server-side lookup of the authenticated faculty member's staff_academics record. Any client-side department overrides are explicitly ignored and overwritten on the server to prevent institutional misattribution."),
+        ("Deterministic Certificate Numbering Format (V3.2-03): ", "All generated participation certificates adhere to the official institutional format: SREC/<DEPT_CODE>/<YEAR>/<EVENT_CODE>/<3-DIGIT-INDEX> (e.g., SREC/AD/2026/SEMINA/001). This guarantees audit traceability and tamper verification across accreditation inspections."),
+        ("Bulk Participant Spreadsheet Validation & Fault-Tolerant Engine (V3.2-04): ", "Accepts Excel (.xlsx/.xls) and CSV rosters, validating participant names, detecting in-batch duplicates, and checking email syntax. Generation engine features live step-by-step progress tracking, non-blocking fault tolerance, single PDF downloads, combined multi-page PDF generation, and one-click JSZip archive downloading."),
+        ("Template Catalog Management & Role-Based Access Control (V3.2-05): ", "Provides 15 accredited institutional templates (P01-P05 Posters, I01-I05 Invitations, C01-C05 Certificates). System Administrators can activate/deactivate templates globally, while faculty members have isolated access to view and manage only their own generated design histories."),
+        ("Institutional Signatory Rule & Server Anti-Spoofing (V3.2-06): ", "All Participation Certificates (C01–C05) strictly require exactly three institutional signatory blocks: (1) Faculty Coordinator (auto-mapped to the authenticated faculty organizer), (2) HOD (auto-resolved from the faculty coordinator's current department via admin_dep / staff_academics), and (3) Principal (auto-resolved from institutional executive configuration). Faculty cannot enter arbitrary signatory names or spoof signatories via frontend payload tampering. The server independently resolves and locks all three signatories across single and bulk certificate generation pipelines.")
+    ]
+
+    for title_text, body_text in v32_rules:
+        bp = doc.add_paragraph(style='List Bullet')
+        bp.paragraph_format.space_after = Pt(4)
+        r1 = bp.add_run(title_text)
+        r1.bold = True
+        r1.font.name = 'Times New Roman'
+        r1.font.size = Pt(14)
+        r1.font.color.rgb = RGBColor(3, 105, 161)
+        r2 = bp.add_run(body_text)
+        r2.font.name = 'Times New Roman'
+        r2.font.size = Pt(14)
+
     # Save document
     docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs'))
     os.makedirs(docs_dir, exist_ok=True)

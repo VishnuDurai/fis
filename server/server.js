@@ -110,6 +110,7 @@ app.use('/uploads', requireFileAuth, express.static(path.join(__dirname, 'upload
 
 import systemPageConfigsRouter from './routes/systemPageConfigs.js';
 import notificationsRouter from './routes/notifications.js';
+import eventDesignRouter from './routes/event_design.js';
 
 // Routes
 app.use('/api/auth', authRouter);
@@ -120,6 +121,7 @@ app.use('/api/dynamic-pages', dynamicPagesRouter);
 app.use('/api/system-page-configs', systemPageConfigsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/event-design', eventDesignRouter);
 app.use('/api/reports', adminRouter);
 
 import JSZip from 'jszip';

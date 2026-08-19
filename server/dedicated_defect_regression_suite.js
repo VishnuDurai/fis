@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import db from './db.js';
+import db, { initDb } from './db.js';
 import { DEPARTMENT_FOLDER_MAP, getCanonicalDepartmentFolder, SREC_ROOT } from './utils/fileStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,6 +43,7 @@ async function runDedicatedDefectRegressions() {
   console.log('   SREC FIS V3.0 DEEP DEFECT REGRESSION VALIDATION SUITE        ');
   console.log('================================================================\n');
 
+  await initDb();
   await new Promise(r => setTimeout(r, 500));
 
   const testUsers = [

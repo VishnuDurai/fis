@@ -246,7 +246,14 @@ def create_technical_modification_guide():
         ("Auto-Doc Schema Script", "scripts/generate_schema_doc.py", "generate_schema_document()", "L1-L430"),
         ("Auto-Doc Constraints Script", "scripts/generate_system_constraints_doc.py", "create_system_constraints_doc()", "L1-L240"),
         ("Auto-Doc Technical Guide Script", "scripts/generate_tech_file_guide_doc.py", "create_technical_guide()", "L1-L250"),
-        ("Auto-Doc Workflows Script", "scripts/generate_portal_workflows_doc.py", "create_portal_workflows_document()", "L1-L320")
+        ("Auto-Doc Workflows Script", "scripts/generate_portal_workflows_doc.py", "create_portal_workflows_document()", "L1-L320"),
+        ("Event Design Suite UI & Tabs", "client/src/pages/EventDesignSuite.jsx", "EventDesignSuite component", "L1-L600"),
+        ("Event Design Backend API", "server/routes/event_design.js", "router mounted at /api/event-design", "L1-L520"),
+        ("Poster Template Renderers", "client/src/utils/eventDesign/posterTemplates.js", "renderPosterHtml(), POSTER_TEMPLATES", "L1-L350"),
+        ("Invitation Template Renderers", "client/src/utils/eventDesign/invitationTemplates.js", "renderInvitationHtml(), INVITATION_TEMPLATES", "L1-L320"),
+        ("Certificate Template Renderers", "client/src/utils/eventDesign/certificateTemplates.js", "renderCertificateHtml(), CERTIFICATE_TEMPLATES", "L1-L350"),
+        ("PDF Export Vector Engine", "client/src/utils/eventDesign/pdfExportEngine.js", "generatePosterPdf, generateSingleCertificatePdf", "L1-L630"),
+        ("Bulk Certificate & JSZip Processor", "client/src/utils/eventDesign/bulkCertificateProcessor.js", "processBulkCertificates()", "L1-L150")
     ]
 
     for row_idx, (feat, fpath, ffunc, flines) in enumerate(mappings):

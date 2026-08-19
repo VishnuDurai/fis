@@ -722,6 +722,76 @@ const createTables = async () => {
       actor_role VARCHAR(100),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_appraisal_rev_id (appraisal_id)
+    )`,
+    // 45. event_design_templates (V3.2 Institutional Design Suite Templates: Posters, Invitations, Certificates)
+    `CREATE TABLE IF NOT EXISTS event_design_templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      template_id VARCHAR(50) UNIQUE NOT NULL,
+      template_name VARCHAR(150) NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      description TEXT,
+      preview_image TEXT,
+      is_active INT DEFAULT 1,
+      is_default INT DEFAULT 0,
+      layout_config LONGTEXT,
+      version VARCHAR(20) DEFAULT '1.0',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_tmpl_type (type),
+      INDEX idx_tmpl_active (is_active)
+    )`,
+    // 46. event_generated_documents (V3.2 Audit & Record of Generated Posters, Invitations, and Bulk Certificate Batches)
+    `CREATE TABLE IF NOT EXISTS event_generated_documents (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      staff_id VARCHAR(100) NOT NULL,
+      event_id INT DEFAULT NULL,
+      event_title VARCHAR(255) NOT NULL,
+      design_type VARCHAR(50) NOT NULL,
+      template_id VARCHAR(50) NOT NULL,
+      file_path TEXT NOT NULL,
+      preview_path TEXT,
+      file_format VARCHAR(20) DEFAULT 'pdf',
+      certificate_count INT DEFAULT 1,
+      certificate_batch_id VARCHAR(100) DEFAULT NULL,
+      version INT DEFAULT 1,
+      is_latest TINYINT(1) DEFAULT 1,
+      package_id INT DEFAULT NULL,
+      status VARCHAR(50) DEFAULT 'COMPLETED',
+      metadata_json LONGTEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_event_gen_staff (staff_id),
+      INDEX idx_event_gen_event (event_id),
+      INDEX idx_event_gen_type (design_type),
+      INDEX idx_event_doc_ver (event_id, design_type, version)
+    )`,
+    // 47. event_design_packages (V3.2.1 One-Click Complete Event Packages & Audit Log)
+    `CREATE TABLE IF NOT EXISTS event_design_packages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      event_id INT NOT NULL,
+      staff_id VARCHAR(100) NOT NULL,
+      department VARCHAR(255) NOT NULL,
+      event_title VARCHAR(255) NOT NULL,
+      poster_template VARCHAR(50),
+      invitation_template VARCHAR(50),
+      certificate_template VARCHAR(50),
+      participant_count INT DEFAULT 0,
+      cert_range_start VARCHAR(100),
+      cert_range_end VARCHAR(100),
+      package_filename VARCHAR(255),
+      file_path TEXT,
+      generation_status VARCHAR(50) DEFAULT 'COMPLETED',
+      poster_status VARCHAR(50) DEFAULT 'SUCCESS',
+      invitation_status VARCHAR(50) DEFAULT 'SUCCESS',
+      certificate_status VARCHAR(50) DEFAULT 'SUCCESS',
+      summary_status VARCHAR(50) DEFAULT 'SUCCESS',
+      idempotency_key VARCHAR(100) DEFAULT NULL,
+      error_details TEXT,
+      metadata_json LONGTEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_pkg_event (event_id),
+      INDEX idx_pkg_staff (staff_id),
+      INDEX idx_pkg_dept (department),
+      INDEX idx_pkg_idempotency (idempotency_key)
     )`
   ];
 
@@ -731,6 +801,38 @@ const createTables = async () => {
     } catch (e) {
       console.error('Table creation error:', e.message);
     }
+  }
+
+  // Seed default accredited event design templates for V3.2
+  const initialTemplates = [
+    // Posters
+    { id: 'P01', name: 'Institutional Classic', type: 'POSTER', desc: 'Maroon & Navy formal academic grid with central institutional seal', is_default: 1 },
+    { id: 'P02', name: 'Research & Technical', type: 'POSTER', desc: 'Modern dark slate & indigo tech gradient with circuit accents', is_default: 0 },
+    { id: 'P03', name: 'Seminar / Guest Lecture', type: 'POSTER', desc: 'Keynote portrait layout with prominent speaker profile and bio highlights', is_default: 0 },
+    { id: 'P04', name: 'Workshop / Training', type: 'POSTER', desc: 'Dynamic emerald & teal grid with schedule highlights and registration badges', is_default: 0 },
+    { id: 'P05', name: 'Minimal Academic', type: 'POSTER', desc: 'High-elegance minimalist typography with gold & navy borders', is_default: 0 },
+    // Invitations
+    { id: 'I01', name: 'Formal Institutional', type: 'INVITATION', desc: 'Classic gold-bordered formal invite card with royal blue header', is_default: 1 },
+    { id: 'I02', name: 'Chief Guest Invitation', type: 'INVITATION', desc: 'Prominent dignitary honorifics and institutional seal', is_default: 0 },
+    { id: 'I03', name: 'Seminar / Workshop', type: 'INVITATION', desc: 'Modern academic card with date, time, and venue highlights', is_default: 0 },
+    { id: 'I04', name: 'Conference / Symposium', type: 'INVITATION', desc: 'Sophisticated dual-column schedule and formal invitation text', is_default: 0 },
+    { id: 'I05', name: 'Minimal Professional', type: 'INVITATION', desc: 'Clean executive invitation card with refined typography', is_default: 0 },
+    // Certificates
+    { id: 'C01', name: 'Classic Institutional', type: 'CERTIFICATE', desc: 'Traditional guilloche ornate border, gold foil seal, and formal script', is_default: 1 },
+    { id: 'C02', name: 'Modern Academic', type: 'CERTIFICATE', desc: 'Sleek geometric borders with vibrant emerald and sapphire ribbon accent', is_default: 0 },
+    { id: 'C03', name: 'Research / Conference', type: 'CERTIFICATE', desc: 'Prestigious conference citation certificate with academic medal emblem', is_default: 0 },
+    { id: 'C04', name: 'Workshop / FDP', type: 'CERTIFICATE', desc: 'Professional skill development certificate with training hours breakdown', is_default: 0 },
+    { id: 'C05', name: 'Minimal Professional', type: 'CERTIFICATE', desc: 'Crisp, clean corporate-academic certificate layout with dual signature blocks', is_default: 0 }
+  ];
+
+  for (const tmpl of initialTemplates) {
+    try {
+      await pool.query(
+        `INSERT IGNORE INTO event_design_templates (template_id, template_name, type, description, is_active, is_default, version)
+         VALUES (?, ?, ?, ?, 1, ?, '1.0')`,
+        [tmpl.id, tmpl.name, tmpl.type, tmpl.desc, tmpl.is_default]
+      );
+    } catch (e) {}
   }
 
   // Safe column migration for staff_appraisal
@@ -860,6 +962,26 @@ const createTables = async () => {
     'ALTER TABLE staff_member ADD COLUMN date TEXT'
   ];
   for (const alterQuery of memberCols) {
+    try { await pool.query(alterQuery); } catch (e) {}
+  }
+
+  // Safe column migration for event_generated_documents (V3.2.1 Document Versioning & Packages)
+  const eventDocCols = [
+    'ALTER TABLE event_generated_documents ADD COLUMN version INT DEFAULT 1',
+    'ALTER TABLE event_generated_documents ADD COLUMN is_latest TINYINT(1) DEFAULT 1',
+    'ALTER TABLE event_generated_documents ADD COLUMN package_id INT DEFAULT NULL',
+    "ALTER TABLE event_generated_documents ADD COLUMN status VARCHAR(50) DEFAULT 'COMPLETED'"
+  ];
+  for (const alterQuery of eventDocCols) {
+    try { await pool.query(alterQuery); } catch (e) {}
+  }
+
+  // Safe column migration for event_design_packages (V3.2.1 Idempotency & Status)
+  const eventPkgCols = [
+    'ALTER TABLE event_design_packages ADD COLUMN idempotency_key VARCHAR(100) DEFAULT NULL',
+    'ALTER TABLE event_design_packages ADD INDEX idx_pkg_idempotency (idempotency_key)'
+  ];
+  for (const alterQuery of eventPkgCols) {
     try { await pool.query(alterQuery); } catch (e) {}
   }
 
@@ -1159,7 +1281,11 @@ const dbWrapper = {
       },
       finalize: () => {}
     };
-  }
+  },
+
+  getPool: () => pool
 };
 
+export const getPool = () => pool;
+export { initDb };
 export default dbWrapper;

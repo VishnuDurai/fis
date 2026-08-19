@@ -11,12 +11,15 @@ import path from 'path';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import db from './db.js';
 import { SREC_ROOT } from './utils/fileStorage.js';
 import { compileDepartmentPdf } from './utils/departmentPdfCompiler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config();
 
 const BASE_URL = 'http://localhost:5001';
 const JWT_SECRET = process.env.JWT_SECRET || 'srec_fis_super_secret_key_123';

@@ -341,7 +341,10 @@ def create_portal_workflows_document():
          "Faculty uploads profile photos in Settings. The backend automatically processes images using AI portrait segmentation (rembg) to isolate the portrait and standardize the background to solid white (#FFFFFF), automatically updating the avatar across Navbar, Dashboard, and CV."),
         
         ("Workflow 1.16 — Real-Time Web Push Notification Subscription: ", 
-         "Faculty clicks the Notification Bell in the Navbar to enroll the browser/mobile device for instant Web Push Notifications via Service Worker, receiving real-time alerts on appraisal status updates, HOD feedback, and administrative circulars.")
+         "Faculty clicks the Notification Bell in the Navbar to enroll the browser/mobile device for instant Web Push Notifications via Service Worker, receiving real-time alerts on appraisal status updates, HOD feedback, and administrative circulars."),
+
+        ("Workflow 1.17 — Event Design & Certificate Generation Suite (/event-design-suite): ", 
+         "Faculty organizing institutional events access the dedicated Event Design Suite to generate accredited Event Posters (P01-P05), Formal Invitations (I01-I05), and Bulk Participation Certificates (C01-C05). Features 1-click event loading from staff_event_organized, server-enforced department branding, server-locked 3-position Institutional Signatories (Faculty Coordinator, HOD, Principal), Excel/CSV participant spreadsheet import with real-time validation, live interactive HTML preview, vector PDF export, and JSZip bulk archive generation with deterministic numbering (SREC/<DEPT>/<YEAR>/<EVENT>/<SEQ>).")
     ]
 
     for t_wf, b_wf in fac_modules:

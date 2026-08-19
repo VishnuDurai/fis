@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../config";
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Download, FileSignature, Search, Edit, GraduationCap, CheckCircle2, UserCheck, Sparkles, Users, Link2, AlertTriangle, ShieldCheck, X, Layers } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Dropzone from '../components/Dropzone.jsx';
@@ -503,6 +503,7 @@ const activityConfigs = {
 
 export default function Activities({ auth }) {
   const { type } = useParams();
+  const navigate = useNavigate();
   const config = activityConfigs[type];
 
   const [activitiesList, setActivitiesList] = useState([]);
@@ -541,6 +542,34 @@ export default function Activities({ auth }) {
   const [selectedPubCategory, setSelectedPubCategory] = useState('');
   const [selectedEventCategory, setSelectedEventCategory] = useState('');
   const [selectedInteractionType, setSelectedInteractionType] = useState('');
+
+  // Event Design History States (V3.2.1)
+  const [selectedEventHistory, setSelectedEventHistory] = useState(null);
+  const [loadingEventHistory, setLoadingEventHistory] = useState(false);
+  const [historyData, setHistoryData] = useState(null);
+
+  const openEventDesignHistory = async (eventItem) => {
+    setSelectedEventHistory(eventItem);
+    setLoadingEventHistory(true);
+    setHistoryData(null);
+    try {
+      const token = auth?.token || localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/api/event-design/events/${eventItem.id}/history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to load event design history');
+      }
+      const data = await res.json();
+      setHistoryData(data);
+    } catch (err) {
+      console.error('Error fetching event design history:', err);
+      showError(err.message || 'Failed to load design history');
+    } finally {
+      setLoadingEventHistory(false);
+    }
+  };
 
   // Doctorate / Ph.D Faculty Filtering for Supervisorship
   const isDoctorateFaculty = (fac) => {
@@ -2138,6 +2167,40 @@ export default function Activities({ auth }) {
         </div>
       )}
 
+      {/* Event Design Suite Banner & Category Filter for Events Organized */}
+      {type === 'events' && (
+        <div style={{ marginBottom: '16px', background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #86efac', borderRadius: '12px', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.08)' }}>
+          <div>
+            <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem' }}>🎨</span> SREC Event Design & Certificate Generation Suite
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '2px' }}>
+              Design accredited posters, formal invitations, and generate bulk participant certificates with single-entry event reuse.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/event-design-suite')}
+            style={{
+              background: '#15803d',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 18px',
+              borderRadius: '8px',
+              fontWeight: 800,
+              fontSize: '0.84rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 6px rgba(21, 128, 61, 0.25)'
+            }}
+          >
+            🎨 Open Event Design Suite ➔
+          </button>
+        </div>
+      )}
+
       {/* Event Category Filter for Events Organized */}
       {type === 'events' && (
         <div className="card" style={{ marginBottom: '20px', padding: '14px 20px', background: '#f8fafc', border: '1.5px solid #cbd5e1' }}>
@@ -2261,7 +2324,35 @@ export default function Activities({ auth }) {
                       </td>
                     )}
                     {(auth.role !== 'dept_admin' || type === 'supervisors') && (
-                      <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <td style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                        {type === 'events' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openEventDesignHistory(item)}
+                              title="Event Design & Documents History"
+                              style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1d4ed8', borderRadius: '5px', padding: '3px 8px', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(37,99,235,0.12)' }}
+                            >
+                              📁 Design & Documents
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/event-design-suite?eventId=${item.id}&type=poster`)}
+                              title="Generate Poster in Design Suite"
+                              style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '4px', padding: '3px 7px', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                            >
+                              🎨 Poster
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/event-design-suite?eventId=${item.id}&type=certificate`)}
+                              title="Generate Certificates in Design Suite"
+                              style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '4px', padding: '3px 7px', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                            >
+                              📜 Certs
+                            </button>
+                          </>
+                        )}
                         <button 
                           onClick={() => openEditModal(item)} 
                           title="Edit Record"
@@ -2741,6 +2832,366 @@ export default function Activities({ auth }) {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => setShowLinkedAuthorsModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SREC FIS V3.2.1 — EVENT DESIGN & DOCUMENT HISTORY MODAL */}
+      {selectedEventHistory && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '920px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '1.3rem' }}>📁</span>
+                  <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#1e3a8a' }}>
+                    Event Design & Document History
+                  </h3>
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+                  {selectedEventHistory.title}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '6px' }}>
+                  <span>📅 <strong>Date:</strong> {selectedEventHistory.from_date || selectedEventHistory.date || 'N/A'}</span>
+                  <span>📍 <strong>Venue:</strong> {selectedEventHistory.venue || 'SREC Campus'}</span>
+                  <span>👤 <strong>Resource Person:</strong> {selectedEventHistory.res_person || 'N/A'}</span>
+                  <span>🏢 <strong>Dept:</strong> {selectedEventHistory.Department || 'Engineering'}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedEventHistory(null)}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '6px', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {loadingEventHistory ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>⏳</div>
+                Loading design documents & version history...
+              </div>
+            ) : historyData ? (
+              <div>
+                {/* Status Dashboard */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '24px' }}>
+                  <div style={{ background: historyData.status?.posterGenerated ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${historyData.status?.posterGenerated ? '#86efac' : '#e2e8f0'}`, borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Poster Design</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: historyData.status?.posterGenerated ? '#166534' : '#94a3b8', marginTop: '2px' }}>
+                      {historyData.status?.posterGenerated ? `✓ Generated (${historyData.status.posterVersionCount} ver)` : '○ Not Generated'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: historyData.status?.invitationGenerated ? '#eff6ff' : '#f8fafc', border: `1.5px solid ${historyData.status?.invitationGenerated ? '#93c5fd' : '#e2e8f0'}`, borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Invitation Card</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: historyData.status?.invitationGenerated ? '#1e40af' : '#94a3b8', marginTop: '2px' }}>
+                      {historyData.status?.invitationGenerated ? `✓ Generated (${historyData.status.invitationVersionCount} ver)` : '○ Not Generated'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: historyData.status?.certificatesGenerated ? '#fffbeb' : '#f8fafc', border: `1.5px solid ${historyData.status?.certificatesGenerated ? '#fde68a' : '#e2e8f0'}`, borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Certificates</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: historyData.status?.certificatesGenerated ? '#b45309' : '#94a3b8', marginTop: '2px' }}>
+                      {historyData.status?.certificatesGenerated ? `✓ Generated (${historyData.status.certificateBatchesCount} batches)` : '○ Not Generated'}
+                    </div>
+                  </div>
+
+                  <div style={{ background: historyData.status?.packagesGenerated ? '#faf5ff' : '#f8fafc', border: `1.5px solid ${historyData.status?.packagesGenerated ? '#d8b4fe' : '#e2e8f0'}`, borderRadius: '10px', padding: '12px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Event Package</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: historyData.status?.packagesGenerated ? '#6b21a8' : '#94a3b8', marginTop: '2px' }}>
+                      {historyData.status?.packagesGenerated ? `✓ Generated (${historyData.status.packageCount} pkgs)` : '○ Not Generated'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 1. Poster History */}
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🎨</span> Poster History ({historyData.history?.posters?.length || 0})
+                    </h4>
+                  </div>
+                  {historyData.history?.posters?.length > 0 ? (
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc', color: '#475569', fontWeight: 700 }}>
+                          <tr>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Version</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Template</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Generated Date & Time</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData.history.posters.map((doc, idx) => (
+                            <tr key={idx} style={{ borderTop: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 800, color: '#0f172a' }}>
+                                Poster v{doc.version || 1}
+                                {doc.is_latest === 1 && (
+                                  <span style={{ background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, marginLeft: '6px' }}>
+                                    LATEST
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>{doc.template_id}</td>
+                              <td style={{ padding: '8px 12px', color: '#64748b' }}>{new Date(doc.created_at).toLocaleString()}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                <span style={{ background: '#f0fdf4', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
+                                  ✓ Available
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.82rem', color: '#64748b' }}>
+                      No poster versions generated for this event yet.
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Invitation History */}
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>💌</span> Invitation History ({historyData.history?.invitations?.length || 0})
+                    </h4>
+                  </div>
+                  {historyData.history?.invitations?.length > 0 ? (
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc', color: '#475569', fontWeight: 700 }}>
+                          <tr>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Version</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Template</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Generated Date & Time</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData.history.invitations.map((doc, idx) => (
+                            <tr key={idx} style={{ borderTop: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 800, color: '#0f172a' }}>
+                                Invitation v{doc.version || 1}
+                                {doc.is_latest === 1 && (
+                                  <span style={{ background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, marginLeft: '6px' }}>
+                                    LATEST
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>{doc.template_id}</td>
+                              <td style={{ padding: '8px 12px', color: '#64748b' }}>{new Date(doc.created_at).toLocaleString()}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                <span style={{ background: '#f0fdf4', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
+                                  ✓ Available
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.82rem', color: '#64748b' }}>
+                      No invitation card versions generated for this event yet.
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Certificate Batches History */}
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📜</span> Certificate Batches History ({historyData.history?.certificates?.length || 0})
+                    </h4>
+                  </div>
+                  {historyData.history?.certificates?.length > 0 ? (
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc', color: '#475569', fontWeight: 700 }}>
+                          <tr>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Batch ID / Ver</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Template</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>Count</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Generated Date</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData.history.certificates.map((doc, idx) => (
+                            <tr key={idx} style={{ borderTop: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 800, color: '#0f172a' }}>
+                                Batch v{doc.version || 1}
+                                {doc.is_latest === 1 && (
+                                  <span style={{ background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, marginLeft: '6px' }}>
+                                    LATEST
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>{doc.template_id}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700 }}>{doc.certificate_count || 1} certs</td>
+                              <td style={{ padding: '8px 12px', color: '#64748b' }}>{new Date(doc.created_at).toLocaleString()}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                <span style={{ background: '#f0fdf4', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800 }}>
+                                  ✓ Batch Logged
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.82rem', color: '#64748b' }}>
+                      No certificate batches generated for this event yet.
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Complete Event Packages History */}
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📦</span> Complete Event Packages ({historyData.history?.packages?.length || 0})
+                    </h4>
+                  </div>
+                  {historyData.history?.packages?.length > 0 ? (
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc', color: '#475569', fontWeight: 700 }}>
+                          <tr>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Package ID</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Templates (P/I/C)</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>Certificates</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left' }}>Generated Date</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData.history.packages.map((pkg, idx) => (
+                            <tr key={idx} style={{ borderTop: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 800, color: '#0f172a' }}>
+                                Package #{pkg.id}
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                {pkg.poster_template} / {pkg.invitation_template} / {pkg.certificate_template}
+                              </td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 700 }}>
+                                {pkg.participant_count} certs
+                              </td>
+                              <td style={{ padding: '8px 12px', color: '#64748b' }}>{new Date(pkg.created_at).toLocaleString()}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                <span style={{
+                                  background: pkg.generation_status === 'COMPLETED' ? '#f0fdf4' : '#fffbeb',
+                                  color: pkg.generation_status === 'COMPLETED' ? '#166534' : '#b45309',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800
+                                }}>
+                                  {pkg.generation_status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '0.82rem', color: '#64748b' }}>
+                      No one-click packages generated for this event yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Modal Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderTop: '1.5px solid #e2e8f0', paddingTop: '18px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEventHistory(null);
+                    navigate(`/event-design-suite?eventId=${selectedEventHistory.id}&type=package`);
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(37,99,235,0.25)'
+                  }}
+                >
+                  📦 Generate One-Click Complete Package
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEventHistory(null);
+                    navigate(`/event-design-suite?eventId=${selectedEventHistory.id}&type=poster`);
+                  }}
+                  style={{
+                    background: '#f8fafc',
+                    color: '#0f172a',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '8px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  🎨 Open in Design Studio
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setSelectedEventHistory(null)}
+                style={{ padding: '8px 18px', fontWeight: 700 }}
               >
                 Close
               </button>

@@ -4,7 +4,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, User, BookOpen, GraduationCap, Award, FileText,
   LogOut, Users, ShieldAlert, ShieldCheck, BarChart3, FileCheck,
-  ChevronDown, ChevronRight, Beaker, Activity, Layers, Sparkles, Folder, Star, TrendingUp
+  ChevronDown, ChevronRight, Beaker, Activity, Layers, Sparkles, Folder, Star, TrendingUp, Palette
 } from 'lucide-react';
 
 const DYNAMIC_ICONS_MAP = {
@@ -17,7 +17,8 @@ const DYNAMIC_ICONS_MAP = {
   GraduationCap: { icon: <GraduationCap size={15} strokeWidth={2.2} />, color: '#6366f1' },
   Users: { icon: <Users size={15} strokeWidth={2.2} />, color: '#0284c7' },
   Star: { icon: <Star size={15} strokeWidth={2.2} />, color: '#ec4899' },
-  ShieldAlert: { icon: <ShieldAlert size={15} strokeWidth={2.2} />, color: '#f43f5e' }
+  ShieldAlert: { icon: <ShieldAlert size={15} strokeWidth={2.2} />, color: '#f43f5e' },
+  Palette: { icon: <Palette size={15} strokeWidth={2.2} />, color: '#f59e0b' }
 };
 
 const renderMenuIcon = (icon, color = '#10b981', isActive = false, isGroupHeader = false) => {
@@ -179,6 +180,7 @@ export default function Sidebar({ role, logout, auth }) {
             { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
             { to: '/cv-generator', label: 'AI CV & Bio-Data Generator', icon: <FileText />, color: '#8b5cf6' },
+            { to: '/event-design-suite', label: '🎨 Event Design Suite', icon: <Palette />, color: '#f59e0b' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
         }
@@ -259,6 +261,7 @@ export default function Sidebar({ role, logout, auth }) {
             { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
             { to: '/cv-generator', label: 'AI CV & Bio-Data Generator', icon: <FileText />, color: '#8b5cf6' },
+            { to: '/event-design-suite', label: '🎨 Event Design Suite', icon: <Palette />, color: '#f59e0b' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
         }
@@ -363,6 +366,7 @@ export default function Sidebar({ role, logout, auth }) {
             { to: '/analytics', label: 'Analytics & Insights', icon: <TrendingUp />, color: '#10b981' },
             { to: '/reports', label: 'Reports & Form Generator', icon: <FileText />, color: '#0284c7' },
             { to: '/cv-generator', label: 'AI CV & Bio-Data Generator', icon: <FileText />, color: '#8b5cf6' },
+            { to: '/event-design-suite', label: '🎨 Event Design Suite', icon: <Palette />, color: '#f59e0b' },
             { to: '/reports/accreditation', label: 'Accreditation (NBA & NAAC)', icon: <ShieldCheck />, color: '#38bdf8' }
           ]
         }

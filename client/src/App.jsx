@@ -19,6 +19,7 @@ import Analytics from './pages/Analytics.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 import Settings from './pages/Settings.jsx';
 import CVGenerator from './pages/CVGenerator.jsx';
+import EventDesignSuite from './pages/EventDesignSuite.jsx';
 import Footer from './components/Footer.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import PWAInstallBanner from './components/PWAInstallBanner.jsx';
@@ -228,6 +229,8 @@ export default function App() {
                     <Route path="/reports" element={<Reports auth={auth} />} />
                     <Route path="/cv-generator" element={<CVGenerator auth={auth} />} />
                     <Route path="/resume-builder" element={<CVGenerator auth={auth} />} />
+                    <Route path="/event-design-suite" element={<EventDesignSuite auth={auth} />} />
+                    <Route path="/event-design" element={<EventDesignSuite auth={auth} />} />
                     <Route path="/reports/accreditation" element={<AccreditationSuite auth={auth} />} />
                     <Route path="/accreditation" element={<AccreditationSuite auth={auth} />} />
                     <Route path="/custom/:slug" element={<DynamicPage auth={auth} />} />
