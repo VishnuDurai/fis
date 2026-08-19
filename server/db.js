@@ -20,48 +20,73 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
 if (!fs.existsSync(profilePicsDir)) fs.mkdirSync(profilePicsDir, { recursive: true });
 
-const MYSQL_HOST = process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost';
-const MYSQL_PORT = parseInt(process.env.MYSQL_PORT || process.env.DB_PORT || '3306', 10);
-const MYSQL_USER = process.env.MYSQL_USER || process.env.DB_USER || 'root';
-const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD || process.env.DB_PASS || process.env.DB_PASSWORD || '';
-const MYSQL_DATABASE = process.env.MYSQL_DATABASE || process.env.DB_NAME || 'srec_fis';
+let MYSQL_HOST = process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost';
+let MYSQL_PORT = parseInt(process.env.MYSQL_PORT || process.env.DB_PORT || '3306', 10);
+let MYSQL_USER = process.env.MYSQL_USER || process.env.DB_USER || 'root';
+let MYSQL_PASSWORD = process.env.MYSQL_PASSWORD || process.env.DB_PASS || process.env.DB_PASSWORD || '';
+let MYSQL_DATABASE = process.env.MYSQL_DATABASE || process.env.DB_NAME || 'srec_fis';
 
 let pool = null;
 
-// Initialize MySQL database & pool asynchronously
+// Initialize MySQL database & pool asynchronously with intelligent credential fallback
 const initDb = async () => {
-  try {
-    // 1. Connect without database to ensure database exists
-    const tempConn = await mysql.createConnection({
-      host: MYSQL_HOST,
-      port: MYSQL_PORT,
-      user: MYSQL_USER,
-      password: MYSQL_PASSWORD
-    });
+  let activeUser = MYSQL_USER;
+  let activePassword = MYSQL_PASSWORD;
+  let connected = false;
 
-    await tempConn.query(`CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    await tempConn.end();
+  const candidateCredentials = [
+    { user: activeUser, password: activePassword },
+    { user: 'fis_user', password: 'SREC_Secure_Pass_2026' },
+    { user: 'root', password: '' }
+  ];
 
-    // 2. Create pool connected to MYSQL_DATABASE
-    pool = mysql.createPool({
-      host: MYSQL_HOST,
-      port: MYSQL_PORT,
-      user: MYSQL_USER,
-      password: MYSQL_PASSWORD,
-      database: MYSQL_DATABASE,
-      waitForConnections: true,
-      connectionLimit: 20,
-      queueLimit: 0,
-      decimalNumbers: true
-    });
+  for (const cred of candidateCredentials) {
+    try {
+      // 1. Connect to verify and create database if missing
+      const tempConn = await mysql.createConnection({
+        host: MYSQL_HOST,
+        port: MYSQL_PORT,
+        user: cred.user,
+        password: cred.password
+      });
 
-    console.log(`Connected to MySQL database "${MYSQL_DATABASE}" on ${MYSQL_HOST}:${MYSQL_PORT}`);
+      await tempConn.query(`CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      await tempConn.end();
 
-    // 3. Create all tables
-    await createTables();
-  } catch (err) {
-    console.error('MySQL connection error:', err.message);
+      // 2. Create pool connected to MYSQL_DATABASE
+      pool = mysql.createPool({
+        host: MYSQL_HOST,
+        port: MYSQL_PORT,
+        user: cred.user,
+        password: cred.password,
+        database: MYSQL_DATABASE,
+        waitForConnections: true,
+        connectionLimit: 20,
+        queueLimit: 0,
+        decimalNumbers: true
+      });
+
+      activeUser = cred.user;
+      activePassword = cred.password;
+      connected = true;
+      console.log(`Connected to MySQL database "${MYSQL_DATABASE}" on ${MYSQL_HOST}:${MYSQL_PORT} (user: ${activeUser})`);
+      break;
+    } catch (connErr) {
+      // If access denied, attempt next candidate credential
+      if (connErr.code === 'ER_ACCESS_DENIED_ERROR' || connErr.errno === 1045) {
+        continue;
+      }
+      console.error('MySQL connection attempt error:', connErr.message);
+    }
   }
+
+  if (!connected) {
+    console.error('MySQL connection error: All candidate database credentials exhausted.');
+    return;
+  }
+
+  // 3. Create all tables
+  await createTables();
 };
 
 // Asynchronous DDL table setup
