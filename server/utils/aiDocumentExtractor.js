@@ -16,6 +16,29 @@ export function computeFileHash(buffer) {
 }
 
 /**
+ * Helper to extract embedded JPEG images directly from a PDF buffer
+ */
+export function extractImagesFromPdfBuffer(buf) {
+  const images = [];
+  for (let i = 0; i < buf.length - 3; i++) {
+    if (buf[i] === 0xFF && buf[i + 1] === 0xD8 && buf[i + 2] === 0xFF) {
+      let end = -1;
+      for (let j = i + 3; j < buf.length - 1; j++) {
+        if (buf[j] === 0xFF && buf[j + 1] === 0xD9) {
+          end = j + 2;
+          break;
+        }
+      }
+      if (end !== -1) {
+        images.push(buf.subarray(i, end));
+        i = end;
+      }
+    }
+  }
+  return images;
+}
+
+/**
  * Layer 1 & 2: Extract text from PDF or Image file
  */
 export async function extractRawTextFromFile(filePath, mimeType) {
@@ -41,16 +64,33 @@ export async function extractRawTextFromFile(filePath, mimeType) {
         const pdfData = await parser.getText();
         text = (pdfData.text || '').trim();
       }
-      // If digital PDF text is too short (< 40 characters), it's likely a scanned image PDF
-      if (text.length < 40) {
-        extractionMethod = 'ocr_scanned_pdf';
-      }
     } catch (pdfErr) {
       console.warn('[PDF Extract Warning] Failed digital PDF parsing, attempting fallback:', pdfErr.message);
     }
+
+    // If digital text is short (< 250 chars) or lacks certificate keywords, extract embedded images and run OCR
+    const needsOcr = text.length < 250 || !(/participat|complet|certif|workshop|seminar|fdp|course|publish|patent|award/i.test(text));
+    if (needsOcr) {
+      const embeddedImages = extractImagesFromPdfBuffer(buffer);
+      if (embeddedImages.length > 0) {
+        try {
+          extractionMethod = 'ocr_scanned_pdf';
+          const worker = await createWorker('eng');
+          for (const imgBuf of embeddedImages) {
+            const ret = await worker.recognize(imgBuf);
+            if (ret.data && ret.data.text) {
+              text = [text, ret.data.text.trim()].filter(Boolean).join('\n\n');
+            }
+          }
+          await worker.terminate();
+        } catch (ocrErr) {
+          console.warn('[PDF OCR Warning] Failed OCR on embedded PDF images:', ocrErr.message);
+        }
+      }
+    }
   }
 
-  // If text is still empty and file is an image (or OCR required)
+  // If text is still empty and file is an image
   if (!text || ext === '.png' || ext === '.jpg' || ext === '.jpeg' || ext === '.webp' || ext === '.bmp') {
     if (['.png', '.jpg', '.jpeg', '.webp', '.bmp'].includes(ext) || mimeType?.startsWith('image/')) {
       try {
@@ -110,13 +150,21 @@ export function classifyDocument(rawText, originalFilename = '') {
     scholars: []
   };
 
+  const isParticipation = text.includes('certificate of participation') || 
+    text.includes('has participated in') || 
+    text.includes('participated and') || 
+    text.includes('participated in the') || 
+    text.includes('participation') || 
+    text.includes('attended the') || 
+    text.includes('has attended');
+
   // 1. Interactions (FDP, STTP, Workshop, Seminar Attended)
-  if (text.includes('faculty development prog') || text.includes('fdp') || filename.includes('fdp')) {
+  if (text.includes('faculty development prog') || text.includes('fdp') || filename.includes('fdp') || text.includes('taculty development')) {
     scores.interactions += 45;
     indicators.interactions.push('Faculty Development Programme');
   }
-  if (text.includes('certificate of participation') || text.includes('has participated in') || text.includes('attended the') || text.includes('participated in the national workshop')) {
-    scores.interactions += 35;
+  if (isParticipation) {
+    scores.interactions += 60;
     indicators.interactions.push('Participation confirmation phrase');
   }
   if (text.includes('short term training') || text.includes('sttp') || text.includes('workshop on') || text.includes('hands-on workshop')) {
@@ -137,7 +185,7 @@ export function classifyDocument(rawText, originalFilename = '') {
     scores.certifications += 30;
     indicators.certifications.push('Course completion credential');
   }
-  if (text.includes('roll no:') || text.includes('to certify that') && text.includes('course')) {
+  if (text.includes('roll no:') || (text.includes('to certify that') && text.includes('course'))) {
     scores.certifications += 20;
     indicators.certifications.push('Certification roll & course verification');
   }
@@ -153,7 +201,8 @@ export function classifyDocument(rawText, originalFilename = '') {
   }
 
   // 4. Events Organized (Convener, Coordinator, Organized by Department)
-  if (text.includes('convenor') || text.includes('convener') || text.includes('coordinator') || text.includes('organizing committee') || text.includes('successfully organized') || filename.includes('event')) {
+  // Only score as event organized if it is not an explicit certificate of participation
+  if (!isParticipation && (text.includes('convenor') || text.includes('convener') || text.includes('coordinator') || text.includes('organizing committee') || text.includes('successfully organized') || filename.includes('event'))) {
     scores.events += 40;
     indicators.events.push('Event organization leadership role');
   }
@@ -270,7 +319,13 @@ export function classifyDocument(rawText, originalFilename = '') {
  * AI MUST NEVER INVENT DATA - If a field is not detected in the document, return '' with 0 confidence.
  */
 export function extractFieldsForCategory(category, rawText) {
-  const text = rawText || '';
+  let text = rawText || '';
+  // Normalize common OCR character artifacts
+  text = text
+    .replace(/\bTaculty\b/g, 'Faculty')
+    .replace(/\bproqram\b/gi, 'program')
+    .replace(/\bpedagogy\s+ol\s+research\b/gi, 'Pedagogy of Research')
+    .replace(/\s+ol\s+/gi, ' of ');
   const fields = {};
   const confidences = {};
 
@@ -366,16 +421,18 @@ export function extractFieldsForCategory(category, rawText) {
 
   // Helper to extract organizer including Department + College / University name
   function extractOrganizer() {
-    const orgMatch = text.match(/(?:organized by|conducted by|held at|host institution|organized at|offered by)\s*(?:the\s+)?([A-Za-z0-9\s&,.\-()]{4,120}?)(?=\s*(?:from|during|dated|between|held\s+on|on\s+\d|\n\n|$|\.$))/i);
+    // 1. "Organized by / Conducted by / Offered by"
+    const orgMatch = text.match(/(?:organized by|conducted by|held at|host institution|organized at|offered by|hosted by)\s+(?:the\s+)?([A-Za-z0-9\s&,.\-()]{4,220}?)(?=\s*(?:from|during|dated|between|held\s+on|on\s+\d|\n\n|$|\.\s|Dr\.|Dr\s+|Mr\.|Mrs\.|Ms\.|Convenor|Convener|Coordinator|Dean|Principal|Director|Head\s+of|HOD))/i);
     if (orgMatch) {
-      const clean = orgMatch[1].trim().replace(/[,.-]+$/, '');
+      let clean = orgMatch[1].trim().replace(/[,.-]+$/, '').replace(/\s+/g, ' ');
       if (clean.length > 3) {
-        return { organizer: clean, conf: 90 };
+        return { organizer: clean, conf: 92 };
       }
     }
-    const deptMatch = text.match(/(?:department of\s+[A-Za-z\s&]+(?:engineering|technology|science|computing|management|studies)?(?:,?\s*[A-Za-z\s&,.]{4,80})?)/i);
+    // 2. Department match fallback
+    const deptMatch = text.match(/(?:department of\s+[A-Za-z\s&]+(?:engineering|technology|science|computing|management|studies)?(?:,?\s*[A-Za-z\s&,.]{4,100})?)/i);
     if (deptMatch) {
-      const clean = deptMatch[0].trim().replace(/[,.-]+$/, '');
+      let clean = deptMatch[0].trim().replace(/[,.-]+$/, '').replace(/\s+/g, ' ');
       return { organizer: clean, conf: 82 };
     }
     return { organizer: '', conf: 0 };
