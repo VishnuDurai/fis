@@ -274,53 +274,111 @@ export function extractFieldsForCategory(category, rawText) {
   const fields = {};
   const confidences = {};
 
-  // General helper extractors
-  const datePatterns = [
-    /(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4})/g,
-    /(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*,?\s*\d{2,4})/gi,
-    /((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{2,4})/gi
-  ];
+  const MONTH_MAP = {
+    jan: '01', january: '01', feb: '02', february: '02', mar: '03', march: '03',
+    apr: '04', april: '04', may: '05', jun: '06', june: '06', jul: '07', july: '07',
+    aug: '08', august: '08', sep: '09', september: '09', oct: '10', october: '10',
+    nov: '11', november: '11', dec: '12', december: '12'
+  };
 
-  function findDates() {
+  function extractSmartDates(srcText) {
+    // 1. Date Range: '10th to 15th August 2026' / '10-15 August 2026'
+    const r1 = srcText.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|-|–|—|and)\s*(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([A-Za-z]+)[,\s]+(\d{4})\b/i);
+    if (r1) {
+      const mStr = r1[3].toLowerCase();
+      const mNum = MONTH_MAP[mStr] || (Object.keys(MONTH_MAP).find(k => mStr.startsWith(k)) ? MONTH_MAP[Object.keys(MONTH_MAP).find(k => mStr.startsWith(k))] : null);
+      if (mNum) {
+        return {
+          from_date: `${r1[4]}-${mNum}-${r1[1].padStart(2, '0')}`,
+          to_date: `${r1[4]}-${mNum}-${r1[2].padStart(2, '0')}`,
+          conf: 95
+        };
+      }
+    }
+
+    // 2. Date Range: 'August 10 to 15, 2026' / 'August 10 - 15, 2026'
+    const r2 = srcText.match(/\b([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|-|–|—)\s*(\d{1,2})(?:st|nd|rd|th)?[,\s]+(\d{4})\b/i);
+    if (r2) {
+      const mStr = r2[1].toLowerCase();
+      const mNum = MONTH_MAP[mStr] || (Object.keys(MONTH_MAP).find(k => mStr.startsWith(k)) ? MONTH_MAP[Object.keys(MONTH_MAP).find(k => mStr.startsWith(k))] : null);
+      if (mNum) {
+        return {
+          from_date: `${r2[4]}-${mNum}-${r2[2].padStart(2, '0')}`,
+          to_date: `${r2[4]}-${mNum}-${r2[3].padStart(2, '0')}`,
+          conf: 95
+        };
+      }
+    }
+
+    // 3. Numeric Date Range: '01.08.2026 to 05.08.2026' / '01/08/2026 - 05/08/2026'
+    const r3 = srcText.match(/\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})\s*(?:to|-|–|—)\s*(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})\b/);
+    if (r3) {
+      return {
+        from_date: `${r3[3]}-${r3[2].padStart(2, '0')}-${r3[1].padStart(2, '0')}`,
+        to_date: `${r3[6]}-${r3[5].padStart(2, '0')}-${r3[4].padStart(2, '0')}`,
+        conf: 95
+      };
+    }
+
+    // 4. Two full spelled dates: 'from 10th August 2026 to 15th August 2026'
+    const fullDateRegex = /\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})\b/gi;
     const matches = [];
-    for (const regex of datePatterns) {
-      let m;
-      while ((m = regex.exec(text)) !== null) {
-        matches.push(m[1].trim());
+    let m;
+    while ((m = fullDateRegex.exec(srcText)) !== null) {
+      const mStr = m[2].toLowerCase();
+      const mNum = MONTH_MAP[mStr] || (Object.keys(MONTH_MAP).find(k => mStr.startsWith(k)) ? MONTH_MAP[Object.keys(MONTH_MAP).find(k => mStr.startsWith(k))] : null);
+      if (mNum) {
+        matches.push(`${m[3]}-${mNum}-${m[1].padStart(2, '0')}`);
       }
     }
-    return matches;
-  }
-
-  const allDates = findDates();
-
-  function parseStandardDate(dateStr) {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr.replace(/(\d+)(st|nd|rd|th)/, '$1'));
-      if (!isNaN(d.getTime())) {
-        return d.toISOString().split('T')[0];
-      }
-    } catch (e) {}
-    // Fallback for dd/mm/yyyy
-    const parts = dateStr.split(/[.\/-]/);
-    if (parts.length === 3) {
-      if (parts[2].length === 4) {
-        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
+    if (matches.length >= 2) {
+      return { from_date: matches[0], to_date: matches[1], conf: 92 };
+    } else if (matches.length === 1) {
+      return { from_date: matches[0], to_date: matches[0], conf: 85 };
     }
-    return dateStr;
+
+    // 5. Standalone single date dd/mm/yyyy
+    const singleNumMatch = srcText.match(/\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})\b/);
+    if (singleNumMatch) {
+      const d = `${singleNumMatch[3]}-${singleNumMatch[2].padStart(2, '0')}-${singleNumMatch[1].padStart(2, '0')}`;
+      return { from_date: d, to_date: d, conf: 80 };
+    }
+
+    return { from_date: '', to_date: '', conf: 0 };
   }
 
-  // Helper to extract titles quoted or preceded by "on" / "titled"
+  // Helper to extract titles quoted, preceded by "on" / "titled" or specific academic phrases
   function extractQuotedOrTitled() {
-    const quotedMatch = text.match(/["“]([^"”]{5,150})["”]/);
-    if (quotedMatch) return { title: quotedMatch[1].trim(), conf: 92 };
+    // 1. Quoted title
+    const quotedMatch = text.match(/["“]([^"”]{4,180})["”]/);
+    if (quotedMatch) return { title: quotedMatch[1].trim(), conf: 95 };
 
-    const titledMatch = text.match(/(?:titled|title|topic|on)\s+["“]?([A-Z0-9][^\n\r,;.]{5,120})["”]?/i);
-    if (titledMatch) return { title: titledMatch[1].trim(), conf: 82 };
+    // 2. Preceded by FDP/Workshop/Seminar on ...
+    const programMatch = text.match(/(?:faculty development prog(?:ramme|ram)?|workshop|seminar|sttp|short term course|training program|course|symposium|conference|webinar|fdp)\s+(?:on|titled|in|topic)\s*[:\-–]?\s*([A-Z0-9][^\n\r]{4,150}?)(?=\s+(?:held|organized|conducted|from|during|dated|at|by|in\s+association|with|\.|\n|$))/i);
+    if (programMatch) return { title: programMatch[1].trim(), conf: 90 };
+
+    // 3. Preceded by titled/title/topic/theme
+    const titledMatch = text.match(/(?:titled|title|topic|theme)\s*[:\-–]?\s*([A-Z0-9][^\n\r]{4,150}?)(?=\s+(?:held|organized|conducted|from|during|dated|at|by|\.|\n|$))/i);
+    if (titledMatch) return { title: titledMatch[1].trim(), conf: 85 };
 
     return null;
+  }
+
+  // Helper to extract organizer including Department + College / University name
+  function extractOrganizer() {
+    const orgMatch = text.match(/(?:organized by|conducted by|held at|host institution|organized at|offered by)\s*(?:the\s+)?([A-Za-z0-9\s&,.\-()]{4,120}?)(?=\s*(?:from|during|dated|between|held\s+on|on\s+\d|\n\n|$|\.$))/i);
+    if (orgMatch) {
+      const clean = orgMatch[1].trim().replace(/[,.-]+$/, '');
+      if (clean.length > 3) {
+        return { organizer: clean, conf: 90 };
+      }
+    }
+    const deptMatch = text.match(/(?:department of\s+[A-Za-z\s&]+(?:engineering|technology|science|computing|management|studies)?(?:,?\s*[A-Za-z\s&,.]{4,80})?)/i);
+    if (deptMatch) {
+      const clean = deptMatch[0].trim().replace(/[,.-]+$/, '');
+      return { organizer: clean, conf: 82 };
+    }
+    return { organizer: '', conf: 0 };
   }
 
   // Category Specific Extraction
@@ -346,31 +404,20 @@ export function extractFieldsForCategory(category, rawText) {
         confidences.type = 85;
       } else {
         fields.type = 'FDP';
-        confidences.type = 50;
+        confidences.type = 75;
       }
 
       // 3. Organizer
-      const orgMatch = text.match(/(?:organized by|conducted by|held at|institution|department of)\s+([A-Z][^\n\r,;.]{5,80})/i);
-      fields.organizer = orgMatch ? orgMatch[1].trim() : '';
-      confidences.organizer = orgMatch ? 85 : 0;
+      const orgInfo = extractOrganizer();
+      fields.organizer = orgInfo.organizer;
+      confidences.organizer = orgInfo.conf;
 
       // 4. Dates
-      if (allDates.length >= 2) {
-        fields.from_date = parseStandardDate(allDates[0]);
-        fields.to_date = parseStandardDate(allDates[1]);
-        confidences.from_date = 90;
-        confidences.to_date = 90;
-      } else if (allDates.length === 1) {
-        fields.from_date = parseStandardDate(allDates[0]);
-        fields.to_date = parseStandardDate(allDates[0]);
-        confidences.from_date = 80;
-        confidences.to_date = 60;
-      } else {
-        fields.from_date = '';
-        fields.to_date = '';
-        confidences.from_date = 0;
-        confidences.to_date = 0;
-      }
+      const dateInfo = extractSmartDates(text);
+      fields.from_date = dateInfo.from_date;
+      fields.to_date = dateInfo.to_date;
+      confidences.from_date = dateInfo.conf;
+      confidences.to_date = dateInfo.conf;
       break;
     }
 
@@ -544,15 +591,16 @@ export function extractFieldsForCategory(category, rawText) {
       confidences.actedas = fields.actedas ? 90 : 0;
 
       // 4. Organizer
-      const orgMatch = text.match(/(?:organized by|conducted at|held at)\s+([A-Z][^\n\r,;.]{5,80})/i);
-      fields.organizer = orgMatch ? orgMatch[1].trim() : '';
-      confidences.organizer = orgMatch ? 85 : 0;
+      const orgInfo = extractOrganizer();
+      fields.organizer = orgInfo.organizer;
+      confidences.organizer = orgInfo.conf;
 
       // 5. Dates
-      fields.from_date = allDates.length > 0 ? parseStandardDate(allDates[0]) : '';
-      fields.to_date = allDates.length > 1 ? parseStandardDate(allDates[1]) : fields.from_date;
-      confidences.from_date = allDates.length > 0 ? 88 : 0;
-      confidences.to_date = allDates.length > 0 ? 85 : 0;
+      const dateInfo = extractSmartDates(text);
+      fields.from_date = dateInfo.from_date;
+      fields.to_date = dateInfo.to_date;
+      confidences.from_date = dateInfo.conf;
+      confidences.to_date = dateInfo.conf;
       break;
     }
 
@@ -634,15 +682,16 @@ export function extractFieldsForCategory(category, rawText) {
       confidences.role = fields.role ? 85 : 0;
 
       // 4. Dates
-      fields.from_date = allDates.length > 0 ? parseStandardDate(allDates[0]) : '';
-      fields.to_date = allDates.length > 1 ? parseStandardDate(allDates[1]) : fields.from_date;
-      confidences.from_date = allDates.length > 0 ? 88 : 0;
-      confidences.to_date = allDates.length > 0 ? 85 : 0;
+      const dateInfo = extractSmartDates(text);
+      fields.from_date = dateInfo.from_date;
+      fields.to_date = dateInfo.to_date;
+      confidences.from_date = dateInfo.conf;
+      confidences.to_date = dateInfo.conf;
 
-      // 5. Organizer & Res Person (Only if explicitly found, otherwise empty)
-      const orgMatch = text.match(/(?:organized by|department of)\s+([A-Z][^\n\r,;.]{5,80})/i);
-      fields.organizer = orgMatch ? orgMatch[1].trim() : '';
-      confidences.organizer = orgMatch ? 80 : 0;
+      // 5. Organizer & Res Person
+      const orgInfo = extractOrganizer();
+      fields.organizer = orgInfo.organizer;
+      confidences.organizer = orgInfo.conf;
 
       const resMatch = text.match(/(?:resource person|speaker)\s*[:=]?\s*([A-Z][^\n\r,;.]{3,60})/i);
       fields.res_person = resMatch ? resMatch[1].trim() : '';
