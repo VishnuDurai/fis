@@ -1,10 +1,5 @@
-/**
- * SREC FIS V3.2 — Invitation Templates (I01 — I05)
- * Formal academic invitations with structured dignitary honorifics, agenda schedules,
- * template-aware chief guest / speaker photo placement, and institutional seals.
- */
-
 import { renderInstitutionalHeaderHtml } from './institutionalHeader.js';
+import { normalizeEventPersons } from './designPresets.js';
 
 export const INVITATION_TEMPLATES = [
   {
@@ -49,16 +44,55 @@ export const INVITATION_TEMPLATES = [
   }
 ];
 
-export const renderInvitationHtml = (templateId, eventData) => {
+const renderInvitationDignitariesHtml = (persons = [], { accentColor = '#831843', borderColor = '#e2e8f0', showPhoto = true, showProfile = false, speakerLayout = 'auto', templateId = '' } = {}) => {
+  const count = persons.length;
+  if (count === 0) return '';
+
+  let gridCols = '1fr';
+  if (speakerLayout === 'two_column' || (speakerLayout === 'auto' && count === 2)) gridCols = '1fr 1fr';
+  else if (speakerLayout === 'three_column' || (speakerLayout === 'auto' && count === 3)) gridCols = '1fr 1fr 1fr';
+  else if (speakerLayout === 'grid' || (speakerLayout === 'auto' && count === 4)) gridCols = '1fr 1fr';
+  else if (speakerLayout === 'compact_grid' || (speakerLayout === 'auto' && count >= 5)) gridCols = count >= 6 ? '1fr 1fr 1fr' : '1fr 1fr';
+
+  return `
+    <div style="display: grid; grid-template-columns: ${gridCols}; gap: 12px; margin: 14px 0;">
+      ${persons.map((p, idx) => {
+        const photo = p.photo || p.photoUrl || '';
+        const role = templateId === 'I02' && count === 1 && (!p.role || p.role === 'Resource Person') ? 'CHIEF GUEST' : (p.role || (idx === 0 ? 'Chief Guest' : 'Resource Person'));
+        const crop = p.photoCrop || 'circle';
+        const borderRadius = crop === 'circle' ? '50%' : crop === 'rounded_rectangle' ? '10px' : '0px';
+        const photoDim = count === 1 ? '90px' : count <= 3 ? '75px' : '55px';
+
+        return `
+          <div style="background: #fafafa; border: 1.5px solid ${borderColor}; border-radius: 10px; padding: 12px; display: flex; flex-direction: ${count >= 3 ? 'column' : 'row'}; align-items: center; justify-content: center; gap: 10px; text-align: ${count >= 3 ? 'center' : (photo ? 'left' : 'center')}; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+            ${showPhoto && photo ? `
+              <div style="flex-shrink: 0;">
+                <img src="${photo}" alt="${p.name}" style="width: ${photoDim}; height: ${photoDim}; border-radius: ${borderRadius}; object-fit: cover; border: 2.5px solid ${accentColor}; box-shadow: 0 3px 8px rgba(0,0,0,0.12);" />
+              </div>
+            ` : ''}
+            <div style="max-width: 100%;">
+              <div style="display: inline-block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: ${accentColor}; font-weight: 800; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; margin-bottom: 3px;">
+                ${String(role).toUpperCase()}
+              </div>
+              <div style="font-size: ${count <= 2 ? '1.1rem' : '0.95rem'}; font-weight: 800; color: #0f172a; line-height: 1.2;">${p.name || 'Dignitary'}</div>
+              ${p.designation ? `<div style="font-size: 0.8rem; color: #334155; font-weight: 600; margin-top: 1px;">${p.designation}</div>` : ''}
+              ${p.organization ? `<div style="font-size: 0.75rem; color: #64748b; margin-top: 1px;">${p.organization}</div>` : ''}
+              ${showProfile && p.profile && count === 1 ? `<div style="font-size: 0.72rem; color: #64748b; margin-top: 4px; font-style: italic;">"${p.profile.slice(0, 100)}..."</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+};
+
+export const renderInvitationHtml = (templateId, eventData, customDesign = {}) => {
   const {
     title = 'Inaugural Function & Expert Lecture',
     theme = '',
     department = 'DEPARTMENT OF ARTIFICIAL INTELLIGENCE AND DATA SCIENCE',
     coOrganizedBy = '',
     inAssociationWith = '',
-    resourcePerson = 'Dr. K. Sundar',
-    resDesignation = 'Director of Advanced Technology',
-    resOrganization = 'Apex Research Institute',
     fromDate = '2026-09-20',
     toDate = '',
     time = '10:30 AM',
@@ -66,13 +100,10 @@ export const renderInvitationHtml = (templateId, eventData) => {
     organizerLogo = '',
     associationLogo = '',
     eventLogo = '',
-    resourcePersonPhoto = '',
-    speakerPhoto = '',
-    presidedBy = 'Dr. N. R. Alamelu, Principal',
-    description = ''
+    presidedBy = 'Dr. N. R. Alamelu, Principal'
   } = eventData || {};
 
-  const photo = resourcePersonPhoto || speakerPhoto || '';
+  const persons = normalizeEventPersons(eventData, customDesign);
   const cleanDateStr = toDate && toDate !== fromDate ? `${fromDate} to ${toDate}` : fromDate;
   const headerHtml = renderInstitutionalHeaderHtml({ compact: true, showAddress: true });
 
@@ -85,7 +116,7 @@ export const renderInvitationHtml = (templateId, eventData) => {
   `;
 
   // -------------------------------------------------------------------------
-  // TEMPLATE I02: Chief Guest Focus (PROMINENT Chief Guest Photo)
+  // TEMPLATE I02: Chief Guest Focus
   // -------------------------------------------------------------------------
   if (templateId === 'I02') {
     return `
@@ -112,21 +143,8 @@ export const renderInvitationHtml = (templateId, eventData) => {
           ${theme ? `<div style="color: #831843; font-size: 0.9rem; font-weight: 700; font-style: italic; margin-top: 2px;">"${theme}"</div>` : ''}
         </div>
 
-        <!-- Prominent Chief Guest Spotlight Card -->
-        <div style="border: 2px solid #fbcfe8; background: #fdf2f8; border-radius: 12px; padding: 18px; margin: 16px 0; text-align: center; box-shadow: 0 4px 14px rgba(131,24,67,0.06);">
-          <div style="display: inline-block; background: #831843; color: #ffffff; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 3px 14px; border-radius: 12px; margin-bottom: 10px;">
-            CHIEF GUEST & KEYNOTE SPEAKER
-          </div>
-          ${photo ? `
-            <div style="margin-bottom: 10px;">
-              <img src="${photo}" alt="Chief Guest" style="width: 125px; height: 125px; border-radius: 50%; object-fit: cover; border: 3.5px solid #831843; box-shadow: 0 6px 18px rgba(131,24,67,0.22); display: inline-block;" />
-            </div>
-          ` : ''}
-          <div style="font-size: 1.3rem; font-weight: 900; color: #0f172a;">${resourcePerson}</div>
-          ${resDesignation ? `<div style="font-size: 0.88rem; color: #831843; font-weight: 700; margin-top: 2px;">${resDesignation}</div>` : ''}
-          ${resOrganization ? `<div style="font-size: 0.82rem; color: #475569; margin-top: 1px;">${resOrganization}</div>` : ''}
-          <div style="font-size: 0.76rem; color: #475569; font-style: italic; margin-top: 6px;">has kindly consented to grace the occasion as Chief Guest and deliver the keynote address</div>
-        </div>
+        <!-- Dignitaries / Chief Guests Container -->
+        ${renderInvitationDignitariesHtml(persons, { accentColor: '#831843', borderColor: '#fbcfe8', showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout, templateId: 'I02' })}
 
         <!-- Presidential Address -->
         <div style="text-align: center; margin: 10px 0;">
@@ -195,21 +213,8 @@ export const renderInvitationHtml = (templateId, eventData) => {
         ${theme ? `<div style="color: #b45309; font-size: 0.88rem; font-weight: 700; font-style: italic; margin-top: 3px;">"${theme}"</div>` : ''}
       </div>
 
-      <!-- Chief Guest Citation -->
-      <div style="border: 1px solid #e2e8f0; background: #fafafa; border-radius: 10px; padding: 14px; margin: 14px 0; display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
-        ${photo ? `
-          <div style="flex-shrink: 0;">
-            <img src="${photo}" alt="Chief Guest" style="width: 90px; height: 90px; border-radius: ${templateId === 'I04' ? '10px' : '50%'}; object-fit: cover; border: 2.5px solid ${borderColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />
-          </div>
-        ` : ''}
-        <div style="text-align: ${photo ? 'left' : 'center'}; max-width: 420px;">
-          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: ${borderColor}; font-weight: 800;">Chief Guest & Keynote Speaker</div>
-          <div style="font-size: 1.18rem; font-weight: 900; color: #0f172a; margin-top: 2px;">${resourcePerson}</div>
-          ${resDesignation ? `<div style="font-size: 0.82rem; color: #334155; font-weight: 600;">${resDesignation}</div>` : ''}
-          ${resOrganization ? `<div style="font-size: 0.78rem; color: #64748b;">${resOrganization}</div>` : ''}
-          <div style="font-size: 0.74rem; color: #475569; font-style: italic; margin-top: 3px;">has kindly consented to be the Chief Guest and deliver the keynote address</div>
-        </div>
-      </div>
+      <!-- Dignitaries Container -->
+      ${renderInvitationDignitariesHtml(persons, { accentColor: borderColor, borderColor: '#e2e8f0', showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
 
       <!-- Presidential Address -->
       <div style="text-align: center; margin: 12px 0;">
@@ -248,3 +253,4 @@ export const renderInvitationHtml = (templateId, eventData) => {
     </div>
   `;
 };
+

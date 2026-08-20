@@ -338,4 +338,9 @@ async function runDedicatedDefectRegressions() {
   return { total: results.length, passed: passedCount, results };
 }
 
-runDedicatedDefectRegressions();
+runDedicatedDefectRegressions().then(r => {
+  process.exit(r.passed === r.total ? 0 : 1);
+}).catch(err => {
+  console.error('Error running dedicated defect suite:', err);
+  process.exit(1);
+});

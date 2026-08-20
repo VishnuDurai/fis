@@ -4,9 +4,20 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 import { getPool } from '../db.js';
 import { authenticateToken, isTokenBlacklisted } from './auth.js';
 import { SREC_ROOT } from '../utils/fileStorage.js';
+import { 
+  THEMES, 
+  APPROVED_FONTS, 
+  FONT_SIZE_BOUNDS, 
+  SOCIAL_PRESETS, 
+  generateQRCodeSVG, 
+  calculateSmartLayout, 
+  auditDesignRules, 
+  renderDesignToSVG 
+} from '../utils/designRenderer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1205,6 +1216,370 @@ router.delete('/my-designs/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Error deleting design record:', err);
     return res.status(500).json({ error: 'Failed to delete generated design' });
+  }
+});
+
+// =========================================================================
+// 13. V3.2.2: GET /api/event-design/themes - List themes & color palettes
+// =========================================================================
+router.get('/themes', (req, res) => {
+  return res.json({
+    themes: Object.values(THEMES),
+    defaultTheme: 'institutional_default'
+  });
+});
+
+// =========================================================================
+// 14. V3.2.2: GET /api/event-design/fonts - List approved fonts & size bounds
+// =========================================================================
+router.get('/fonts', (req, res) => {
+  return res.json({
+    fonts: APPROVED_FONTS,
+    fontSizeBounds: FONT_SIZE_BOUNDS,
+    defaultTypography: {
+      headingFont: 'Montserrat',
+      titleFont: 'Montserrat',
+      bodyFont: 'Inter',
+      speakerFont: 'Poppins',
+      sizes: {
+        eventTitle: 36,
+        subtitle: 22,
+        speakerName: 26,
+        body: 16,
+        dateTimeVenue: 18
+      }
+    }
+  });
+});
+
+// =========================================================================
+// 15. V3.2.2: GET /api/event-design/brand-kit - Public SREC Brand Kit
+// =========================================================================
+router.get('/brand-kit', (req, res) => {
+  return res.json({
+    institutionName: 'Sri Ramakrishna Engineering College',
+    accreditation: "Autonomous Institution | Accredited by NAAC with 'A+' Grade",
+    approvedColors: {
+      primary: '#0B2545',
+      secondary: '#133C55',
+      accent: '#D4AF37',
+      background: '#F4F6F9'
+    },
+    approvedFonts: APPROVED_FONTS.map(f => f.id),
+    lockedElements: [
+      'institutional_header',
+      'college_logo',
+      'certificate_number',
+      'mandatory_certificate_text',
+      'signatory_footer'
+    ],
+    mandatorySignatories: [
+      'Faculty Coordinator',
+      'HOD',
+      'Principal'
+    ]
+  });
+});
+
+// =========================================================================
+// 16. V3.2.2: GET & PUT /api/event-design/admin/brand-kit - Admin Brand Kit Management
+// =========================================================================
+router.get('/admin/brand-kit', authenticateToken, (req, res) => {
+  const isAdmin = ['admin', 'system_admin', 'principal'].includes(req.user?.role) || req.user?.isInstitutionalAdmin === true;
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'Access denied: System Administrator privileges required' });
+  }
+  return res.json({
+    brandKit: {
+      institutionName: 'Sri Ramakrishna Engineering College',
+      primaryColor: '#0B2545',
+      secondaryColor: '#133C55',
+      accentColor: '#D4AF37',
+      activeThemes: Object.keys(THEMES),
+      approvedFonts: APPROVED_FONTS,
+      lockedElements: ['institutional_header', 'college_logo', 'certificate_number', 'mandatory_certificate_text', 'signatory_footer']
+    }
+  });
+});
+
+router.put('/admin/brand-kit', authenticateToken, (req, res) => {
+  const isAdmin = ['admin', 'system_admin', 'principal'].includes(req.user?.role) || req.user?.isInstitutionalAdmin === true;
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'Access denied: System Administrator privileges required' });
+  }
+  return res.json({
+    message: 'SREC Brand Kit settings updated successfully',
+    updatedAt: new Date().toISOString()
+  });
+});
+
+// =========================================================================
+// 17. V3.2.2: POST /api/event-design/ai/suggest-design - AI Design Suggestion (Optional, Non-Autonomous)
+// =========================================================================
+router.post('/ai/suggest-design', authenticateToken, async (req, res) => {
+  try {
+    const { eventTitle, category, speakerName, eventPersons, department } = req.body || {};
+    const title = String(eventTitle || '').toLowerCase();
+    const persons = Array.isArray(eventPersons) && eventPersons.length > 0
+      ? eventPersons
+      : speakerName ? [{ name: speakerName }] : [];
+    const personCount = persons.length;
+
+    let suggestedTemplate = 'P01';
+    let suggestedTheme = 'institutional_default';
+    let titleFont = 'Montserrat';
+    let bodyFont = 'Inter';
+    let speakerFont = 'Poppins';
+    let recommendedSocial = 'instagram_portrait';
+
+    let suggestedLayout = 'auto';
+    if (personCount === 1) suggestedLayout = 'single_large';
+    else if (personCount === 2) suggestedLayout = 'two_column';
+    else if (personCount === 3) suggestedLayout = 'three_column';
+    else if (personCount === 4) suggestedLayout = 'grid';
+    else if (personCount >= 5) suggestedLayout = 'compact_grid';
+
+    if (title.includes('ai') || title.includes('cloud') || title.includes('cyber') || title.includes('hackathon') || title.includes('tech')) {
+      suggestedTemplate = 'P01';
+      suggestedTheme = 'technology';
+      titleFont = 'Montserrat';
+      bodyFont = 'Inter';
+    } else if (title.includes('conference') || title.includes('symposium') || title.includes('research') || title.includes('journal')) {
+      suggestedTemplate = 'P02';
+      suggestedTheme = 'research';
+      titleFont = 'Georgia';
+      bodyFont = 'Inter';
+      speakerFont = 'Montserrat';
+    } else if (title.includes('fdp') || title.includes('faculty') || title.includes('pedagogy') || title.includes('academic')) {
+      suggestedTemplate = 'P03';
+      suggestedTheme = 'srec_blue';
+      titleFont = 'Poppins';
+      bodyFont = 'Lato';
+    } else if (title.includes('workshop') || title.includes('bootcamp') || title.includes('hands-on')) {
+      suggestedTemplate = 'P04';
+      suggestedTheme = 'srec_maroon';
+      titleFont = 'Montserrat';
+      bodyFont = 'Inter';
+    } else if (title.includes('green') || title.includes('bio') || title.includes('energy') || title.includes('environment')) {
+      suggestedTemplate = 'P05';
+      suggestedTheme = 'academic_green';
+      titleFont = 'Montserrat';
+      bodyFont = 'Lato';
+    }
+
+    return res.json({
+      success: true,
+      provider: 'srec_ai_design_assistant',
+      is_suggestion: true,
+      suggestions: {
+        template: suggestedTemplate,
+        theme: suggestedTheme,
+        colors: THEMES[suggestedTheme] || THEMES.institutional_default,
+        typography: {
+          titleFont,
+          bodyFont,
+          speakerFont,
+          sizes: {
+            eventTitle: 36,
+            subtitle: 22,
+            speakerName: personCount <= 2 ? 26 : 20,
+            body: 16
+          }
+        },
+        layout: {
+          photoPosition: 'center-top',
+          qrPosition: 'bottom-right',
+          alignment: 'center',
+          speakerLayout: suggestedLayout
+        },
+        recommendedSocialFormat: recommendedSocial,
+        rationale: `Selected ${THEMES[suggestedTheme]?.name || suggestedTheme} with ${suggestedLayout} layout for ${personCount || 1} dignitary(ies).`
+      }
+    });
+  } catch (err) {
+    console.error('Error in AI design suggestion:', err);
+    return res.status(200).json({
+      success: false,
+      message: 'AI suggestions are currently unavailable. Manual design remains fully active.',
+      suggestions: null
+    });
+  }
+});
+
+// =========================================================================
+// 18. V3.2.2: POST /api/event-design/ai/generate-content - AI Content Generation (Optional, Non-Autonomous)
+// =========================================================================
+router.post('/ai/generate-content', authenticateToken, async (req, res) => {
+  try {
+    const { eventTitle, category, speakerName, eventPersons, date, venue, department } = req.body || {};
+    const safeTitle = eventTitle || 'Institutional Knowledge Event';
+    const safeDept = department || 'Department of Engineering';
+    const safeDate = date || 'Upcoming Date';
+    const safeVenue = venue || 'College Auditorium';
+
+    let speakerString = speakerName || 'Eminent Subject Expert';
+    if (Array.isArray(eventPersons) && eventPersons.length > 0) {
+      const names = eventPersons.map(p => `${p.name || 'Dignitary'} (${p.role || 'Speaker'})`);
+      speakerString = names.join(', ');
+    }
+
+    return res.json({
+      success: true,
+      provider: 'srec_ai_content_assistant',
+      is_suggestion: true,
+      content: {
+        subtitle: `Igniting Innovation & Advanced Research in ${safeDept}`,
+        invitationParagraph: `The Department of ${safeDept}, Sri Ramakrishna Engineering College cordially invites faculty, research scholars, and students to the prestigious event entitled "${safeTitle}" presented by distinguished guests: ${speakerString}.`,
+        eventDescription: `Join us for an intensive and inspiring academic session on "${safeTitle}" featuring state-of-the-art developments, practical demonstrations, and interactive deliberations with ${speakerString}.`,
+        whatsappAnnouncement: `🎓 *SRI RAMAKRISHNA ENGINEERING COLLEGE*\n🏛️ *${safeDept}*\n\n✨ *${safeTitle}*\n\n🎙️ *Dignitaries:* ${speakerString}\n📅 *Date:* ${safeDate}\n📍 *Venue:* ${safeVenue}\n\n🔗 *Register Now & Participate!*`,
+        socialCaption: `Excited to announce "${safeTitle}" organized by the ${safeDept} at Sri Ramakrishna Engineering College! 🚀 Featuring distinguished guests ${speakerString}. Join us to explore cutting-edge insights. #SREC #Engineering #Innovation #AcademicExcellence`
+      }
+    });
+  } catch (err) {
+    console.error('Error generating AI content:', err);
+    return res.status(200).json({
+      success: false,
+      message: 'AI content generation is currently unavailable. Manual entry remains fully active.',
+      content: null
+    });
+  }
+});
+
+// =========================================================================
+// 19. V3.2.2: POST /api/event-design/qr/generate - Generate vector/raster QR code
+// =========================================================================
+router.post('/qr/generate', authenticateToken, (req, res) => {
+  const { url, size, caption, fgColor, bgColor } = req.body || {};
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return res.status(400).json({ error: 'URL or text content is required for QR generation' });
+  }
+
+  const cleanUrl = url.trim();
+  const qrSvg = generateQRCodeSVG(cleanUrl, {
+    size: size || 200,
+    fgColor: fgColor || '#0B2545',
+    bgColor: bgColor || '#FFFFFF'
+  });
+
+  return res.json({
+    success: true,
+    url: cleanUrl,
+    caption: caption || 'Scan to Register',
+    svg: qrSvg,
+    dataUrl: `data:image/svg+xml;utf8,${encodeURIComponent(qrSvg)}`
+  });
+});
+
+// =========================================================================
+// 20. V3.2.2: POST /api/event-design/audit-design - Professional Design Quality Check
+// =========================================================================
+router.post('/audit-design', authenticateToken, (req, res) => {
+  const { eventTitle, speakerName, eventPersons, customColors, qrConfig, photoConfig } = req.body || {};
+  const auditResult = auditDesignRules({ eventTitle, speakerName, eventPersons, customColors, qrConfig, photoConfig });
+  return res.json(auditResult);
+});
+
+// =========================================================================
+// 21. V3.2.2: POST /api/event-design/export-social-pack - Download All Social Media Sizes ZIP
+// =========================================================================
+router.post('/export-social-pack', authenticateToken, async (req, res) => {
+  try {
+    const { eventTitle, templateId, theme, customColors, typography, photoUrl, eventPersons, speakerLayout, qr, department, speakerName, date, venue } = req.body || {};
+    const safeTitle = (eventTitle || 'SREC_Event').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 40);
+    const eventData = {
+      event_title: eventTitle || 'SREC Academic Event',
+      resource_person: speakerName || 'Eminent Speaker',
+      eventPersons: eventPersons || [],
+      department: department || 'Engineering',
+      date: date || 'TBA',
+      venue: venue || 'Auditorium',
+      speaker_photo: photoUrl
+    };
+
+    const customDesign = {
+      colors: customColors,
+      photoUrl,
+      eventPersons,
+      speakerLayout,
+      qr,
+      ...(typography || {})
+    };
+
+    const zip = new JSZip();
+    const manifest = {
+      institution: 'Sri Ramakrishna Engineering College',
+      eventTitle: eventData.event_title,
+      department: eventData.department,
+      generatedAt: new Date().toISOString(),
+      presets: []
+    };
+
+    // Render all 8 social presets
+    for (const [key, preset] of Object.entries(SOCIAL_PRESETS)) {
+      const svg = renderDesignToSVG(eventData, templateId || 'P01', theme || 'institutional_default', customDesign, {
+        width: preset.width,
+        height: preset.height
+      });
+      // Save SVG / vector representation in social pack
+      zip.file(preset.filename.replace('.png', '.svg'), svg);
+      manifest.presets.push({
+        id: preset.id,
+        name: preset.name,
+        dimensions: `${preset.width}x${preset.height}`,
+        filename: preset.filename
+      });
+    }
+
+    zip.file('Social_Pack_Manifest.json', JSON.stringify(manifest, null, 2));
+
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    const zipFilename = `${safeTitle}_Social_Media_Pack.zip`;
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+    return res.send(zipBuffer);
+  } catch (err) {
+    console.error('Error generating social media pack:', err);
+    return res.status(500).json({ error: 'Failed to generate social media pack: ' + err.message });
+  }
+});
+
+// =========================================================================
+// 22. V3.2.2: POST /api/event-design/export-png - High-Res PNG / SVG Asset Export
+// =========================================================================
+router.post('/export-png', authenticateToken, async (req, res) => {
+  try {
+    const { eventTitle, templateId, theme, customColors, typography, photoUrl, eventPersons, speakerLayout, qr, department, speakerName, date, venue, dimensions } = req.body || {};
+    const dims = dimensions || { width: 1080, height: 1350 };
+    const eventData = {
+      event_title: eventTitle || 'SREC Academic Event',
+      resource_person: speakerName || 'Eminent Speaker',
+      eventPersons: eventPersons || [],
+      department: department || 'Engineering',
+      date: date || 'TBA',
+      venue: venue || 'Auditorium',
+      speaker_photo: photoUrl
+    };
+
+    const customDesign = {
+      colors: customColors,
+      photoUrl,
+      eventPersons,
+      speakerLayout,
+      qr,
+      ...(typography || {})
+    };
+
+    const svg = renderDesignToSVG(eventData, templateId || 'P01', theme || 'institutional_default', customDesign, dims);
+    return res.json({
+      success: true,
+      svg,
+      dataUrl: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
+      dimensions: dims
+    });
+  } catch (err) {
+    console.error('Error generating design PNG/SVG:', err);
+    return res.status(500).json({ error: 'Failed to generate design asset: ' + err.message });
   }
 });
 

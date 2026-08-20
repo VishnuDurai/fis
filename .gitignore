@@ -17,5 +17,8 @@ scratch/
 # Keys & Environment
 *.pem
 server/.env
-.env
+# Backups & Uploads
+backups/
+server/uploads/
+server/SREC/
 

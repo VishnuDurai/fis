@@ -6,6 +6,7 @@
 import { jsPDF } from 'jspdf';
 import * as jspdfModule from 'jspdf';
 import { INSTITUTIONAL_INFO } from './institutionalHeader.js';
+import { normalizeEventPersons } from './designPresets.js';
 
 /**
  * Universal jsPDF Constructor Resolver for Vite and Node.js
@@ -166,107 +167,143 @@ export const generatePosterPdf = (templateId, eventData) => {
     y += descLines.length * 4.2;
   }
 
-  // Chief Guest / Speaker Section
+  // Chief Guest / Dignitaries / Speaker Section
   y += 5;
-  const boxWidth = pageWidth - margin * 2 - 20;
-  const boxX = margin + 10;
-  const boxHeight = photo && templateId === 'P03' ? 52 : photo ? 38 : 34;
+  const persons = normalizeEventPersons(eventData);
+  const pCount = persons.length;
+  const totalBoxWidth = pageWidth - margin * 2 - 20;
+  const startX = margin + 10;
 
-  doc.setFillColor(templateId === 'P02' ? 30 : 248, templateId === 'P02' ? 41 : 250, templateId === 'P02' ? 59 : 252);
-  doc.setDrawColor(templateId === 'P02' ? 67 : 203, templateId === 'P02' ? 56 : 213, templateId === 'P02' ? 202 : 225);
-  doc.setLineWidth(0.8);
-  doc.roundedRect(boxX, y, boxWidth, boxHeight, 3, 3, 'FD');
+  if (pCount === 1) {
+    const p = persons[0];
+    const pPhoto = p.photo || '';
+    const boxHeight = pPhoto && templateId === 'P03' ? 52 : pPhoto ? 38 : 34;
 
-  if (photo && templateId === 'P03') {
-    // P03 Prominent Keynote Speaker Layout
-    const photoSize = 24;
-    const photoX = pageWidth / 2 - photoSize / 2;
-    const photoY = y + 4;
-    try {
-      doc.addImage(photo, 'JPEG', photoX, photoY, photoSize, photoSize);
-    } catch (e) { /* non-blocking fallback */ }
+    doc.setFillColor(templateId === 'P02' ? 30 : 248, templateId === 'P02' ? 41 : 250, templateId === 'P02' ? 59 : 252);
+    doc.setDrawColor(templateId === 'P02' ? 67 : 203, templateId === 'P02' ? 56 : 213, templateId === 'P02' ? 202 : 225);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(startX, y, totalBoxWidth, boxHeight, 3, 3, 'FD');
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(180, 83, 9);
-    doc.text('★ KEYNOTE SPEAKER & RESOURCE PERSON ★', pageWidth / 2, y + 33, { align: 'center' });
-
-    doc.setFontSize(12.5);
-    doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
-    doc.text(resourcePerson, pageWidth / 2, y + 40, { align: 'center' });
-
-    if (resDesignation) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(templateId === 'P02' ? 203 : 3, templateId === 'P02' ? 213 : 105, templateId === 'P02' ? 225 : 161);
-      doc.text(resDesignation, pageWidth / 2, y + 45, { align: 'center' });
-    }
-
-    if (resOrganization) {
-      doc.setFont('helvetica', 'normal');
+    if (pPhoto && templateId === 'P03') {
+      const photoSize = 24;
+      try { doc.addImage(pPhoto, 'JPEG', pageWidth / 2 - photoSize / 2, y + 4, photoSize, photoSize); } catch (e) {}
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(180, 83, 9);
+      doc.text('★ KEYNOTE SPEAKER & RESOURCE PERSON ★', pageWidth / 2, y + 33, { align: 'center' });
+      doc.setFontSize(12.5);
+      doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
+      doc.text(p.name, pageWidth / 2, y + 40, { align: 'center' });
+      if (p.designation) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(templateId === 'P02' ? 203 : 3, templateId === 'P02' ? 213 : 105, templateId === 'P02' ? 225 : 161);
+        doc.text(p.designation, pageWidth / 2, y + 45, { align: 'center' });
+      }
+      if (p.organization) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(p.organization, pageWidth / 2, y + 49, { align: 'center' });
+      }
+    } else if (pPhoto) {
+      const photoSize = 24;
+      try { doc.addImage(pPhoto, 'JPEG', startX + 8, y + (boxHeight - photoSize) / 2, photoSize, photoSize); } catch (e) {}
+      const textCenterX = startX + photoSize + (totalBoxWidth - photoSize - 8) / 2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(180, 83, 9);
+      doc.text((p.role || 'RESOURCE PERSON / CHIEF GUEST').toUpperCase(), textCenterX, y + 8, { align: 'center' });
+      doc.setFontSize(12);
+      doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
+      doc.text(p.name, textCenterX, y + 16, { align: 'center' });
+      if (p.designation) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(templateId === 'P02' ? 203 : 51, templateId === 'P02' ? 213 : 65, templateId === 'P02' ? 225 : 85);
+        doc.text(p.designation, textCenterX, y + 23, { align: 'center' });
+      }
+      if (p.organization) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(templateId === 'P02' ? 148 : 100, templateId === 'P02' ? 163 : 116, templateId === 'P02' ? 184 : 139);
+        doc.text(p.organization, textCenterX, y + 29, { align: 'center' });
+      }
+    } else {
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(resOrganization, pageWidth / 2, y + 49, { align: 'center' });
+      doc.setTextColor(180, 83, 9);
+      doc.text((p.role || 'RESOURCE PERSON / CHIEF GUEST').toUpperCase(), pageWidth / 2, y + 8, { align: 'center' });
+      doc.setFontSize(12.5);
+      doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
+      doc.text(p.name, pageWidth / 2, y + 16, { align: 'center' });
+      if (p.designation) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(templateId === 'P02' ? 203 : 51, templateId === 'P02' ? 213 : 65, templateId === 'P02' ? 225 : 85);
+        doc.text(p.designation, pageWidth / 2, y + 23, { align: 'center' });
+      }
+      if (p.organization) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(templateId === 'P02' ? 148 : 100, templateId === 'P02' ? 163 : 116, templateId === 'P02' ? 184 : 139);
+        doc.text(p.organization, pageWidth / 2, y + 29, { align: 'center' });
+      }
     }
-  } else if (photo) {
-    // Standard photo side-by-side layout (P01, P02, P04, P05)
-    const photoSize = 24;
-    const photoX = boxX + 8;
-    const photoY = y + (boxHeight - photoSize) / 2;
-    try {
-      doc.addImage(photo, 'JPEG', photoX, photoY, photoSize, photoSize);
-    } catch (e) { /* non-blocking fallback */ }
-
-    const textCenterX = boxX + photoSize + (boxWidth - photoSize - 8) / 2;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(180, 83, 9);
-    doc.text('RESOURCE PERSON / CHIEF GUEST', textCenterX, y + 8, { align: 'center' });
-
-    doc.setFontSize(12);
-    doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
-    doc.text(resourcePerson, textCenterX, y + 16, { align: 'center' });
-
-    if (resDesignation) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(templateId === 'P02' ? 203 : 51, templateId === 'P02' ? 213 : 65, templateId === 'P02' ? 225 : 85);
-      doc.text(resDesignation, textCenterX, y + 23, { align: 'center' });
-    }
-
-    if (resOrganization) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(templateId === 'P02' ? 148 : 100, templateId === 'P02' ? 163 : 116, templateId === 'P02' ? 184 : 139);
-      doc.text(resOrganization, textCenterX, y + 29, { align: 'center' });
-    }
+    y += boxHeight + 8;
   } else {
-    // No photo layout: Clean centered text
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(180, 83, 9);
-    doc.text('RESOURCE PERSON / CHIEF GUEST', pageWidth / 2, y + 8, { align: 'center' });
+    // Multi-Speaker Grid Layout
+    const cols = pCount === 2 ? 2 : pCount === 3 ? 3 : pCount === 4 ? 2 : 3;
+    const cardGap = 4;
+    const cardW = (totalBoxWidth - (cols - 1) * cardGap) / cols;
+    const cardH = pCount <= 4 ? 32 : 26;
+    const rows = Math.ceil(pCount / cols);
 
-    doc.setFontSize(12.5);
-    doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
-    doc.text(resourcePerson, pageWidth / 2, y + 16, { align: 'center' });
+    for (let i = 0; i < pCount; i++) {
+      const p = persons[i];
+      const colIdx = i % cols;
+      const rowIdx = Math.floor(i / cols);
+      const cX = startX + colIdx * (cardW + cardGap);
+      const cY = y + rowIdx * (cardH + cardGap);
 
-    if (resDesignation) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(templateId === 'P02' ? 203 : 51, templateId === 'P02' ? 213 : 65, templateId === 'P02' ? 225 : 85);
-      doc.text(resDesignation, pageWidth / 2, y + 23, { align: 'center' });
+      doc.setFillColor(templateId === 'P02' ? 30 : 248, templateId === 'P02' ? 41 : 250, templateId === 'P02' ? 59 : 252);
+      doc.setDrawColor(templateId === 'P02' ? 67 : 203, templateId === 'P02' ? 56 : 213, templateId === 'P02' ? 202 : 225);
+      doc.setLineWidth(0.6);
+      doc.roundedRect(cX, cY, cardW, cardH, 2, 2, 'FD');
+
+      const pPhoto = p.photo || '';
+      let textOffset = cX + cardW / 2;
+      if (pPhoto) {
+        const pSize = Math.min(18, cardH - 6);
+        try { doc.addImage(pPhoto, 'JPEG', cX + 3, cY + 3, pSize, pSize); } catch (e) {}
+        textOffset = cX + pSize + (cardW - pSize - 3) / 2;
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(180, 83, 9);
+      doc.text((p.role || 'RESOURCE PERSON').toUpperCase(), textOffset, cY + 6, { align: 'center' });
+
+      doc.setFontSize(pCount <= 3 ? 9.5 : 8.5);
+      doc.setTextColor(templateId === 'P02' ? 255 : 15, templateId === 'P02' ? 255 : 23, templateId === 'P02' ? 255 : 42);
+      doc.text(p.name || 'Dignitary', textOffset, cY + 12, { align: 'center' });
+
+      if (p.designation) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(templateId === 'P02' ? 203 : 51, templateId === 'P02' ? 213 : 65, templateId === 'P02' ? 225 : 85);
+        doc.text(splitText(doc, p.designation, cardW - 8)[0] || '', textOffset, cY + 17, { align: 'center' });
+      }
+
+      if (p.organization) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(templateId === 'P02' ? 148 : 100, templateId === 'P02' ? 163 : 116, templateId === 'P02' ? 184 : 139);
+        doc.text(splitText(doc, p.organization, cardW - 8)[0] || '', textOffset, cY + 21, { align: 'center' });
+      }
     }
-
-    if (resOrganization) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(templateId === 'P02' ? 148 : 100, templateId === 'P02' ? 163 : 116, templateId === 'P02' ? 184 : 139);
-      doc.text(resOrganization, pageWidth / 2, y + 29, { align: 'center' });
-    }
+    y += rows * (cardH + cardGap) + 6;
   }
-
-  y += boxHeight + 8;
 
   // Date, Time, Venue Badges
   const badgeWidth = (pageWidth - margin * 2 - 28) / 3;
@@ -439,111 +476,138 @@ export const generateInvitationPdf = (templateId, eventData) => {
   doc.text(titleLines, pageWidth / 2, y, { align: 'center' });
   y += titleLines.length * 7.5;
 
-  if (theme) {
-    doc.setFont('helvetica', 'bolditalic');
-    doc.setFontSize(9.5);
-    doc.setTextColor(180, 83, 9);
-    doc.text(`"${theme}"`, pageWidth / 2, y, { align: 'center' });
-    y += 7.5;
-  }
+    const persons = normalizeEventPersons(eventData);
+    const pCount = persons.length;
+    const totalBoxWidth = pageWidth - margin * 2 - 20;
+    const startX = margin + 10;
 
-  // Chief Guest Citation Box
-  y += 5;
-  const citationW = pageWidth - margin * 2 - 20;
-  const citationX = margin + 10;
-  const citationH = photo && templateId === 'I02' ? 50 : photo ? 38 : 35;
+    if (pCount === 1) {
+      const p = persons[0];
+      const pPhoto = p.photo || '';
+      const citationH = pPhoto && templateId === 'I02' ? 50 : pPhoto ? 38 : 35;
 
-  doc.setFillColor(250, 250, 250);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.8);
-  doc.roundedRect(citationX, y, citationW, citationH, 2, 2, 'FD');
+      doc.setFillColor(250, 250, 250);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.8);
+      doc.roundedRect(startX, y, totalBoxWidth, citationH, 2, 2, 'FD');
 
-  if (photo && templateId === 'I02') {
-    // I02 Prominent Chief Guest Layout
-    const photoSize = 23;
-    const photoX = pageWidth / 2 - photoSize / 2;
-    const photoY = y + 3;
-    try {
-      doc.addImage(photo, 'JPEG', photoX, photoY, photoSize, photoSize);
-    } catch (e) { /* non-blocking fallback */ }
+      if (pPhoto && templateId === 'I02') {
+        const photoSize = 23;
+        try { doc.addImage(pPhoto, 'JPEG', pageWidth / 2 - photoSize / 2, y + 3, photoSize, photoSize); } catch (e) {}
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(131, 24, 67);
+        doc.text('CHIEF GUEST & KEYNOTE SPEAKER', pageWidth / 2, y + 31, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text(p.name, pageWidth / 2, y + 38, { align: 'center' });
+        if (p.designation) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(51, 65, 85);
+          doc.text(p.designation, pageWidth / 2, y + 43, { align: 'center' });
+        }
+        if (p.organization) {
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(p.organization, pageWidth / 2, y + 47, { align: 'center' });
+        }
+      } else if (pPhoto) {
+        const photoSize = 22;
+        try { doc.addImage(pPhoto, 'JPEG', startX + 8, y + (citationH - photoSize) / 2, photoSize, photoSize); } catch (e) {}
+        const textCenterX = startX + photoSize + (totalBoxWidth - photoSize - 8) / 2;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(180, 83, 9);
+        doc.text((p.role || 'CHIEF GUEST & KEYNOTE SPEAKER').toUpperCase(), textCenterX, y + 8, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text(p.name, textCenterX, y + 16, { align: 'center' });
+        if (p.designation) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(51, 65, 85);
+          doc.text(p.designation, textCenterX, y + 22, { align: 'center' });
+        }
+        if (p.organization) {
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(p.organization, textCenterX, y + 27, { align: 'center' });
+        }
+      } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(180, 83, 9);
+        doc.text((p.role || 'CHIEF GUEST & KEYNOTE SPEAKER').toUpperCase(), pageWidth / 2, y + 8, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text(p.name, pageWidth / 2, y + 16, { align: 'center' });
+        if (p.designation) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(51, 65, 85);
+          doc.text(p.designation, pageWidth / 2, y + 22, { align: 'center' });
+        }
+        if (p.organization) {
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text(p.organization, pageWidth / 2, y + 27, { align: 'center' });
+        }
+      }
+      y += citationH + 7;
+    } else {
+      // Multi-dignitary layout in Invitation PDF
+      const cols = pCount === 2 ? 2 : pCount === 3 ? 3 : pCount === 4 ? 2 : 3;
+      const cardGap = 4;
+      const cardW = (totalBoxWidth - (cols - 1) * cardGap) / cols;
+      const cardH = pCount <= 4 ? 30 : 25;
+      const rows = Math.ceil(pCount / cols);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(131, 24, 67);
-    doc.text('CHIEF GUEST & KEYNOTE SPEAKER', pageWidth / 2, y + 31, { align: 'center' });
+      for (let i = 0; i < pCount; i++) {
+        const p = persons[i];
+        const colIdx = i % cols;
+        const rowIdx = Math.floor(i / cols);
+        const cX = startX + colIdx * (cardW + cardGap);
+        const cY = y + rowIdx * (cardH + cardGap);
 
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text(resourcePerson, pageWidth / 2, y + 38, { align: 'center' });
+        doc.setFillColor(250, 250, 250);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.6);
+        doc.roundedRect(cX, cY, cardW, cardH, 2, 2, 'FD');
 
-    if (resDesignation) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(51, 65, 85);
-      doc.text(resDesignation, pageWidth / 2, y + 43, { align: 'center' });
+        const pPhoto = p.photo || '';
+        let textOffset = cX + cardW / 2;
+        if (pPhoto) {
+          const pSize = Math.min(16, cardH - 6);
+          try { doc.addImage(pPhoto, 'JPEG', cX + 3, cY + 3, pSize, pSize); } catch (e) {}
+          textOffset = cX + pSize + (cardW - pSize - 3) / 2;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(180, 83, 9);
+        doc.text((p.role || 'RESOURCE PERSON').toUpperCase(), textOffset, cY + 6, { align: 'center' });
+
+        doc.setFontSize(pCount <= 3 ? 9 : 8);
+        doc.setTextColor(15, 23, 42);
+        doc.text(p.name || 'Dignitary', textOffset, cY + 12, { align: 'center' });
+
+        if (p.designation) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(51, 65, 85);
+          doc.text(splitText(doc, p.designation, cardW - 8)[0] || '', textOffset, cY + 17, { align: 'center' });
+        }
+
+        if (p.organization) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(splitText(doc, p.organization, cardW - 8)[0] || '', textOffset, cY + 21, { align: 'center' });
+        }
+      }
+      y += rows * (cardH + cardGap) + 6;
     }
-    if (resOrganization) {
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(resOrganization, pageWidth / 2, y + 47, { align: 'center' });
-    }
-  } else if (photo) {
-    // Standard photo side-by-side layout (I01, I03, I04, I05)
-    const photoSize = 22;
-    const photoX = citationX + 8;
-    const photoY = y + (citationH - photoSize) / 2;
-    try {
-      doc.addImage(photo, 'JPEG', photoX, photoY, photoSize, photoSize);
-    } catch (e) { /* non-blocking fallback */ }
-
-    const textCenterX = citationX + photoSize + (citationW - photoSize - 8) / 2;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(180, 83, 9);
-    doc.text('CHIEF GUEST & KEYNOTE SPEAKER', textCenterX, y + 8, { align: 'center' });
-
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text(resourcePerson, textCenterX, y + 16, { align: 'center' });
-
-    if (resDesignation) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(51, 65, 85);
-      doc.text(resDesignation, textCenterX, y + 22, { align: 'center' });
-    }
-
-    if (resOrganization) {
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(resOrganization, textCenterX, y + 28, { align: 'center' });
-    }
-  } else {
-    // No photo layout
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(180, 83, 9);
-    doc.text('CHIEF GUEST & KEYNOTE SPEAKER', pageWidth / 2, y + 7, { align: 'center' });
-
-    doc.setFontSize(12.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(resourcePerson, pageWidth / 2, y + 16, { align: 'center' });
-
-    if (resDesignation) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(51, 65, 85);
-      doc.text(resDesignation, pageWidth / 2, y + 22, { align: 'center' });
-    }
-
-    if (resOrganization) {
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(resOrganization, pageWidth / 2, y + 28, { align: 'center' });
-    }
-  }
-
-  y += citationH + 8;
 
   // Presided Over By
   doc.setFont('helvetica', 'bold');
@@ -560,7 +624,7 @@ export const generateInvitationPdf = (templateId, eventData) => {
   // Date, Time, Venue
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(citationX, y, citationW, 14, 2, 2, 'FD');
+  doc.roundedRect(startX, y, totalBoxWidth, 14, 2, 2, 'FD');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);

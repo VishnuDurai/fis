@@ -1,10 +1,5 @@
-/**
- * SREC FIS V3.2 — Poster Templates (P01 — P05)
- * Professional academic poster designs with accredited typography, logo positioning,
- * deliberate template-aware speaker/chief-guest photo integration, and print-safe layouts.
- */
-
 import { renderInstitutionalHeaderHtml } from './institutionalHeader.js';
+import { normalizeEventPersons } from './designPresets.js';
 
 export const POSTER_TEMPLATES = [
   {
@@ -54,16 +49,60 @@ export const POSTER_TEMPLATES = [
   }
 ];
 
-export const renderPosterHtml = (templateId, eventData) => {
+const renderMultiSpeakerCardsHtml = (persons = [], { isDark = false, accentColor = '#831843', borderColor = '#e2e8f0', showPhoto = true, showProfile = false, speakerLayout = 'auto', templateId = '' } = {}) => {
+  const count = persons.length;
+  if (count === 0) return '';
+
+  let gridCols = '1fr';
+  if (speakerLayout === 'two_column' || (speakerLayout === 'auto' && count === 2)) gridCols = '1fr 1fr';
+  else if (speakerLayout === 'three_column' || (speakerLayout === 'auto' && count === 3)) gridCols = '1fr 1fr 1fr';
+  else if (speakerLayout === 'grid' || (speakerLayout === 'auto' && count === 4)) gridCols = '1fr 1fr';
+  else if (speakerLayout === 'compact_grid' || (speakerLayout === 'auto' && count >= 5)) gridCols = count >= 6 ? '1fr 1fr 1fr' : '1fr 1fr';
+
+  const cardBg = isDark ? 'rgba(30, 41, 59, 0.85)' : '#ffffff';
+  const nameColor = isDark ? '#ffffff' : '#0f172a';
+  const desigColor = isDark ? '#cbd5e1' : '#334155';
+  const orgColor = isDark ? '#94a3b8' : '#64748b';
+
+  return `
+    <div style="display: grid; grid-template-columns: ${gridCols}; gap: 14px; margin: 18px 0;">
+      ${persons.map((p, idx) => {
+        const photo = p.photo || p.photoUrl || '';
+        const role = templateId === 'P03' && count === 1 && (!p.role || p.role === 'Resource Person') ? 'KEYNOTE SPEAKER' : (p.role || (idx === 0 ? 'Chief Guest' : 'Resource Person'));
+        const crop = p.photoCrop || 'circle';
+        const borderRadius = crop === 'circle' ? '50%' : crop === 'rounded_rectangle' ? '12px' : '0px';
+        const photoDim = count === 1 ? '105px' : count <= 3 ? '85px' : '65px';
+
+        return `
+          <div style="background: ${cardBg}; border: 1.5px solid ${borderColor}; border-radius: 12px; padding: 14px; display: flex; flex-direction: ${count >= 3 ? 'column' : 'row'}; align-items: center; justify-content: center; gap: 12px; text-align: ${count >= 3 ? 'center' : (photo ? 'left' : 'center')}; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            ${showPhoto && photo ? `
+              <div style="flex-shrink: 0;">
+                <img src="${photo}" alt="${p.name}" style="width: ${photoDim}; height: ${photoDim}; border-radius: ${borderRadius}; object-fit: cover; border: 2.5px solid ${accentColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.15);" />
+              </div>
+            ` : ''}
+            <div style="max-width: 100%;">
+              <div style="display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; color: ${accentColor}; font-weight: 800; background: ${isDark ? 'rgba(99,102,241,0.15)' : 'rgba(131,24,67,0.08)'}; padding: 2px 8px; border-radius: 6px; margin-bottom: 4px;">
+                ${role}
+              </div>
+              <div style="font-size: ${count <= 2 ? '1.15rem' : '1.0rem'}; font-weight: 800; color: ${nameColor}; line-height: 1.2;">${p.name || 'Dignitary'}</div>
+              ${p.designation ? `<div style="font-size: 0.82rem; color: ${desigColor}; font-weight: 600; margin-top: 2px;">${p.designation}</div>` : ''}
+              ${p.organization ? `<div style="font-size: 0.78rem; color: ${orgColor}; margin-top: 1px;">${p.organization}</div>` : ''}
+              ${showProfile && p.profile && count === 1 ? `<div style="font-size: 0.75rem; color: ${orgColor}; margin-top: 6px; font-style: italic; line-height: 1.3;">"${p.profile.slice(0, 120)}..."</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+};
+
+export const renderPosterHtml = (templateId, eventData, customDesign = {}) => {
   const {
     title = 'National Seminar on Advanced Computing',
     theme = '',
     department = 'DEPARTMENT OF ARTIFICIAL INTELLIGENCE AND DATA SCIENCE',
     coOrganizedBy = '',
     inAssociationWith = '',
-    resourcePerson = 'Dr. A. Scientist',
-    resDesignation = 'Senior Research Scientist',
-    resOrganization = 'National Research Labs',
     fromDate = '2026-09-15',
     toDate = '',
     time = '10:00 AM - 01:00 PM',
@@ -71,19 +110,15 @@ export const renderPosterHtml = (templateId, eventData) => {
     organizerLogo = '',
     associationLogo = '',
     eventLogo = '',
-    resourcePersonPhoto = '',
-    speakerPhoto = '',
     description = ''
   } = eventData || {};
 
-  const photo = resourcePersonPhoto || speakerPhoto || '';
+  const persons = normalizeEventPersons(eventData, customDesign);
   const cleanDateStr = toDate && toDate !== fromDate ? `${fromDate} to ${toDate}` : fromDate;
   const isDark = templateId === 'P02';
 
-  // Render header
   const headerHtml = renderInstitutionalHeaderHtml({ isDark, compact: false, showAddress: true });
 
-  // Logos Row
   const logosHtml = `
     <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin: 12px 0;">
       ${organizerLogo ? `<img src="${organizerLogo}" alt="Organizer Logo" style="max-height: 52px; max-width: 100px; object-fit: contain; border-radius: 4px; padding: 2px; background: white;" />` : ''}
@@ -110,28 +145,16 @@ export const renderPosterHtml = (templateId, eventData) => {
 
         ${(organizerLogo || eventLogo || associationLogo) ? logosHtml : ''}
 
-        <div style="text-align: center; margin: 24px 0;">
-          <h1 style="font-size: 1.7rem; font-weight: 900; color: #ffffff; line-height: 1.25; margin: 0 0 8px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+        <div style="text-align: center; margin: 20px 0;">
+          <h1 style="font-size: 1.65rem; font-weight: 900; color: #ffffff; line-height: 1.25; margin: 0 0 8px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
             ${title}
           </h1>
-          ${theme ? `<div style="color: #a5b4fc; font-size: 1rem; font-weight: 600; font-style: italic;">"${theme}"</div>` : ''}
-          ${description ? `<p style="color: #cbd5e1; font-size: 0.82rem; max-width: 85%; margin: 10px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
+          ${theme ? `<div style="color: #a5b4fc; font-size: 0.95rem; font-weight: 600; font-style: italic;">"${theme}"</div>` : ''}
+          ${description ? `<p style="color: #cbd5e1; font-size: 0.82rem; max-width: 85%; margin: 8px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
         </div>
 
-        <!-- Speaker Box -->
-        <div style="background: rgba(30, 41, 59, 0.75); border: 1.5px solid #4338ca; border-radius: 12px; padding: 18px; margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
-          ${photo ? `
-            <div style="flex-shrink: 0;">
-              <img src="${photo}" alt="Speaker Photo" style="width: 105px; height: 105px; border-radius: 12px; object-fit: cover; border: 2.5px solid #10b981; box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);" />
-            </div>
-          ` : ''}
-          <div style="text-align: ${photo ? 'left' : 'center'}; max-width: 420px;">
-            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: #818cf8; font-weight: 800; margin-bottom: 4px;">Chief Guest / Resource Person</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #ffffff; line-height: 1.2;">${resourcePerson}</div>
-            ${resDesignation ? `<div style="font-size: 0.88rem; color: #cbd5e1; margin-top: 3px; font-weight: 500;">${resDesignation}</div>` : ''}
-            ${resOrganization ? `<div style="font-size: 0.82rem; color: #94a3b8; margin-top: 2px;">${resOrganization}</div>` : ''}
-          </div>
-        </div>
+        <!-- Multi-Speaker Container -->
+        ${renderMultiSpeakerCardsHtml(persons, { isDark: true, accentColor: '#818cf8', borderColor: '#4338ca', showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
 
         <!-- Schedule / Venue Grid -->
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 20px; background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: 8px; border: 1px solid #334155; text-align: center;">
@@ -157,7 +180,7 @@ export const renderPosterHtml = (templateId, eventData) => {
   }
 
   // -------------------------------------------------------------------------
-  // TEMPLATE P03: Seminar / Keynote Focus (PROMINENT Speaker Photo)
+  // TEMPLATE P03: Seminar / Keynote Focus
   // -------------------------------------------------------------------------
   if (templateId === 'P03') {
     return `
@@ -182,20 +205,8 @@ export const renderPosterHtml = (templateId, eventData) => {
           ${theme ? `<div style="color: #0369a1; font-size: 0.92rem; font-weight: 700; font-style: italic; margin-top: 3px;">"${theme}"</div>` : ''}
         </div>
 
-        <!-- Prominent Keynote Speaker Spotlight -->
-        <div style="background: #ffffff; border: 2px solid #bae6fd; border-radius: 14px; padding: 20px; margin: 18px 0; text-align: center; box-shadow: 0 4px 14px rgba(3, 105, 161, 0.08);">
-          <div style="display: inline-block; background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 3px 12px; border-radius: 12px; margin-bottom: 12px;">
-            ★ KEYNOTE SPEAKER & RESOURCE PERSON ★
-          </div>
-          ${photo ? `
-            <div style="margin-bottom: 12px;">
-              <img src="${photo}" alt="Keynote Speaker" style="width: 135px; height: 135px; border-radius: 50%; object-fit: cover; border: 4px solid #0369a1; box-shadow: 0 8px 20px rgba(3, 105, 161, 0.25); display: inline-block;" />
-            </div>
-          ` : ''}
-          <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; line-height: 1.25;">${resourcePerson}</div>
-          ${resDesignation ? `<div style="font-size: 0.92rem; color: #0369a1; font-weight: 700; margin-top: 3px;">${resDesignation}</div>` : ''}
-          ${resOrganization ? `<div style="font-size: 0.85rem; color: #475569; margin-top: 2px;">${resOrganization}</div>` : ''}
-        </div>
+        <!-- Multi-Speaker Container -->
+        ${renderMultiSpeakerCardsHtml(persons, { isDark: false, accentColor: '#0369a1', borderColor: '#bae6fd', showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout, templateId: 'P03' })}
 
         <!-- Schedule / Venue Grid -->
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 16px; background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
@@ -261,20 +272,8 @@ export const renderPosterHtml = (templateId, eventData) => {
         ${description ? `<p style="color: #475569; font-size: 0.82rem; max-width: 85%; margin: 8px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
       </div>
 
-      <!-- Chief Guest Box -->
-      <div style="background: #ffffff; border: 1.5px solid ${boxBorderColor}; border-radius: 10px; padding: 16px; margin: 18px 0; display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap;">
-        ${photo ? `
-          <div style="flex-shrink: 0;">
-            <img src="${photo}" alt="Resource Person" style="width: 100px; height: 100px; border-radius: ${templateId === 'P04' ? '10px' : '50%'}; object-fit: cover; border: 3px solid ${primaryColor}; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
-          </div>
-        ` : ''}
-        <div style="text-align: ${photo ? 'left' : 'center'}; max-width: 420px;">
-          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px; color: ${primaryColor}; font-weight: 800; margin-bottom: 4px;">Resource Person / Chief Guest</div>
-          <div style="font-size: 1.22rem; font-weight: 900; color: #0f172a; line-height: 1.2;">${resourcePerson}</div>
-          ${resDesignation ? `<div style="font-size: 0.88rem; color: #334155; font-weight: 600; margin-top: 2px;">${resDesignation}</div>` : ''}
-          ${resOrganization ? `<div style="font-size: 0.82rem; color: #64748b; margin-top: 1px;">${resOrganization}</div>` : ''}
-        </div>
-      </div>
+      <!-- Multi-Speaker Container -->
+      ${renderMultiSpeakerCardsHtml(persons, { isDark: false, accentColor: primaryColor, borderColor: boxBorderColor, showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
 
       <!-- Event Details Badges -->
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 18px; background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
@@ -305,3 +304,4 @@ export const renderPosterHtml = (templateId, eventData) => {
     </div>
   `;
 };
+
