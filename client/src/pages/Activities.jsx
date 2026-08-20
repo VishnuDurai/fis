@@ -1538,7 +1538,7 @@ export default function Activities({ auth }) {
                 return list;
               })()
                 .filter(f => {
-                  if (f.status === 'hidden') return false;
+                  if (f.status === 'hidden' || f.name === 'file' || f.type === 'file') return false;
                   if (type === 'publications') {
                     const selectedCat = formData.type_pub || 'Journal';
                     if (sysPageConfig && sysPageConfig.publication_type_constraints && sysPageConfig.publication_type_constraints[selectedCat]) {
@@ -1697,11 +1697,11 @@ export default function Activities({ auth }) {
                       </select>
                     ) : (
                       <input 
-                        type={f.type} 
+                        type={f.type === 'file' ? 'text' : (f.type || 'text')} 
                         step={f.step}
                         className="form-control" 
                         placeholder={fieldPlaceholder}
-                        value={formData[f.name]} 
+                        value={formData[f.name] !== undefined && formData[f.name] !== null ? formData[f.name] : ''} 
                         onChange={(e) => handleInputChange(f.name, e.target.value)}
                         list={f.list}
                         required={isRequired}
