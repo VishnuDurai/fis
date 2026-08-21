@@ -80,48 +80,24 @@ export const generatePosterPdf = (templateId, eventData) => {
     doc.setTextColor(15, 23, 42);
   }
 
-  // Dual Header Logos
+  // Dual Header Logos (Left: Full SREC Logo with College Name, Right: SNR Sons Trust Logo)
   try {
     if (SREC_LOGO_DATA_URL) {
-      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 3, margin + 4, 16, 21);
+      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 2, margin + 4, 70, 20);
     }
     if (SNR_TRUST_LOGO_DATA_URL) {
-      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 19, margin + 4, 16, 21);
+      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 18, margin + 4, 16, 20);
     }
   } catch (err) {}
 
-  let y = margin + 12;
+  let y = margin + 26;
 
-  // Institutional Header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  if (templateId === 'P02') doc.setTextColor(255, 255, 255);
-  else doc.setTextColor(30, 58, 138);
-  doc.text(INSTITUTIONAL_INFO.collegeName, pageWidth / 2, y, { align: 'center' });
-
-  y += 5;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(180, 83, 9); // Gold
-  doc.text(INSTITUTIONAL_INFO.collegeType, pageWidth / 2, y, { align: 'center' });
-
-  y += 4;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(templateId === 'P02' ? 203 : 100, templateId === 'P02' ? 213 : 116, templateId === 'P02' ? 225 : 139);
-  doc.text(INSTITUTIONAL_INFO.affiliations, pageWidth / 2, y, { align: 'center' });
-
-  y += 3.5;
-  doc.setFontSize(7);
-  doc.text(INSTITUTIONAL_INFO.address, pageWidth / 2, y, { align: 'center' });
-
-  y += 5;
   doc.setDrawColor(203, 213, 225);
   doc.setLineWidth(0.5);
-  doc.line(margin + 6, y, pageWidth - margin - 6, y);
+  doc.line(margin + 4, y, pageWidth - margin - 4, y);
 
   // Department banner
-  y += 8;
+  y += 7;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   if (templateId === 'P02') doc.setTextColor(129, 140, 248);
@@ -403,41 +379,22 @@ export const generateInvitationPdf = (templateId, eventData) => {
   doc.setLineWidth(0.6);
   doc.rect(margin + 2.5, margin + 2.5, pageWidth - margin * 2 - 5, pageHeight - margin * 2 - 5, 'S');
 
-  // Dual Header Logos (Left: SREC College Logo, Right: SNR Sons Trust Logo)
+  // Dual Header Logos (Left: Full SREC Logo with College Name, Right: SNR Sons Trust Logo)
   try {
     if (SREC_LOGO_DATA_URL) {
-      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 5, margin + 5, 15, 20);
+      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 4, margin + 4, 66, 19);
     }
     if (SNR_TRUST_LOGO_DATA_URL) {
-      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 20, margin + 5, 15, 20);
+      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 19, margin + 4, 15, 19);
     }
   } catch (err) {}
 
-  let y = margin + 14;
-
-  // Institutional Header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(30, 58, 138);
-  doc.text(INSTITUTIONAL_INFO.collegeName, pageWidth / 2, y, { align: 'center' });
-
-  y += 5;
-  doc.setFontSize(8);
-  doc.setTextColor(180, 83, 9);
-  doc.text(INSTITUTIONAL_INFO.collegeType, pageWidth / 2, y, { align: 'center' });
-
-  y += 4;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text(INSTITUTIONAL_INFO.affiliations, pageWidth / 2, y, { align: 'center' });
-
-  y += 6;
+  let y = margin + 25;
   doc.setDrawColor(203, 213, 225);
   doc.setLineWidth(0.5);
-  doc.line(margin + 10, y, pageWidth - margin - 10, y);
+  doc.line(margin + 6, y, pageWidth - margin - 6, y);
 
-  y += 10;
+  y += 8;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
@@ -679,41 +636,22 @@ export const renderSingleCertificatePage = (doc, templateId, certData, isNewPage
   doc.setLineWidth(0.8);
   doc.rect(margin + 2.5, margin + 2.5, pageWidth - margin * 2 - 5, pageHeight - margin * 2 - 5, 'S');
 
-  // Dual Header Logos (Left: SREC College Logo, Right: SNR Sons Trust Logo)
+  // Dual Header Logos (Left: Full SREC Logo with College Name, Right: SNR Sons Trust Logo)
   try {
     if (SREC_LOGO_DATA_URL) {
-      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 6, margin + 6, 18, 24);
+      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 6, margin + 6, 75, 22);
     }
     if (SNR_TRUST_LOGO_DATA_URL) {
-      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 24, margin + 6, 18, 24);
+      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 23, margin + 6, 17, 22);
     }
   } catch (err) {}
 
-  let y = margin + 14;
-
-  // Institutional Header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(30, 58, 138);
-  doc.text(INSTITUTIONAL_INFO.collegeName, pageWidth / 2, y, { align: 'center' });
-
-  y += 5.5;
-  doc.setFontSize(8.5);
-  doc.setTextColor(180, 83, 9);
-  doc.text(INSTITUTIONAL_INFO.collegeType, pageWidth / 2, y, { align: 'center' });
-
-  y += 4.5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text(INSTITUTIONAL_INFO.affiliations, pageWidth / 2, y, { align: 'center' });
-
-  y += 6;
+  let y = margin + 30;
   doc.setDrawColor(203, 213, 225);
   doc.setLineWidth(0.5);
-  doc.line(margin + 20, y, pageWidth - margin - 20, y);
+  doc.line(margin + 12, y, pageWidth - margin - 12, y);
 
-  y += 8;
+  y += 7;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
