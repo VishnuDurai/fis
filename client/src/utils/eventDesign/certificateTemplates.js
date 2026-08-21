@@ -7,7 +7,7 @@
  * 3. Principal
  */
 
-import { INSTITUTIONAL_INFO, SREC_CREST_SVG } from './institutionalHeader.js';
+import { INSTITUTIONAL_INFO, renderInstitutionalHeaderHtml } from './institutionalHeader.js';
 
 export const CERTIFICATE_TEMPLATES = [
   {
@@ -118,24 +118,13 @@ export const renderCertificateHtml = (templateId, certificateData) => {
     </div>
   `;
 
+  const headerHtml = renderInstitutionalHeaderHtml({ compact: true, showAddress: false });
+
   // C01: Classic Guilloche Gold Border
   if (templateId === 'C01' || !templateId) {
     return `
-      <div style="background: #ffffff; color: #0f172a; padding: 32px 28px; border: 8px double #b45309; border-radius: 8px; font-family: 'Times New Roman', Times, serif; box-sizing: border-box; min-height: 520px; position: relative; box-shadow: inset 0 0 20px rgba(180, 83, 9, 0.08);">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px;">
-          ${SREC_CREST_SVG}
-          <div style="text-align: center;">
-            <div style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 1.2rem; color: #1e3a8a; letter-spacing: 0.5px;">
-              ${INSTITUTIONAL_INFO.collegeName}
-            </div>
-            <div style="font-family: 'Inter', sans-serif; font-size: 0.7rem; color: #b45309; font-weight: 700;">
-              ${INSTITUTIONAL_INFO.collegeType}
-            </div>
-            <div style="font-family: 'Inter', sans-serif; font-size: 0.65rem; color: #64748b;">
-              ${INSTITUTIONAL_INFO.affiliations}
-            </div>
-          </div>
-        </div>
+      <div style="background: #ffffff; color: #0f172a; padding: 28px 24px; border: 8px double #b45309; border-radius: 8px; font-family: 'Times New Roman', Times, serif; box-sizing: border-box; min-height: 520px; position: relative; box-shadow: inset 0 0 20px rgba(180, 83, 9, 0.08);">
+        ${headerHtml}
 
         <div style="text-align: center; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.82rem; color: #0f172a; text-transform: uppercase; margin-bottom: 6px;">
           DEPARTMENT OF ${department}
@@ -171,23 +160,10 @@ export const renderCertificateHtml = (templateId, certificateData) => {
   // C02: Modern Academic Geometric
   if (templateId === 'C02') {
     return `
-      <div style="background: #ffffff; color: #0f172a; padding: 32px 28px; border: 4px solid #0284c7; border-radius: 12px; font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; min-height: 520px; position: relative; box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.1);">
+      <div style="background: #ffffff; color: #0f172a; padding: 28px 24px; border: 4px solid #0284c7; border-radius: 12px; font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; min-height: 520px; position: relative; box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.1);">
         <div style="height: 6px; background: linear-gradient(90deg, #0284c7, #10b981); position: absolute; top: 0; left: 0; right: 0; border-radius: 8px 8px 0 0;"></div>
 
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px; margin-top: 6px;">
-          ${SREC_CREST_SVG}
-          <div style="text-align: center;">
-            <div style="font-weight: 900; font-size: 1.25rem; color: #0369a1; letter-spacing: -0.3px;">
-              ${INSTITUTIONAL_INFO.collegeName}
-            </div>
-            <div style="font-size: 0.72rem; color: #0284c7; font-weight: 800;">
-              ${INSTITUTIONAL_INFO.collegeType}
-            </div>
-            <div style="font-size: 0.65rem; color: #64748b;">
-              ${INSTITUTIONAL_INFO.affiliations}
-            </div>
-          </div>
-        </div>
+        ${headerHtml}
 
         <div style="text-align: center; font-weight: 800; font-size: 0.85rem; color: #0f172a; text-transform: uppercase; margin-bottom: 6px;">
           DEPARTMENT OF ${department}
@@ -223,21 +199,8 @@ export const renderCertificateHtml = (templateId, certificateData) => {
   // C03: Research / Conference Citation
   if (templateId === 'C03') {
     return `
-      <div style="background: #ffffff; color: #0f172a; padding: 32px 28px; border: 4px solid #4338ca; border-radius: 6px; font-family: 'Times New Roman', Times, serif; box-sizing: border-box; min-height: 520px; position: relative;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px;">
-          ${SREC_CREST_SVG}
-          <div style="text-align: center;">
-            <div style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 1.25rem; color: #312e81;">
-              ${INSTITUTIONAL_INFO.collegeName}
-            </div>
-            <div style="font-family: 'Inter', sans-serif; font-size: 0.72rem; color: #4338ca; font-weight: 800;">
-              ${INSTITUTIONAL_INFO.collegeType}
-            </div>
-            <div style="font-family: 'Inter', sans-serif; font-size: 0.65rem; color: #64748b;">
-              ${INSTITUTIONAL_INFO.affiliations}
-            </div>
-          </div>
-        </div>
+      <div style="background: #ffffff; color: #0f172a; padding: 28px 24px; border: 4px solid #4338ca; border-radius: 6px; font-family: 'Times New Roman', Times, serif; box-sizing: border-box; min-height: 520px; position: relative;">
+        ${headerHtml}
 
         <div style="text-align: center; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.85rem; color: #0f172a; text-transform: uppercase;">
           DEPARTMENT OF ${department}
@@ -273,21 +236,8 @@ export const renderCertificateHtml = (templateId, certificateData) => {
   // C04: Workshop / FDP Competency
   if (templateId === 'C04') {
     return `
-      <div style="background: #ffffff; color: #0f172a; padding: 32px 28px; border: 4px solid #059669; border-radius: 10px; font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; min-height: 520px; position: relative;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px;">
-          ${SREC_CREST_SVG}
-          <div style="text-align: center;">
-            <div style="font-weight: 900; font-size: 1.25rem; color: #065f46;">
-              ${INSTITUTIONAL_INFO.collegeName}
-            </div>
-            <div style="font-size: 0.72rem; color: #059669; font-weight: 800;">
-              ${INSTITUTIONAL_INFO.collegeType}
-            </div>
-            <div style="font-size: 0.65rem; color: #64748b;">
-              ${INSTITUTIONAL_INFO.affiliations}
-            </div>
-          </div>
-        </div>
+      <div style="background: #ffffff; color: #0f172a; padding: 28px 24px; border: 4px solid #059669; border-radius: 10px; font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; min-height: 520px; position: relative;">
+        ${headerHtml}
 
         <div style="text-align: center; font-weight: 800; font-size: 0.85rem; color: #0f172a; text-transform: uppercase;">
           DEPARTMENT OF ${department}
@@ -322,21 +272,8 @@ export const renderCertificateHtml = (templateId, certificateData) => {
 
   // C05: Minimal Clean Executive
   return `
-    <div style="background: #ffffff; color: #0f172a; padding: 32px 28px; border: 3px solid #1e293b; border-radius: 4px; font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; min-height: 520px; position: relative;">
-      <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px;">
-        ${SREC_CREST_SVG}
-        <div style="text-align: center;">
-          <div style="font-weight: 900; font-size: 1.25rem; color: #0f172a; letter-spacing: -0.5px;">
-            ${INSTITUTIONAL_INFO.collegeName}
-          </div>
-          <div style="font-size: 0.72rem; color: #475569; font-weight: 800;">
-            ${INSTITUTIONAL_INFO.collegeType}
-          </div>
-          <div style="font-size: 0.65rem; color: #64748b;">
-            ${INSTITUTIONAL_INFO.affiliations}
-          </div>
-        </div>
-      </div>
+    <div style="background: #ffffff; color: #0f172a; padding: 28px 24px; border: 3px solid #1e293b; border-radius: 4px; font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; min-height: 520px; position: relative;">
+      ${headerHtml}
 
       <div style="text-align: center; font-weight: 800; font-size: 0.85rem; color: #0f172a; text-transform: uppercase;">
         DEPARTMENT OF ${department}

@@ -5,7 +5,7 @@
 
 import { jsPDF } from 'jspdf';
 import * as jspdfModule from 'jspdf';
-import { INSTITUTIONAL_INFO } from './institutionalHeader.js';
+import { INSTITUTIONAL_INFO, SREC_LOGO_DATA_URL, SNR_TRUST_LOGO_DATA_URL } from './institutionalHeader.js';
 import { normalizeEventPersons } from './designPresets.js';
 
 /**
@@ -33,9 +33,9 @@ export const generatePosterPdf = (templateId, eventData) => {
     format: 'a4'
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 12;
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 14;
 
   const {
     title = 'National Seminar on Advanced Computing',
@@ -79,6 +79,16 @@ export const generatePosterPdf = (templateId, eventData) => {
     doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2, 'S');
     doc.setTextColor(15, 23, 42);
   }
+
+  // Dual Header Logos
+  try {
+    if (SREC_LOGO_DATA_URL) {
+      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 3, margin + 4, 16, 21);
+    }
+    if (SNR_TRUST_LOGO_DATA_URL) {
+      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 19, margin + 4, 16, 21);
+    }
+  } catch (err) {}
 
   let y = margin + 12;
 
@@ -393,11 +403,21 @@ export const generateInvitationPdf = (templateId, eventData) => {
   doc.setLineWidth(0.6);
   doc.rect(margin + 2.5, margin + 2.5, pageWidth - margin * 2 - 5, pageHeight - margin * 2 - 5, 'S');
 
+  // Dual Header Logos (Left: SREC College Logo, Right: SNR Sons Trust Logo)
+  try {
+    if (SREC_LOGO_DATA_URL) {
+      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 5, margin + 5, 15, 20);
+    }
+    if (SNR_TRUST_LOGO_DATA_URL) {
+      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 20, margin + 5, 15, 20);
+    }
+  } catch (err) {}
+
   let y = margin + 14;
 
   // Institutional Header
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(30, 58, 138);
   doc.text(INSTITUTIONAL_INFO.collegeName, pageWidth / 2, y, { align: 'center' });
 
@@ -659,11 +679,21 @@ export const renderSingleCertificatePage = (doc, templateId, certData, isNewPage
   doc.setLineWidth(0.8);
   doc.rect(margin + 2.5, margin + 2.5, pageWidth - margin * 2 - 5, pageHeight - margin * 2 - 5, 'S');
 
+  // Dual Header Logos (Left: SREC College Logo, Right: SNR Sons Trust Logo)
+  try {
+    if (SREC_LOGO_DATA_URL) {
+      doc.addImage(SREC_LOGO_DATA_URL, 'PNG', margin + 6, margin + 6, 18, 24);
+    }
+    if (SNR_TRUST_LOGO_DATA_URL) {
+      doc.addImage(SNR_TRUST_LOGO_DATA_URL, 'PNG', pageWidth - margin - 24, margin + 6, 18, 24);
+    }
+  } catch (err) {}
+
   let y = margin + 14;
 
   // Institutional Header
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setTextColor(30, 58, 138);
   doc.text(INSTITUTIONAL_INFO.collegeName, pageWidth / 2, y, { align: 'center' });
 
