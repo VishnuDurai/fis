@@ -49,7 +49,7 @@ export const POSTER_TEMPLATES = [
   }
 ];
 
-const renderMultiSpeakerCardsHtml = (persons = [], { isDark = false, accentColor = '#831843', borderColor = '#e2e8f0', showPhoto = true, showProfile = false, speakerLayout = 'auto', templateId = '' } = {}) => {
+const renderMultiSpeakerCardsHtml = (persons = [], { isDark = false, accentColor = '#831843', borderColor = '#e2e8f0', cardBg = '', nameColor = '', desigColor = '', orgColor = '', showPhoto = true, showProfile = false, speakerLayout = 'auto', templateId = '' } = {}) => {
   const count = persons.length;
   if (count === 0) return '';
 
@@ -59,10 +59,10 @@ const renderMultiSpeakerCardsHtml = (persons = [], { isDark = false, accentColor
   else if (speakerLayout === 'grid' || (speakerLayout === 'auto' && count === 4)) gridCols = '1fr 1fr';
   else if (speakerLayout === 'compact_grid' || (speakerLayout === 'auto' && count >= 5)) gridCols = count >= 6 ? '1fr 1fr 1fr' : '1fr 1fr';
 
-  const cardBg = isDark ? 'rgba(30, 41, 59, 0.85)' : '#ffffff';
-  const nameColor = isDark ? '#ffffff' : '#0f172a';
-  const desigColor = isDark ? '#cbd5e1' : '#334155';
-  const orgColor = isDark ? '#94a3b8' : '#64748b';
+  const resolvedCardBg = cardBg || (isDark ? 'rgba(30, 41, 59, 0.85)' : '#ffffff');
+  const resolvedNameColor = nameColor || (isDark ? '#ffffff' : '#0f172a');
+  const resolvedDesigColor = desigColor || (isDark ? '#cbd5e1' : '#334155');
+  const resolvedOrgColor = orgColor || (isDark ? '#94a3b8' : '#64748b');
 
   return `
     <div style="display: grid; grid-template-columns: ${gridCols}; gap: 14px; margin: 18px 0;">
@@ -74,20 +74,20 @@ const renderMultiSpeakerCardsHtml = (persons = [], { isDark = false, accentColor
         const photoDim = count === 1 ? '105px' : count <= 3 ? '85px' : '65px';
 
         return `
-          <div style="background: ${cardBg}; border: 1.5px solid ${borderColor}; border-radius: 12px; padding: 14px; display: flex; flex-direction: ${count >= 3 ? 'column' : 'row'}; align-items: center; justify-content: center; gap: 12px; text-align: ${count >= 3 ? 'center' : (photo ? 'left' : 'center')}; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+          <div style="background: ${resolvedCardBg}; border: 1.5px solid ${borderColor}; border-radius: 12px; padding: 14px; display: flex; flex-direction: ${count >= 3 ? 'column' : 'row'}; align-items: center; justify-content: center; gap: 12px; text-align: ${count >= 3 ? 'center' : (photo ? 'left' : 'center')}; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             ${showPhoto && photo ? `
               <div style="flex-shrink: 0;">
                 <img src="${photo}" alt="${p.name}" style="width: ${photoDim}; height: ${photoDim}; border-radius: ${borderRadius}; object-fit: cover; border: 2.5px solid ${accentColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.15);" />
               </div>
             ` : ''}
             <div style="max-width: 100%;">
-              <div style="display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; color: ${accentColor}; font-weight: 800; background: ${isDark ? 'rgba(99,102,241,0.15)' : 'rgba(131,24,67,0.08)'}; padding: 2px 8px; border-radius: 6px; margin-bottom: 4px;">
+              <div style="display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; color: ${accentColor}; font-weight: 800; background: ${isDark ? 'rgba(99,102,241,0.15)' : 'rgba(0,0,0,0.04)'}; padding: 2px 8px; border-radius: 6px; margin-bottom: 4px;">
                 ${role}
               </div>
-              <div style="font-size: ${count <= 2 ? '1.15rem' : '1.0rem'}; font-weight: 800; color: ${nameColor}; line-height: 1.2;">${p.name || 'Dignitary'}</div>
-              ${p.designation ? `<div style="font-size: 0.82rem; color: ${desigColor}; font-weight: 600; margin-top: 2px;">${p.designation}</div>` : ''}
-              ${p.organization ? `<div style="font-size: 0.78rem; color: ${orgColor}; margin-top: 1px;">${p.organization}</div>` : ''}
-              ${showProfile && p.profile && count === 1 ? `<div style="font-size: 0.75rem; color: ${orgColor}; margin-top: 6px; font-style: italic; line-height: 1.3;">"${p.profile.slice(0, 120)}..."</div>` : ''}
+              <div style="font-size: ${count <= 2 ? '1.15rem' : '1.0rem'}; font-weight: 800; color: ${resolvedNameColor}; line-height: 1.2;">${p.name || 'Dignitary'}</div>
+              ${p.designation ? `<div style="font-size: 0.82rem; color: ${resolvedDesigColor}; font-weight: 600; margin-top: 2px;">${p.designation}</div>` : ''}
+              ${p.organization ? `<div style="font-size: 0.78rem; color: ${resolvedOrgColor}; margin-top: 1px;">${p.organization}</div>` : ''}
+              ${showProfile && p.profile && count === 1 ? `<div style="font-size: 0.75rem; color: ${resolvedOrgColor}; margin-top: 6px; font-style: italic; line-height: 1.3;">"${p.profile.slice(0, 120)}..."</div>` : ''}
             </div>
           </div>
         `;
@@ -117,6 +117,19 @@ export const renderPosterHtml = (templateId, eventData, customDesign = {}) => {
   const cleanDateStr = toDate && toDate !== fromDate ? `${fromDate} to ${toDate}` : fromDate;
   const isDark = templateId === 'P02';
 
+  // Dynamic Theme Colors
+  const customColors = customDesign.customColors || {};
+  const primaryColor = customColors.primary || (templateId === 'P01' ? '#831843' : templateId === 'P02' ? '#6366f1' : templateId === 'P03' ? '#0369a1' : templateId === 'P04' ? '#0f766e' : '#1e293b');
+  const accentColor = customColors.accent || (templateId === 'P02' ? '#38bdf8' : templateId === 'P03' ? '#0284c7' : primaryColor);
+  const bgColor = customColors.background || (templateId === 'P02' ? '#0f172a' : templateId === 'P03' ? '#f8fafc' : templateId === 'P04' ? '#f0fdfa' : templateId === 'P01' ? '#fdf2f8' : '#ffffff');
+  const cardBg = customColors.cardBg || (isDark ? 'rgba(30, 41, 59, 0.85)' : '#ffffff');
+  const boxBorderColor = customColors.border || (templateId === 'P02' ? '#4338ca' : templateId === 'P03' ? '#bae6fd' : templateId === 'P04' ? '#99f6e4' : templateId === 'P01' ? '#fbcfe8' : '#cbd5e1');
+  const textColor = customColors.text || (isDark ? '#ffffff' : '#0f172a');
+  const textMuted = customColors.textMuted || (isDark ? '#cbd5e1' : '#475569');
+
+  const titleFont = customDesign.typography?.titleFont ? `'${customDesign.typography.titleFont}', sans-serif` : "'Inter', sans-serif";
+  const bodyFont = customDesign.typography?.bodyFont ? `'${customDesign.typography.bodyFont}', sans-serif` : "'Inter', sans-serif";
+
   const headerHtml = renderInstitutionalHeaderHtml({ isDark, compact: false, showAddress: true });
 
   const logosHtml = `
@@ -132,35 +145,35 @@ export const renderPosterHtml = (templateId, eventData, customDesign = {}) => {
   // -------------------------------------------------------------------------
   if (templateId === 'P02') {
     return `
-      <div style="background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%); color: #f8fafc; padding: 32px 28px; border-radius: 12px; border: 2px solid #312e81; font-family: 'Inter', sans-serif; box-sizing: border-box; min-height: 600px; position: relative;">
+      <div style="background: ${customColors.background ? customColors.background : 'linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%)'}; color: ${textColor}; padding: 32px 28px; border-radius: 12px; border: 2px solid ${primaryColor}; font-family: ${bodyFont}; box-sizing: border-box; min-height: 600px; position: relative;">
         ${headerHtml}
         
         <div style="text-align: center; margin-top: 10px; margin-bottom: 14px;">
-          <div style="display: inline-block; background: rgba(99, 102, 241, 0.2); color: #818cf8; font-weight: 800; font-size: 0.8rem; padding: 4px 14px; border-radius: 20px; border: 1px solid #4f46e5; text-transform: uppercase; letter-spacing: 1px;">
+          <div style="display: inline-block; background: rgba(99, 102, 241, 0.2); color: ${accentColor}; font-weight: 800; font-size: 0.8rem; padding: 4px 14px; border-radius: 20px; border: 1px solid ${primaryColor}; text-transform: uppercase; letter-spacing: 1px;">
             Organized by Department of ${department}
           </div>
-          ${coOrganizedBy ? `<div style="color: #94a3b8; font-size: 0.75rem; margin-top: 4px;">In Collaboration with ${coOrganizedBy}</div>` : ''}
-          ${inAssociationWith ? `<div style="color: #38bdf8; font-size: 0.75rem; margin-top: 2px; font-weight: 600;">In Association with ${inAssociationWith}</div>` : ''}
+          ${coOrganizedBy ? `<div style="color: ${textMuted}; font-size: 0.75rem; margin-top: 4px;">In Collaboration with ${coOrganizedBy}</div>` : ''}
+          ${inAssociationWith ? `<div style="color: ${accentColor}; font-size: 0.75rem; margin-top: 2px; font-weight: 600;">In Association with ${inAssociationWith}</div>` : ''}
         </div>
 
         ${(organizerLogo || eventLogo || associationLogo) ? logosHtml : ''}
 
         <div style="text-align: center; margin: 20px 0;">
-          <h1 style="font-size: 1.65rem; font-weight: 900; color: #ffffff; line-height: 1.25; margin: 0 0 8px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+          <h1 style="font-family: ${titleFont}; font-size: 1.65rem; font-weight: 900; color: ${textColor}; line-height: 1.25; margin: 0 0 8px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
             ${title}
           </h1>
-          ${theme ? `<div style="color: #a5b4fc; font-size: 0.95rem; font-weight: 600; font-style: italic;">"${theme}"</div>` : ''}
-          ${description ? `<p style="color: #cbd5e1; font-size: 0.82rem; max-width: 85%; margin: 8px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
+          ${theme ? `<div style="color: ${accentColor}; font-size: 0.95rem; font-weight: 600; font-style: italic;">"${theme}"</div>` : ''}
+          ${description ? `<p style="color: ${textMuted}; font-size: 0.82rem; max-width: 85%; margin: 8px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
         </div>
 
         <!-- Multi-Speaker Container -->
-        ${renderMultiSpeakerCardsHtml(persons, { isDark: true, accentColor: '#818cf8', borderColor: '#4338ca', showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
+        ${renderMultiSpeakerCardsHtml(persons, { isDark: true, accentColor, borderColor: boxBorderColor, cardBg, showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
 
         <!-- Schedule / Venue Grid -->
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 20px; background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: 8px; border: 1px solid #334155; text-align: center;">
           <div>
             <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">📅 Date</div>
-            <div style="font-size: 0.88rem; font-weight: 800; color: #38bdf8; margin-top: 2px;">${cleanDateStr}</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: ${accentColor}; margin-top: 2px;">${cleanDateStr}</div>
           </div>
           <div>
             <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">⏰ Time</div>
@@ -184,58 +197,43 @@ export const renderPosterHtml = (templateId, eventData, customDesign = {}) => {
   // -------------------------------------------------------------------------
   if (templateId === 'P03') {
     return `
-      <div style="background: #f8fafc; color: #0f172a; padding: 32px 28px; border-radius: 12px; border: 2.5px solid #0369a1; font-family: 'Inter', sans-serif; box-sizing: border-box; min-height: 600px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06);">
+      <div style="background: ${bgColor}; color: ${textColor}; padding: 32px 28px; border-radius: 12px; border: 2.5px solid ${primaryColor}; font-family: ${bodyFont}; box-sizing: border-box; min-height: 600px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06);">
         ${headerHtml}
 
         <div style="text-align: center; margin: 12px 0;">
-          <div style="color: #0369a1; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.8px;">
+          <div style="color: ${primaryColor}; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.8px;">
             DEPARTMENT OF ${department}
           </div>
-          ${coOrganizedBy ? `<div style="color: #64748b; font-size: 0.8rem; font-weight: 600; margin-top: 3px;">In Collaboration with ${coOrganizedBy}</div>` : ''}
-          ${inAssociationWith ? `<div style="color: #0284c7; font-size: 0.8rem; font-weight: 700; margin-top: 2px;">In Association with ${inAssociationWith}</div>` : ''}
+          ${coOrganizedBy ? `<div style="color: ${textMuted}; font-size: 0.8rem; font-weight: 600; margin-top: 3px;">In Collaboration with ${coOrganizedBy}</div>` : ''}
+          ${inAssociationWith ? `<div style="color: ${accentColor}; font-size: 0.8rem; font-weight: 700; margin-top: 2px;">In Association with ${inAssociationWith}</div>` : ''}
         </div>
 
         ${(organizerLogo || eventLogo || associationLogo) ? logosHtml : ''}
 
         <div style="text-align: center; margin: 16px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 14px 0;">
-          <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 700; margin-bottom: 4px;">Expert Seminar / Keynote Lecture on</div>
-          <h1 style="font-size: 1.65rem; font-weight: 900; color: #0f172a; line-height: 1.25; margin: 4px 0;">
+          <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 1.5px; color: ${textMuted}; font-weight: 700; margin-bottom: 4px;">Expert Seminar / Keynote Lecture on</div>
+          <h1 style="font-family: ${titleFont}; font-size: 1.65rem; font-weight: 900; color: ${textColor}; line-height: 1.25; margin: 4px 0;">
             ${title}
           </h1>
-          ${theme ? `<div style="color: #0369a1; font-size: 0.92rem; font-weight: 700; font-style: italic; margin-top: 3px;">"${theme}"</div>` : ''}
+          ${theme ? `<div style="color: ${primaryColor}; font-size: 0.92rem; font-weight: 700; font-style: italic; margin-top: 3px;">"${theme}"</div>` : ''}
         </div>
 
         <!-- Multi-Speaker Container -->
-        ${renderMultiSpeakerCardsHtml(persons, { isDark: false, accentColor: '#0369a1', borderColor: '#bae6fd', showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout, templateId: 'P03' })}
+        ${renderMultiSpeakerCardsHtml(persons, { isDark: false, accentColor: primaryColor, borderColor: boxBorderColor, cardBg, showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout, templateId: 'P03' })}
 
         <!-- Schedule / Venue Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 16px; background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 16px; background: ${cardBg}; padding: 14px; border-radius: 8px; border: 1px solid ${boxBorderColor}; text-align: center;">
           <div>
-            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">📅 Date</div>
-            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-top: 2px;">${cleanDateStr}</div>
-          </div>
-          <div>
-            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">⏰ Time</div>
-            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-top: 2px;">${time}</div>
+            <div style="font-size: 0.7rem; color: ${textMuted}; font-weight: 700; text-transform: uppercase;">📅 Date</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: ${textColor}; margin-top: 2px;">${cleanDateStr}</div>
           </div>
           <div>
-            <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">📍 Venue</div>
-            <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a; margin-top: 2px;">${venue}</div>
+            <div style="font-size: 0.7rem; color: ${textMuted}; font-weight: 700; text-transform: uppercase;">⏰ Time</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: ${textColor}; margin-top: 2px;">${time}</div>
           </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 22px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 0.8rem;">
-          <div style="text-align: left;">
-            <div style="font-weight: 800; color: #0f172a;">Faculty Coordinator</div>
-            <div style="color: #64748b; font-size: 0.74rem;">Department of ${department}</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-weight: 800; color: #0f172a;">Head of the Department</div>
-            <div style="color: #64748b; font-size: 0.74rem;">Department of ${department}</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-weight: 800; color: #0f172a;">Principal</div>
-            <div style="color: #64748b; font-size: 0.74rem;">Sri Ramakrishna Engineering College</div>
+          <div>
+            <div style="font-size: 0.7rem; color: ${textMuted}; font-weight: 700; text-transform: uppercase;">📍 Venue</div>
+            <div style="font-size: 0.82rem; font-weight: 800; color: ${textColor}; margin-top: 2px;">${venue}</div>
           </div>
         </div>
       </div>
@@ -245,60 +243,45 @@ export const renderPosterHtml = (templateId, eventData, customDesign = {}) => {
   // -------------------------------------------------------------------------
   // TEMPLATES P01 (Classic), P04 (Hands-On), P05 (Minimal Academic)
   // -------------------------------------------------------------------------
-  const primaryColor = templateId === 'P01' ? '#831843' : templateId === 'P04' ? '#0f766e' : '#1e293b';
-  const lightBgColor = templateId === 'P01' ? '#fdf2f8' : templateId === 'P04' ? '#f0fdfa' : '#ffffff';
-  const boxBorderColor = templateId === 'P01' ? '#fbcfe8' : templateId === 'P04' ? '#99f6e4' : '#cbd5e1';
-
   return `
-    <div style="background: ${lightBgColor}; color: #0f172a; padding: 32px 28px; border-radius: 12px; border: 2.5px solid ${primaryColor}; font-family: 'Inter', sans-serif; box-sizing: border-box; min-height: 600px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+    <div style="background: ${bgColor}; color: ${textColor}; padding: 32px 28px; border-radius: 12px; border: 2.5px solid ${primaryColor}; font-family: ${bodyFont}; box-sizing: border-box; min-height: 600px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
       ${headerHtml}
 
       <div style="text-align: center; margin: 12px 0;">
         <div style="color: ${primaryColor}; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.8px;">
           DEPARTMENT OF ${department}
         </div>
-        ${coOrganizedBy ? `<div style="color: #64748b; font-size: 0.8rem; font-weight: 600; margin-top: 3px;">In Collaboration with ${coOrganizedBy}</div>` : ''}
-        ${inAssociationWith ? `<div style="color: #0284c7; font-size: 0.8rem; font-weight: 700; margin-top: 2px;">In Association with ${inAssociationWith}</div>` : ''}
+        ${coOrganizedBy ? `<div style="color: ${textMuted}; font-size: 0.8rem; font-weight: 600; margin-top: 3px;">In Collaboration with ${coOrganizedBy}</div>` : ''}
+        ${inAssociationWith ? `<div style="color: ${accentColor}; font-size: 0.8rem; font-weight: 700; margin-top: 2px;">In Association with ${inAssociationWith}</div>` : ''}
       </div>
 
       ${(organizerLogo || eventLogo || associationLogo) ? logosHtml : ''}
 
       <div style="text-align: center; margin: 20px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 18px 0;">
-        <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 700; margin-bottom: 4px;">Cordially Invites You to the</div>
-        <h1 style="font-size: 1.65rem; font-weight: 900; color: #0f172a; line-height: 1.25; margin: 6px 0;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; color: ${textMuted}; font-weight: 700; margin-bottom: 4px;">Cordially Invites You to the</div>
+        <h1 style="font-family: ${titleFont}; font-size: 1.65rem; font-weight: 900; color: ${textColor}; line-height: 1.25; margin: 6px 0;">
           ${title}
         </h1>
         ${theme ? `<div style="color: ${primaryColor}; font-size: 0.95rem; font-weight: 700; font-style: italic; margin-top: 4px;">Theme: "${theme}"</div>` : ''}
-        ${description ? `<p style="color: #475569; font-size: 0.82rem; max-width: 85%; margin: 8px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
+        ${description ? `<p style="color: ${textMuted}; font-size: 0.82rem; max-width: 85%; margin: 8px auto 0 auto; line-height: 1.4;">${description}</p>` : ''}
       </div>
 
       <!-- Multi-Speaker Container -->
-      ${renderMultiSpeakerCardsHtml(persons, { isDark: false, accentColor: primaryColor, borderColor: boxBorderColor, showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
+      ${renderMultiSpeakerCardsHtml(persons, { isDark: false, accentColor: primaryColor, borderColor: boxBorderColor, cardBg, showPhoto: customDesign.showPhoto !== false, showProfile: customDesign.showProfile, speakerLayout: customDesign.speakerLayout })}
 
       <!-- Event Details Badges -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 18px; background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 18px; background: ${cardBg}; padding: 14px; border-radius: 8px; border: 1px solid ${boxBorderColor}; text-align: center;">
         <div>
-          <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">📅 Date</div>
-          <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-top: 2px;">${cleanDateStr}</div>
-        </div>
-        <div>
-          <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">⏰ Time</div>
-          <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-top: 2px;">${time}</div>
+          <div style="font-size: 0.7rem; color: ${textMuted}; font-weight: 700; text-transform: uppercase;">📅 Date</div>
+          <div style="font-size: 0.88rem; font-weight: 800; color: ${textColor}; margin-top: 2px;">${cleanDateStr}</div>
         </div>
         <div>
-          <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">📍 Venue</div>
-          <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a; margin-top: 2px;">${venue}</div>
+          <div style="font-size: 0.7rem; color: ${textMuted}; font-weight: 700; text-transform: uppercase;">⏰ Time</div>
+          <div style="font-size: 0.88rem; font-weight: 800; color: ${textColor}; margin-top: 2px;">${time}</div>
         </div>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; padding-top: 14px; border-top: 1px solid #e2e8f0; font-size: 0.8rem;">
-        <div style="text-align: left;">
-          <div style="font-weight: 800; color: #0f172a;">Faculty Coordinator</div>
-          <div style="color: #64748b; font-size: 0.74rem;">Department of ${department}</div>
-        </div>
-        <div style="text-align: right;">
-          <div style="font-weight: 800; color: #0f172a;">Principal</div>
-          <div style="color: #64748b; font-size: 0.74rem;">Sri Ramakrishna Engineering College</div>
+        <div>
+          <div style="font-size: 0.7rem; color: ${textMuted}; font-weight: 700; text-transform: uppercase;">📍 Venue</div>
+          <div style="font-size: 0.82rem; font-weight: 800; color: ${textColor}; margin-top: 2px;">${venue}</div>
         </div>
       </div>
     </div>

@@ -346,29 +346,6 @@ export const generatePosterPdf = (templateId, eventData) => {
   const venueLines = splitText(doc, venue, badgeWidth - 4);
   doc.text(venueLines, b3X + badgeWidth / 2, y + 13, { align: 'center' });
 
-  // Signatures
-  const footerY = pageHeight - margin - 18;
-  doc.setDrawColor(203, 213, 225);
-  doc.line(margin + 10, footerY, pageWidth - margin - 10, footerY);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(templateId === 'P02' ? 248 : 15, templateId === 'P02' ? 250 : 23, templateId === 'P02' ? 252 : 42);
-  doc.text('Convenor / Coordinator', margin + 12, footerY + 7);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Dept of ${department}`, margin + 12, footerY + 12);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(templateId === 'P02' ? 248 : 15, templateId === 'P02' ? 250 : 23, templateId === 'P02' ? 252 : 42);
-  doc.text('Principal', pageWidth - margin - 12, footerY + 7, { align: 'right' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Sri Ramakrishna Engineering College', pageWidth - margin - 12, footerY + 12, { align: 'right' });
-
   return doc;
 };
 
@@ -629,24 +606,6 @@ export const generateInvitationPdf = (templateId, eventData) => {
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
   doc.text(`Date: ${cleanDate}   |   Time: ${time}   |   Venue: ${venue}`, pageWidth / 2, y + 9, { align: 'center' });
-
-  // Signatures
-  const footerY = pageHeight - margin - 20;
-  const colW = (pageWidth - margin * 2 - 20) / 3;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Organizing Secretaries', margin + 10 + colW / 2, footerY, { align: 'center' });
-  doc.text('Head of Department', margin + 10 + colW + colW / 2, footerY, { align: 'center' });
-  doc.text('Principal', margin + 10 + colW * 2 + colW / 2, footerY, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Faculty Coordinators', margin + 10 + colW / 2, footerY + 5, { align: 'center' });
-  doc.text(`Dept of ${department}`, margin + 10 + colW + colW / 2, footerY + 5, { align: 'center' });
-  doc.text('SREC, Coimbatore', margin + 10 + colW * 2 + colW / 2, footerY + 5, { align: 'center' });
 
   return doc;
 };

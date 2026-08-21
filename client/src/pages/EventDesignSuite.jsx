@@ -51,7 +51,8 @@ import {
   Maximize2,
   Users,
   MoveUp,
-  MoveDown
+  MoveDown,
+  Layout
 } from 'lucide-react';
 import { POSTER_TEMPLATES, renderPosterHtml } from '../utils/eventDesign/posterTemplates.js';
 import { INVITATION_TEMPLATES, renderInvitationHtml } from '../utils/eventDesign/invitationTemplates.js';
@@ -1343,13 +1344,14 @@ export default function EventDesignSuite() {
             {/* Customization Accordion Nav */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(6, 1fr)',
+              gridTemplateColumns: 'repeat(7, 1fr)',
               background: '#f1f5f9',
               borderRadius: '10px',
               padding: '4px',
               gap: '4px'
             }}>
               {[
+                { id: 'templates', icon: <Layout size={14} />, label: 'Templates' },
                 { id: 'speakers', icon: <Users size={14} />, label: `Dignitaries (${eventPersons.length})` },
                 { id: 'theme', icon: <Palette size={14} />, label: 'Themes' },
                 { id: 'typography', icon: <Type size={14} />, label: 'Fonts' },
@@ -1362,13 +1364,13 @@ export default function EventDesignSuite() {
                   type="button"
                   onClick={() => setActiveCustomizeAccordion(sec.id)}
                   style={{
-                    padding: '8px 4px',
+                    padding: '8px 2px',
                     border: 'none',
                     borderRadius: '7px',
                     background: activeCustomizeAccordion === sec.id ? '#ffffff' : 'transparent',
                     color: activeCustomizeAccordion === sec.id ? '#0b2545' : '#64748b',
                     fontWeight: 800,
-                    fontSize: '0.72rem',
+                    fontSize: '0.70rem',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1383,6 +1385,65 @@ export default function EventDesignSuite() {
                 </button>
               ))}
             </div>
+
+            {/* SECTION: TEMPLATE PICKER */}
+            {activeCustomizeAccordion === 'templates' && (
+              <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #e2e8f0', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Layout size={16} color="#0b2545" /> {activeTab === 'poster' ? 'Poster Templates' : 'Invitation Templates'}
+                  </h4>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>5 Formats Available</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {(activeTab === 'poster' ? POSTER_TEMPLATES : INVITATION_TEMPLATES).map(tmpl => {
+                    const isSelected = activeTab === 'poster' ? selectedPosterTemplate === tmpl.id : selectedInvitationTemplate === tmpl.id;
+                    return (
+                      <div
+                        key={tmpl.id}
+                        onClick={() => {
+                          if (activeTab === 'poster') setSelectedPosterTemplate(tmpl.id);
+                          else setSelectedInvitationTemplate(tmpl.id);
+                          pushStateToHistory();
+                        }}
+                        style={{
+                          padding: '12px',
+                          borderRadius: '10px',
+                          border: isSelected ? '2.5px solid #0b2545' : '1px solid #e2e8f0',
+                          background: isSelected ? '#f0f9ff' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          boxShadow: isSelected ? '0 4px 12px rgba(11,37,69,0.08)' : 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            width: '12px',
+                            height: '36px',
+                            borderRadius: '4px',
+                            background: tmpl.accentColor || '#0b2545',
+                            display: 'inline-block'
+                          }} />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0f172a' }}>{tmpl.id} — {tmpl.name}</span>
+                              <span style={{ fontSize: '0.66rem', fontWeight: 800, padding: '1px 6px', borderRadius: '8px', background: '#e2e8f0', color: '#334155' }}>{tmpl.previewBadge}</span>
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', lineHeight: 1.3 }}>{tmpl.description}</div>
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={18} color="#0b2545" style={{ flexShrink: 0 }} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* SECTION 0: MULTIPLE DIGNITARIES & RESOURCE PERSONS */}
             {activeCustomizeAccordion === 'speakers' && (
@@ -1767,7 +1828,7 @@ export default function EventDesignSuite() {
                 {/* Institutional Locking Notice */}
                 <div style={{ marginTop: '12px', background: '#f8fafc', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#64748b' }}>
                   <Lock size={12} color="#0b2545" />
-                  <span>🔒 SREC Official Seal & Institutional Signatory Footers remain locked to ensure accreditation integrity.</span>
+                  <span>🔒 Official Institutional Header & NAAC/AICTE Accreditations active.</span>
                 </div>
               </div>
             )}
@@ -2388,6 +2449,339 @@ export default function EventDesignSuite() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: TEMPLATE GALLERY (15 MASTER TEMPLATES)                              */}
+      {/* ========================================================================= */}
+      {activeTab === 'gallery' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Gallery Header */}
+          <div style={{
+            background: 'linear-gradient(135deg, #0b2545 0%, #1e3a8a 100%)',
+            borderRadius: '16px',
+            padding: '24px 28px',
+            color: '#ffffff',
+            boxShadow: '0 10px 25px -5px rgba(11,37,69,0.25)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.6rem' }}>🏛️</span>
+                <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff' }}>
+                  Institutional Template Gallery
+                </h2>
+              </div>
+              <p style={{ margin: '6px 0 0 0', fontSize: '0.86rem', color: '#bfdbfe', maxWidth: '640px' }}>
+                Explore 15 standardized academic templates engineered with official SREC branding, autonomous NAAC/AICTE badges, and responsive layouts.
+              </p>
+            </div>
+
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '6px', borderRadius: '12px', backdropFilter: 'blur(8px)' }}>
+              {[
+                { id: 'ALL', label: 'All Designs', count: 15 },
+                { id: 'POSTER', label: '🎨 Posters', count: 5 },
+                { id: 'INVITATION', label: '📨 Invitations', count: 5 },
+                { id: 'CERTIFICATE', label: '📜 Certificates', count: 5 }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setGalleryFilter(f.id)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: galleryFilter === f.id ? '#ffffff' : 'transparent',
+                    color: galleryFilter === f.id ? '#0b2545' : '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {f.label}
+                  <span style={{
+                    fontSize: '0.7rem',
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    background: galleryFilter === f.id ? '#0b2545' : 'rgba(255,255,255,0.2)',
+                    color: galleryFilter === f.id ? '#ffffff' : '#ffffff'
+                  }}>
+                    {f.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Templates Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '20px'
+          }}>
+            {[
+              ...POSTER_TEMPLATES.map(t => ({ ...t, category: 'POSTER' })),
+              ...INVITATION_TEMPLATES.map(t => ({ ...t, category: 'INVITATION' })),
+              ...CERTIFICATE_TEMPLATES.map(t => ({ ...t, category: 'CERTIFICATE' }))
+            ]
+              .filter(t => galleryFilter === 'ALL' || t.category === galleryFilter)
+              .map(tmpl => {
+                const isPoster = tmpl.category === 'POSTER';
+                const isInvitation = tmpl.category === 'INVITATION';
+                const isCert = tmpl.category === 'CERTIFICATE';
+
+                const categoryBadgeBg = isPoster ? '#fdf2f8' : isInvitation ? '#eff6ff' : '#f0fdf4';
+                const categoryBadgeColor = isPoster ? '#9d174d' : isInvitation ? '#1e40af' : '#166534';
+                const categoryLabel = isPoster ? 'Event Poster' : isInvitation ? 'Invitation Card' : 'Certificate';
+
+                return (
+                  <div
+                    key={`${tmpl.category}_${tmpl.id}`}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      border: '1.5px solid #e2e8f0',
+                      padding: '20px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    }}
+                  >
+                    <div>
+                      {/* Badge Row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: categoryBadgeBg,
+                            color: categoryBadgeColor,
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            textTransform: 'uppercase'
+                          }}>
+                            {categoryLabel}
+                          </span>
+                          <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0f172a' }}>
+                            {tmpl.id}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          background: '#f1f5f9',
+                          color: '#475569'
+                        }}>
+                          {tmpl.previewBadge}
+                        </span>
+                      </div>
+
+                      {/* Mockup Preview Box */}
+                      <div style={{
+                        height: '140px',
+                        background: tmpl.id === 'P02' ? '#0f172a' : tmpl.id === 'P04' ? '#f0fdfa' : tmpl.id === 'P03' ? '#f8fafc' : '#ffffff',
+                        border: `2px solid ${tmpl.accentColor || '#cbd5e1'}`,
+                        borderRadius: '10px',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)',
+                        marginBottom: '14px',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}>
+                        {/* Mockup header */}
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.62rem', fontWeight: 900, color: tmpl.id === 'P02' ? '#ffffff' : '#1e3a8a', letterSpacing: '0.5px' }}>
+                            SRI RAMAKRISHNA ENGINEERING COLLEGE
+                          </div>
+                          <div style={{ width: '40px', height: '2px', background: tmpl.accentColor || '#b45309', margin: '3px auto 0 auto', borderRadius: '1px' }} />
+                        </div>
+
+                        {/* Mockup body */}
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: tmpl.id === 'P02' ? '#f8fafc' : '#0f172a', lineHeight: 1.2 }}>
+                            {tmpl.name}
+                          </div>
+                          <div style={{ fontSize: '0.6rem', color: tmpl.id === 'P02' ? '#94a3b8' : '#64748b', marginTop: '2px' }}>
+                            {isPoster ? 'Keynote & Technical Layout' : isInvitation ? 'Formal Inaugural Invitation' : 'Accredited Certification'}
+                          </div>
+                        </div>
+
+                        {/* Mockup footer dots */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: tmpl.accentColor || '#0b2545', display: 'inline-block' }} />
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: tmpl.id === 'P02' ? '#6366f1' : '#cbd5e1', display: 'inline-block' }} />
+                          </div>
+                          <span style={{ fontSize: '0.58rem', fontWeight: 800, color: tmpl.id === 'P02' ? '#818cf8' : '#64748b' }}>
+                            A4 Standard
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Title & Description */}
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                        {tmpl.name}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.45 }}>
+                        {tmpl.description}
+                      </p>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isPoster) {
+                          setSelectedPosterTemplate(tmpl.id);
+                          setActiveTab('poster');
+                        } else if (isInvitation) {
+                          setSelectedInvitationTemplate(tmpl.id);
+                          setActiveTab('invitation');
+                        } else {
+                          setSelectedCertificateTemplate(tmpl.id);
+                          setActiveTab('certificate');
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#0b2545',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 6px rgba(11,37,69,0.12)',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      {isPoster ? (
+                        <><span>🎨</span> Open in Poster Designer</>
+                      ) : isInvitation ? (
+                        <><span>📨</span> Open in Invitation Studio</>
+                      ) : (
+                        <><span>📜</span> Open in Certificate Engine</>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: DESIGN HISTORY & AUDIT LOGS                                          */}
+      {/* ========================================================================= */}
+      {activeTab === 'history' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #e2e8f0', padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>📁 Generated Design History & Audit Logs</h3>
+              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.84rem' }}>
+                View and re-download previously generated event posters, invitations, and certificate batches.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchGeneratedDesigns}
+              style={{
+                background: '#f1f5f9',
+                color: '#0b2545',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <RefreshCw size={14} className={loadingDesigns ? 'animate-spin' : ''} /> Refresh History
+            </button>
+          </div>
+
+          {generatedDesigns.length === 0 ? (
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #e2e8f0', padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📁</div>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>No Generated Designs Yet</h4>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.84rem' }}>
+                Use the One-Click Package Studio, Poster Designer, or Invitation Studio to generate and download publication-ready artifacts.
+              </p>
+            </div>
+          ) : (
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #e2e8f0', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#475569', fontWeight: 800, fontSize: '0.76rem', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '12px 16px' }}>Design Type</th>
+                    <th style={{ padding: '12px 16px' }}>Event Title</th>
+                    <th style={{ padding: '12px 16px' }}>Template</th>
+                    <th style={{ padding: '12px 16px' }}>Generated Date</th>
+                    <th style={{ padding: '12px 16px' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedDesigns.map((d, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontWeight: 800,
+                          fontSize: '0.74rem',
+                          background: d.design_type === 'POSTER' ? '#fdf2f8' : d.design_type === 'INVITATION' ? '#eff6ff' : '#f0fdf4',
+                          color: d.design_type === 'POSTER' ? '#9d174d' : d.design_type === 'INVITATION' ? '#1e40af' : '#166534'
+                        }}>
+                          {d.design_type}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
+                        {d.event_title || eventForm.title}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>
+                        {d.template_id || 'P01'}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#64748b' }}>
+                        {d.created_at ? new Date(d.created_at).toLocaleString('en-IN') : 'Just now'}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontWeight: 700, fontSize: '0.78rem' }}>
+                          <CheckCircle2 size={14} /> Ready
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
